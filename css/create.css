@@ -1,0 +1,94 @@
+.nng-create {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 16px 24px 48px;
+}
+
+.nng-create h1 {
+  font-size: 22px;
+  margin: 0 0 4px;
+}
+
+.nng-create-hint {
+  margin: 0 0 16px;
+  color: var(--muted);
+}
+
+.nng-create-error {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border: 1px solid #c0392b;
+  border-radius: 4px;
+  background: #fdecea;
+  color: #7a1f14;
+}
+
+.nng-create-error[hidden] {
+  display: none;
+}
+
+.nng-create-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.nng-create-controls label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nng-create-controls button {
+  font: inherit;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.nng-create-threshold-value {
+  min-width: 3ch;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.nng-create-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.nng-create-body [hidden] {
+  display: none;
+}
+
+.nng-create-preview-wrap h2,
+.nng-create-grid-wrap h2 {
+  font-size: 14px;
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.nng-create-preview {
+  display: block;
+  max-width: 100%;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  cursor: grab;
+  touch-action: none;
+}
+
+.nng-create-preview.dragging {
+  cursor: grabbing;
+}
+
+.nng-create-slot {
+  margin-top: 16px;
+}

@@ -125,12 +125,20 @@ Tags on each step read `[wave·lane]`. Steps in the same wave but different lane
 **Where it pays off.** W1 is the real win: four pure-logic lanes with no DOM and no shared files. W3 is a moderate win. Its three UI lanes are separate, but they share the grid renderer and base CSS. **Any change to `src/views/grid.js` or `css/base.css` after the W2 gate goes back to one owner** (the P lane) and doesn't get made in parallel.
 
 **What makes this safe (plan-review check #5).** Parallel lanes are only safe when the interfaces between them are fixed before work starts. These are the contracts. Changing one is a sequential step that touches every lane using it.
-- **Clue:** `{n, c}` (run length, palette index ≥1). `lineClues(line: number[]) → Clue[]`. An empty line gives `[]`.
+- **Clue:** `{n, c}` (run length, palette index ≥1). `lineClues(line: number[]) → Clue[]`. An empty line gives `[]`. `puzzleClues(solution) → {rows: Clue[][], cols: Clue[][]}`.
 - **Solver:** `solve({width, height, rows: Clue[][], cols: Clue[][]}, {budget}) → {status, sweeps, grid, unresolved: [r, c][], differing: [r, c][]}`. In the returned grid, `null` means unresolved, `0` empty and `k` filled. `status` is one of the values in step 4a. `budget` counts search nodes, not milliseconds, so results are deterministic in tests. `unresolved` lists the cells the line solver couldn't decide. When `status` is `multiple`, `differing` lists the cells that differ between the two solutions found, and that's what the creator highlights. Otherwise it's `[]`. The UI calls the solver through `solver.worker.js` (a Web Worker with the same input and output) so it never blocks the page.
 - **Image:** `cellLuminance(rgba, imgW, imgH, crop: {x, y, w, h}, cols, rows) → number[][]` (0 to 255). `otsu(values) → threshold`. `binarize(lum, t, invert) → number[][]` (0 or 1).
+  - Luminance is 0.299R + 0.587G + 0.114B, with each pixel composited over white by its alpha, so transparent pixels count as background.
+  - Cell (r, c) covers crop pixels in [x + floor(c·w/cols), x + floor((c+1)·w/cols)). A cell with no pixels samples the nearest pixel.
+  - `otsu` returns the integer t in 1..255 that maximizes between-class variance, where class 0 is values < t. Ties go to the smallest t, and a single-class input returns 128.
+  - `binarize`: lum < t means filled.
 - **Format:** the puzzle, save and set records exactly as defined in D2, step 5 and step 12b. `puzzleId(puzzle) → Promise<string>`. The hash covers `set` when it's present (step 5 implements this, and step 12b only uses it).
 - **Store:** the only module that touches `localStorage`. Keys are `nng:puzzle:<id>`, `nng:save:<puzzleId>` and `nng:set:<setId>`. Functions: `get(kind, id)`, `put(kind, record)`, `list(kind)` and `remove(kind, id)`, where kind is `puzzle`, `save` or `set`. Removing a puzzle also removes its save. `list` runs the `format.js` validators and skips invalid records, returning `{records, skipped}`, so one corrupt entry can't blank the library.
-- **Strokes:** `applyStroke(cells, {button: 'left' | 'right', path: [r, c][]}, paint = 1) → cells`. Pure, with axis lock applied inside. Cell encoding as in step 5. `paint` is the palette index a fill writes. It's always 1 in v1, and it gives color mode a slot.
+- **Strokes:** `applyStroke(cells, {button: 'left' | 'right', path: [r, c][]}, paint = 1) → cells`. Pure, with axis lock applied inside. Cell encoding as in step 5.
+  - The axis is decided by the second distinct path cell. If it differs in both row and column, the larger delta wins, and a tie goes horizontal.
+  - Later points are projected onto the locked line and clamped to the grid.
+  - Cells between consecutive points are filled in, so fast mouse movement doesn't skip any.
+  - `strokeCells(cells, stroke) → [r, c][]` gives the covered cells before the state filter. Step 7 uses it for the live stroke length. `paint` is the palette index a fill writes. It's always 1 in v1, and it gives color mode a slot.
 - **Views:** each `src/views/*.js` exports `mount(el, params)` and `unmount()`. `app.js` owns routing.
 
 **Branching.** `tools/nonogram/` becomes its own local git repo in step 0.

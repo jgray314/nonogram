@@ -1,0 +1,25 @@
+.nng-play {
+  max-width: 100%;
+}
+
+.nng-status {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  min-height: 1.6em;
+  margin-bottom: 8px;
+}
+
+.nng-solved {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.nng-count {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.nng-grid-holder {
+  overflow: auto;
+}

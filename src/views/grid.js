@@ -26,7 +26,8 @@ function div(className, text) {
  *     r and c are null when the pointer is outside the cells.
  *     button is 'left' | 'right' while a press that began on a cell is held
  *     (down, enter and up), else null. Presses with other buttons are ignored.
- * Returns {update(cells), destroy()}.
+ * Returns {update(cells), setSatisfied({rows, cols}), setWrong([r, c][]), destroy()}.
+ *   setSatisfied dims the clues of lines flagged true; setWrong outlines cells.
  */
 export function renderGrid(container, { width, height, clues, cells, onPointer = () => {} }) {
   const { top, left } = gutterSize(clues);
@@ -41,9 +42,12 @@ export function renderGrid(container, { width, height, clues, cells, onPointer =
   };
 
   // Column clues are bottom-aligned, row clues right-aligned, against the cells.
+  const rowClues = clues.rows.map(() => []);
+  const colClues = clues.cols.map(() => []);
   clues.cols.forEach((list, c) => {
     list.forEach((clue, k) => {
       const node = div('nng-clue nng-clue-col', String(clue.n));
+      colClues[c].push(node);
       node.dataset.color = String(clue.c);
       place(node, top - list.length + k + 1, left + c + 1);
     });
@@ -51,6 +55,7 @@ export function renderGrid(container, { width, height, clues, cells, onPointer =
   clues.rows.forEach((list, r) => {
     list.forEach((clue, k) => {
       const node = div('nng-clue nng-clue-row', String(clue.n));
+      rowClues[r].push(node);
       node.dataset.color = String(clue.c);
       place(node, top + r + 1, left - list.length + k + 1);
     });
@@ -83,6 +88,20 @@ export function renderGrid(container, { width, height, clues, cells, onPointer =
         else delete node.dataset.color;
       }
     }
+  }
+
+  function setSatisfied({ rows = [], cols = [] }) {
+    rowClues.forEach((list, r) =>
+      list.forEach((n) => n.classList.toggle('nng-clue-done', !!rows[r])),
+    );
+    colClues.forEach((list, c) =>
+      list.forEach((n) => n.classList.toggle('nng-clue-done', !!cols[c])),
+    );
+  }
+
+  function setWrong(list) {
+    for (const row of nodes) for (const node of row) node.classList.remove('nng-wrong');
+    for (const [r, c] of list) nodes[r]?.[c]?.classList.add('nng-wrong');
   }
 
   // Hover highlight: the hovered cell's row and column.
@@ -147,6 +166,8 @@ export function renderGrid(container, { width, height, clues, cells, onPointer =
 
   return {
     update,
+    setSatisfied,
+    setWrong,
     destroy() {
       window.removeEventListener('pointerup', onUp);
       window.removeEventListener('pointercancel', onUp);

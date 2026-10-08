@@ -145,7 +145,7 @@ Tags on each step read `[wave·lane]`. Steps in the same wave but different lane
 - **Local only.** Pushing to GitHub isn't in scope unless you ask.
 
 **Lane rules** (every lane prompt includes them):
-- **Lane subagents run on Sonnet** (`model: "sonnet"`, which is Sonnet 5.5), at Jess's request on 2026-10-08. The orchestrator (Opus) merges, runs the manual checks and holds the contracts.
+- **Lane subagents run on Sonnet** (`model: "sonnet"`, which is Sonnet 5.5), at Jess's request on 2026-10-08. The orchestrator (Opus) merges, runs the manual checks and holds the contracts. **Upgrade rule:** if a Sonnet lane hits the two-failure stop, the orchestrator takes that step over on Opus. It doesn't relaunch Sonnet on the same step.
 - Only touch the files your lane owns. If a contract seems wrong, stop and report back. Never edit a contract or another lane's file.
 - **Two failed attempts at the same test means stop and report** what you tried and what happened. Don't keep trying variations.
 - Logic is tested in Node. Lanes don't drive the browser pane.

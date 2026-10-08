@@ -1,0 +1,58 @@
+.nng-print-controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.nng-print-meta {
+  margin: 0 0 12px;
+  color: var(--muted);
+}
+
+.nng-print-page {
+  margin-bottom: 24px;
+}
+
+.nng-print .nng-cell.nng-filled {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+@media print {
+  .nng-nav,
+  .nng-noprint {
+    display: none !important;
+  }
+
+  body,
+  main {
+    background: #fff;
+    padding: 0;
+    margin: 0;
+  }
+
+  .nng-print-page {
+    margin: 0;
+  }
+
+  .nng-print-key {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  /* Backgrounds are often dropped when printing, so filled cells also get
+     a solid dark fill forced on, and every cell keeps a visible border. */
+  .nng-print .nng-cell {
+    border-color: #555;
+  }
+
+  .nng-print .nng-cell.nng-filled {
+    background: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .nng-print .nng-cell.nng-hot {
+    background: #fff;
+  }
+}

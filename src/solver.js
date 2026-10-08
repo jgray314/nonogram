@@ -119,3 +119,87 @@ export function propagate(problem, start = null) {
   }
   return { contradiction: false, grid, sweeps };
 }
+
+export const DEFAULT_BUDGET = 5000;
+
+function unresolvedCells(grid) {
+  const out = [];
+  grid.forEach((row, r) =>
+    row.forEach((v, c) => {
+      if (v === null) out.push([r, c]);
+    }),
+  );
+  return out;
+}
+
+/**
+ * Solve and classify a puzzle.
+ *
+ * Returns {status, sweeps, grid, unresolved, differing}. `grid` is the line
+ * solver's fixed point (null = it could not decide), `unresolved` lists those
+ * cells. When status is `multiple`, `differing` lists cells that differ
+ * between two solutions found; otherwise it is []. `budget` caps the number of
+ * search nodes (propagations during backtracking), so results are
+ * deterministic. `unknown` means the budget ran out before the search could
+ * prove uniqueness, multiplicity or absence; it is never a uniqueness claim.
+ */
+export function solve(problem, { budget = DEFAULT_BUDGET } = {}) {
+  const root = propagate(problem);
+  const result = (status, extra = {}) => ({
+    status,
+    sweeps: root.sweeps,
+    grid: root.grid,
+    unresolved: unresolvedCells(root.grid),
+    differing: [],
+    ...extra,
+  });
+  if (root.contradiction) return result('none');
+  if (!root.grid.some((row) => row.includes(null))) {
+    return result('unique-line-solvable');
+  }
+
+  const colors = new Set();
+  for (const line of [...problem.rows, ...problem.cols]) {
+    for (const clue of line) colors.add(clue.c);
+  }
+  const values = [0, ...[...colors].sort((a, b) => a - b)];
+
+  const solutions = [];
+  let nodes = 0;
+  let exhausted = false;
+
+  const search = (grid) => {
+    const cell = unresolvedCells(grid)[0];
+    if (!cell) {
+      solutions.push(grid);
+      return;
+    }
+    for (const v of values) {
+      if (nodes >= budget) {
+        exhausted = true;
+        return;
+      }
+      nodes += 1;
+      const next = grid.map((row) => row.slice());
+      next[cell[0]][cell[1]] = v;
+      const res = propagate(problem, next);
+      if (!res.contradiction) search(res.grid);
+      if (solutions.length >= 2 || exhausted) return;
+    }
+  };
+  search(root.grid);
+
+  if (solutions.length >= 2) {
+    const [a, b] = solutions;
+    const differing = [];
+    a.forEach((row, r) =>
+      row.forEach((v, c) => {
+        if (v !== b[r][c]) differing.push([r, c]);
+      }),
+    );
+    return result('multiple', { differing });
+  }
+  if (exhausted) return result('unknown');
+  if (solutions.length === 1) return result('unique-needs-guessing');
+  return result('none');
+}

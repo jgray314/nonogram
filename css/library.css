@@ -1,0 +1,149 @@
+.nng-btn {
+  display: inline-block;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 4px 10px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.nng-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.nng-lib-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.nng-lib-status {
+  min-height: 1.4em;
+  color: var(--muted);
+  margin: 4px 0 12px;
+}
+
+.nng-warn {
+  color: #a4372a;
+}
+
+.nng-empty {
+  color: var(--muted);
+}
+
+.nng-lib-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.nng-lib-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px 14px;
+}
+
+.nng-lib-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 2px;
+}
+
+.nng-lib-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.nng-badge {
+  border-radius: 3px;
+  padding: 0 6px;
+  font-size: 12px;
+  border: 1px solid currentColor;
+}
+
+.nng-badge-not-fair {
+  color: #a4372a;
+}
+
+.nng-badge-unchecked {
+  color: #8a6a12;
+}
+
+.nng-progress-solved {
+  color: #2c7a3f;
+  font-weight: 600;
+}
+
+.nng-progress-in-progress {
+  color: var(--accent);
+}
+
+/* Set mosaics */
+.nng-sets {
+  margin-top: 24px;
+}
+
+.nng-set {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+}
+
+.nng-set-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 16px;
+  margin-bottom: 8px;
+}
+
+.nng-mosaic {
+  display: inline-grid;
+  gap: 2px;
+  background: var(--line);
+  border: 2px solid var(--line);
+}
+
+.nng-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 96px;
+  height: 96px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.nng-tile:hover {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.nng-tile canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}

@@ -275,10 +275,19 @@ Update the plan before W2 starts. One line to you with the result.
   - `theme contrast: clue text and fills meet 4.5:1 against background` (pure, a WCAG contrast ratio computed from the `src/theme.js` token values).
   - **[manual]** before/after screenshots of library, create, play (10x10 and 25x25), print preview, and the solved state.
 
-**Q8 (open, needed before 12s starts).**
-1. Font: system rounded stack (no network) **(rec)**, or a Google Font such as Nunito (needs network at load).
-2. Light only **(rec)**, or light plus a cozy dark "evening" theme.
-3. Any reference games or palettes you want it to feel like?
+**Q8 (CLOSED 2026-10-08).**
+- **Font:** a system rounded font stack, with no network.
+- **Themes:** a light "day" theme and a dark "evening" theme. The evening theme is deep blue-violet night with warm lantern-amber accents, not plain grey dark mode.
+  - The default follows `prefers-color-scheme`.
+  - A toggle in the nav overrides it, and the choice persists.
+  - Persisting it adds a `pref` kind to `store.js` (`getPref` and `setPref`, with no validator needed). This is a contract change, made by the orchestrator at the start of 12s, because `store.js` is the only module that touches `localStorage`.
+- **References:** Stardew Valley and Animal Crossing. Take the *feel*:
+  - warm wood and cream tones, leafy greens, soft sky blues
+  - chunky rounded UI panels, like wooden signs or rounded speech bubbles
+  - gentle, bouncy motion
+
+  **No copied assets, logos, fonts or character art.** Palette and shape language only.
+- **Test added:** the `theme contrast` test runs on both themes.
 
 ### Close
 13. `[seq]` Register in the toolkit. Run `/gate-review`. Calibrate the difficulty labels by playing about 5 puzzles you made.
@@ -316,7 +325,7 @@ What isn't on this list (contract shapes, ownership, dependency order) was revie
 - Parallel execution (2026-10-08, at Jess's request): four waves, with one branch per lane in its own git worktree, merged `--no-ff` into an always-green `main`. Interface contracts are frozen in the Parallel lanes section. This overrides coding-preferences' "one thread, no subagents", which was written for time-boxed sessions, not this project. Rejected a single thread: W1 has four independent pure-logic lanes, and running them one after another wastes most of that.
 - Q6 Grid shape: width and height are picked independently from {5, 10, 15, 20, 25}. The default is the closest match to the image's aspect, with a center crop and a draggable offset. Rejected square-only (Picross itself uses 25x20) and squashing (distorts the picture). Tiling was added on top (Q7).
 - 2026-10-08: lane subagents use Sonnet (Jess). This is a cost and speed call for well-specified, contract-bound pieces. The orchestrator stays on Opus for merges, contract calls and manual verification.
-- 2026-10-08: cozy game aesthetic added as step 12s (W5, sequential), at Jess's request. It comes after all views exist, so one owner touches every stylesheet instead of three lanes restyling in parallel. Q8 (font, dark theme, references) is open.
+- 2026-10-08: cozy game aesthetic added as step 12s (W5, sequential), at Jess's request. It comes after all views exist, so one owner touches every stylesheet instead of three lanes restyling in parallel. Q8 closed: system rounded font; light day theme plus a dark evening theme, following the system setting with a persisted toggle; Stardew Valley and Animal Crossing as feel references only, no copied assets. Rejected: a Google Font (network dependency for a local tool).
 - Plan-review pass 6: XML export got a UI action in step 12. Set saving is owned by 12c. Validators were added in `format.js` and used by the store and every import. `innerHTML` is banned by lint. Images are downscaled on load.
 - Plan-review pass 5: Q6's size picker and crop now land in step 10. `verdict` carries sweeps. Undo has keyboard shortcuts and the stroke length shows live. A test runtime rule was added. The W1r retro checkpoint and the Limits section were added.
 - Plan-review pass 4: lanes merge per step, not per lane. XML export moved to 5x. `verdict` is cached on the puzzle. The creator owns saving. Library backup was added. Tiles use one global threshold.

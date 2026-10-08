@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { puzzleClues } from '../src/clues.js';
-import { propagate, solve } from '../src/solver.js';
+import { propagate, solve, solveLine } from '../src/solver.js';
+import { lineClues } from '../src/clues.js';
 
 /** Parse a picture ('X' filled, anything else empty) into a solution grid. */
 function pic(lines) {
@@ -157,4 +158,156 @@ test('status unknown when budget is exhausted', () => {
   const r = solve(problemFrom(GUESS), { budget: 1 });
   assert.equal(r.status, 'unknown');
   assert.ok(r.unresolved.length > 0);
+});
+
+// ---- Step 4b: verification -------------------------------------------------
+
+const N4 = 4;
+const gridFromMask = (m) =>
+  Array.from({ length: N4 }, (_, r) =>
+    Array.from({ length: N4 }, (_, c) => (m >> (r * N4 + c)) & 1),
+  );
+const signature = (p) => JSON.stringify([p.rows, p.cols]);
+
+/** Seeded PRNG so "random" fixtures are reproducible. */
+function mulberry32(seed) {
+  let a = seed;
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Count solutions per clue signature across all 65,536 4x4 grids.
+const counts = new Map();
+for (let m = 0; m < 1 << 16; m += 1) {
+  const key = signature(puzzleClues(gridFromMask(m)));
+  counts.set(key, (counts.get(key) ?? 0) + 1);
+}
+
+function checkVerdict(m) {
+  const p = problemFrom(gridFromMask(m));
+  const truth = counts.get(signature(p));
+  const r = solve(p, { budget: 100000 });
+  if (truth === 1) {
+    assert.ok(
+      r.status === 'unique-line-solvable' || r.status === 'unique-needs-guessing',
+      `mask ${m}: expected unique, got ${r.status}`,
+    );
+  } else {
+    assert.equal(r.status, 'multiple', `mask ${m}`);
+  }
+}
+
+// The full 65,536-grid version lives in test/slow/solver.exhaustive.test.js.
+test('seeded 4x4 cross-check sample', () => {
+  const rand = mulberry32(12345);
+  for (let i = 0; i < 2000; i += 1) checkVerdict(Math.floor(rand() * 65536));
+});
+
+test('capped search reports unknown, never unique', () => {
+  const rand = mulberry32(777);
+  let sawUnknown = false;
+  for (let i = 0; i < 2000; i += 1) {
+    const m = Math.floor(rand() * 65536);
+    const p = problemFrom(gridFromMask(m));
+    const r = solve(p, { budget: 0 });
+    assert.notEqual(r.status, 'unique-needs-guessing');
+    assert.notEqual(r.status, 'multiple');
+    if (r.status === 'unknown') {
+      sawUnknown = true;
+      assert.ok(r.unresolved.length > 0);
+    }
+  }
+  assert.ok(sawUnknown);
+  assert.equal(solve(problemFrom(GUESS), { budget: 1 }).status, 'unknown');
+});
+
+/** Naive oracle: try all 2^n fillings of a line against clues and known cells. */
+function bruteLine(clues, known) {
+  const n = known.length;
+  const want = JSON.stringify(clues);
+  const options = [];
+  for (let m = 0; m < 1 << n; m += 1) {
+    const line = Array.from({ length: n }, (_, i) => (m >> i) & 1);
+    if (known.some((k, i) => k !== null && k !== line[i])) continue;
+    if (JSON.stringify(lineClues(line)) === want) options.push(line);
+  }
+  if (options.length === 0) return null;
+  return known.map((_, i) => (options.every((o) => o[i] === options[0][i]) ? options[0][i] : null));
+}
+
+function bruteFixpoint(p) {
+  const g = Array.from({ length: p.height }, () => Array(p.width).fill(null));
+  for (let changed = true; changed;) {
+    changed = false;
+    for (let r = 0; r < p.height; r += 1) {
+      const res = bruteLine(p.rows[r], g[r]);
+      if (!res) return { contradiction: true };
+      res.forEach((v, c) => {
+        if (g[r][c] !== v) ((g[r][c] = v), (changed = true));
+      });
+    }
+    for (let c = 0; c < p.width; c += 1) {
+      const res = bruteLine(
+        p.cols[c],
+        g.map((row) => row[c]),
+      );
+      if (!res) return { contradiction: true };
+      res.forEach((v, r) => {
+        if (g[r][c] !== v) ((g[r][c] = v), (changed = true));
+      });
+    }
+  }
+  return { contradiction: false, grid: g };
+}
+
+// The full all-4x4 version lives in test/slow/solver.exhaustive.test.js.
+test('brute line oracle agrees on all 4x4 (sample)', () => {
+  const seen = new Set();
+  const pick = mulberry32(4242);
+  for (let i = 0; i < 400; i += 1) {
+    const m = Math.floor(pick() * 65536);
+    const p = problemFrom(gridFromMask(m));
+    const key = signature(p);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const oracle = bruteFixpoint(p);
+    const dp = propagate(p);
+    assert.equal(dp.contradiction, oracle.contradiction, `mask ${m}`);
+    if (!oracle.contradiction) assert.deepEqual(dp.grid, oracle.grid, `mask ${m}`);
+  }
+  // Single lines, including partially known ones.
+  const rand = mulberry32(99);
+  for (let i = 0; i < 3000; i += 1) {
+    const line = Array.from({ length: 6 }, () => (rand() < 0.5 ? 1 : 0));
+    const known = line.map((v) => (rand() < 0.3 ? v : null));
+    assert.deepEqual(solveLine(lineClues(line), known), bruteLine(lineClues(line), known));
+  }
+});
+
+test('25x25 completes under 1s', () => {
+  // Concentric rings: hand-made rule, line-solvable.
+  const rings = Array.from({ length: 25 }, (_, r) =>
+    Array.from({ length: 25 }, (_, c) => (Math.min(r, c, 24 - r, 24 - c) % 2 === 0 ? 1 : 0)),
+  );
+  let t0 = performance.now();
+  const easy = solve(problemFrom(rings));
+  assert.ok(performance.now() - t0 < 1000);
+  assert.equal(easy.status, 'unique-line-solvable');
+  assert.deepEqual(easy.grid, rings);
+
+  // Seeded noise: must resolve or hit the budget within 1s.
+  const rand = mulberry32(2025);
+  const noise = Array.from({ length: 25 }, () =>
+    Array.from({ length: 25 }, () => (rand() < 0.5 ? 1 : 0)),
+  );
+  t0 = performance.now();
+  const hard = solve(problemFrom(noise), { budget: 50 });
+  assert.ok(performance.now() - t0 < 1000);
+  assert.ok(
+    ['unknown', 'multiple', 'unique-needs-guessing', 'unique-line-solvable'].includes(hard.status),
+  );
 });

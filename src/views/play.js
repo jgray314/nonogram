@@ -4,7 +4,8 @@ import { puzzleClues } from '../clues.js';
 import { applyStroke, strokeCells } from '../play-state.js';
 import { createHistory, isSolved, satisfiedLines } from '../game.js';
 import { createStore } from '../store.js';
-import { validatePuzzle } from '../format.js';
+import { validatePuzzle, validateSave } from '../format.js';
+import { serializeSaveFile, parseSaveFile, importWrites } from '../save.js';
 
 const CSS_HREF = 'css/play.css';
 
@@ -62,6 +63,7 @@ const sameGrid = (a, b) => a.every((row, r) => row.every((v, c) => v === b[r][c]
 let root = null;
 let grid = null;
 let cleanup = [];
+let persistNow = () => {};
 
 function showMissing(el_) {
   const box = el('section', 'nng-play');
@@ -97,13 +99,46 @@ export function mount(container, params = {}) {
   const count = el('span', 'nng-count');
   status.append(solvedMsg, count);
   const holder = el('div', 'nng-grid-holder');
-  root.append(title, status, holder);
+  const toolbar = el('div', 'nng-toolbar');
+  const exportBtn = el('button', undefined, 'Export save');
+  exportBtn.type = 'button';
+  const importBtn = el('button', undefined, 'Import save');
+  importBtn.type = 'button';
+  const fileInput = el('input');
+  fileInput.type = 'file';
+  fileInput.accept = '.json,application/json';
+  fileInput.hidden = true;
+  const message = el('span', 'nng-msg');
+  toolbar.append(exportBtn, importBtn, fileInput, message);
+  root.append(title, status, toolbar, holder);
   container.append(root);
 
   const clues = puzzleClues(puzzle.solution);
+  const rules = { check: false, hint: false, autoCross: false };
   let cells = blank(puzzle);
-  const history = createHistory(cells);
+  let elapsedMs = 0;
   let solvedAt = null;
+  let dirty = false;
+  const existing = store ? store.get('save', puzzle.id) : null;
+  const loaded = existing && validateSave(existing, puzzle).ok ? existing : null;
+  if (loaded) {
+    cells = loaded.cells.map((row) => row.slice());
+    elapsedMs = loaded.elapsedMs;
+    solvedAt = loaded.solvedAt;
+    Object.assign(rules, loaded.rules);
+  }
+  const history = createHistory(cells);
+
+  const snapshot = () => ({ puzzleId: puzzle.id, cells, elapsedMs, rules: { ...rules }, solvedAt });
+  function persist() {
+    if (!store || !(dirty || loaded)) return;
+    try {
+      store.put('save', snapshot());
+    } catch {
+      // Storage full or unavailable: play on; the next save may succeed.
+    }
+  }
+  persistNow = persist;
   let drag = null; // {button, path}
 
   const preview = () => {
@@ -126,7 +161,9 @@ export function mount(container, params = {}) {
     cells = next;
     history.push(cells);
     if (isSolved(cells, clues)) solvedAt = Date.now();
+    dirty = true;
     refresh();
+    persist();
   }
 
   function onPointer({ type, r, c, button }) {
@@ -142,7 +179,6 @@ export function mount(container, params = {}) {
       const finished = drag;
       drag = null;
       commit(applyStroke(cells, finished));
-      refresh();
     }
   }
 
@@ -158,8 +194,52 @@ export function mount(container, params = {}) {
   function step(fn) {
     if (solvedAt !== null || drag) return;
     cells = fn();
+    dirty = true;
     refresh();
+    persist();
   }
+
+  exportBtn.addEventListener('click', () => {
+    const blob = new Blob([serializeSaveFile(puzzle, snapshot())], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = el('a');
+    a.href = url;
+    a.download = `${(puzzle.title || 'puzzle').replace(/[^\w-]+/g, '-')}.nng.json`;
+    document.body.append(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  });
+  importBtn.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', async () => {
+    const file = fileInput.files?.[0];
+    fileInput.value = '';
+    if (!file) return;
+    if (!store) {
+      message.textContent = 'Import failed: storage unavailable';
+      return;
+    }
+    const parsed = parseSaveFile(await file.text());
+    if (!parsed.ok) {
+      message.textContent = `Import failed: ${parsed.error}`;
+      return;
+    }
+    try {
+      for (const w of importWrites(parsed, store)) store.put(w.kind, w.record);
+    } catch {
+      message.textContent = 'Import failed: could not write to storage';
+      return;
+    }
+    // Drop the live state so unmount does not overwrite the imported save.
+    persistNow = () => {};
+    const target = `#/play/${encodeURIComponent(parsed.puzzle.id)}`;
+    if (location.hash === target) {
+      unmount();
+      mount(container, { id: parsed.puzzle.id });
+    } else {
+      location.hash = target;
+    }
+  });
 
   const onKey = (e) => {
     if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
@@ -174,6 +254,8 @@ export function mount(container, params = {}) {
 }
 
 export function unmount() {
+  persistNow();
+  persistNow = () => {};
   for (const fn of cleanup) fn();
   cleanup = [];
   grid?.destroy();

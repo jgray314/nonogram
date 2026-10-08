@@ -140,6 +140,10 @@ Tags on each step read `[wave·lane]`. Steps in the same wave but different lane
   - Cells between consecutive points are filled in, so fast mouse movement doesn't skip any.
   - `strokeCells(cells, stroke) → [r, c][]` gives the covered cells before the state filter. Step 7 uses it for the live stroke length. `paint` is the palette index a fill writes. It's always 1 in v1, and it gives color mode a slot.
 - **Views:** each `src/views/*.js` exports `mount(el, params)` and `unmount()`. `app.js` owns routing.
+- **Store factory:** `createStore(storage = localStorage)`, so tests can inject storage. A save is listed only when its puzzle exists and is valid.
+- **Grid renderer:** `renderGrid(container, {width, height, clues, cells, onPointer})` returns `{update(cells), destroy()}`. `onPointer({type: 'down' | 'enter' | 'up', r, c, button})` gets null r and c outside the cells. `gutterSize(clues) → {top, left}`. The renderer never applies strokes itself; views wire `play-state.js`.
+- **Tiles:** `tileGrid(rgba, imgW, imgH, crop, tileW, tileH, R, C, {threshold, invert}) → {full, tiles}` uses one global threshold. `makeSet({title, tiles, palette}) → Promise<{set, puzzles}>`, with a deterministic `setId` (a hash of title, rows, cols and the full grid). `tileFlags(tile) → 'blank' | 'full' | null`.
+- **XML:** `toWebpbn(puzzle) → string`.
 
 **Branching.** `tools/nonogram/` becomes its own local git repo in step 0.
 - **`main` is always green.** Nothing lands on it without the full `npm test` and lint passing after the merge.

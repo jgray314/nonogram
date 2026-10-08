@@ -214,6 +214,15 @@ W1r. `[seq]` A short retro once W1 merges:
 
 Update the plan before W2 starts. One line to you with the result.
 
+**W1r result (2026-10-08).** W2 started per-step before the retro, since its dependencies were merged. The retro ran once the solver landed.
+- **Step time.** Lanes took 0.5 to 4 minutes per step, against the 10 to 15 minute estimate. The estimate is far too high for agent lanes. Keep the step sizes anyway, since they drive diff readability, not time.
+- **Solver performance.** Real-budget 25x25 random puzzles ran at most 327ms (budget 5000), well inside the 1s guard. The lane's own noise test uses budget 50, which is weaker than intended but covered by this probe.
+- **Contracts.** All lanes stayed within their owned files, with no contract edits.
+- **Lane rule breaches, 2:**
+  - Lane B returned a placeholder report. The work was verified by hand, and every later prompt requires a real report.
+  - Lane A made a third attempt at the same test after two failures, against the stop rule. The failure was in its fixture design, not the solver, and it was fixed by checking against brute force. Next prompts restate the rule more firmly.
+- **Contract changes before W3:** `difficulty.js` and the print route were added on main.
+
 ### Phase 2. Player
 6a. `[W2 gate]` App shell, a single `index.html` with hash routes `#/library`, `#/create` and `#/play/<id>`. Render the grid and clues, thick lines every 5, and a row/column highlight. The clue gutter is sized to the longest clue list. `store.js` per the Store contract. Tests: `layout: gutter fits max clue count`, `store round-trip per kind`, `removing a puzzle removes its save`, `list skips corrupt record` (pure, with an in-memory `localStorage` stub). **[manual]** 10x10 in the pane.
 6b. `[W1·D]` Stroke logic in `play-state.js`. A stroke's mode comes from the button and the first cell:

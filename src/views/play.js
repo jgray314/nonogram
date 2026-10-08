@@ -2,7 +2,15 @@
 import { renderGrid } from './grid.js';
 import { puzzleClues } from '../clues.js';
 import { applyStroke, strokeCells } from '../play-state.js';
-import { createHistory, isSolved, satisfiedLines } from '../game.js';
+import {
+  autoCross,
+  createHistory,
+  helpersAvailability,
+  hintCell,
+  isSolved,
+  satisfiedLines,
+  wrongFills,
+} from '../game.js';
 import { createStore } from '../store.js';
 import { validatePuzzle, validateSave } from '../format.js';
 import { serializeSaveFile, parseSaveFile, importWrites } from '../save.js';
@@ -97,7 +105,8 @@ export function mount(container, params = {}) {
   const solvedMsg = el('span', 'nng-solved');
   solvedMsg.hidden = true;
   const count = el('span', 'nng-count');
-  status.append(solvedMsg, count);
+  const timerEl = el('span', 'nng-timer');
+  status.append(timerEl, solvedMsg, count);
   const holder = el('div', 'nng-grid-holder');
   const toolbar = el('div', 'nng-toolbar');
   const exportBtn = el('button', undefined, 'Export save');
@@ -110,7 +119,25 @@ export function mount(container, params = {}) {
   fileInput.hidden = true;
   const message = el('span', 'nng-msg');
   toolbar.append(exportBtn, importBtn, fileInput, message);
-  root.append(title, status, toolbar, holder);
+  const rulesBar = el('div', 'nng-rules');
+  const toggles = {};
+  for (const [key, label] of [
+    ['check', 'Check mistakes'],
+    ['hint', 'Hints'],
+    ['autoCross', 'Auto-cross'],
+  ]) {
+    const wrap = el('label', 'nng-toggle');
+    const box = el('input');
+    box.type = 'checkbox';
+    toggles[key] = box;
+    wrap.append(box, document.createTextNode(` ${label}`));
+    rulesBar.append(wrap);
+  }
+  const hintBtn = el('button', undefined, 'Reveal a cell');
+  hintBtn.type = 'button';
+  const ruleNote = el('span', 'nng-note');
+  rulesBar.append(hintBtn, ruleNote);
+  root.append(title, status, rulesBar, toolbar, holder);
   container.append(root);
 
   const clues = puzzleClues(puzzle.solution);
@@ -125,7 +152,7 @@ export function mount(container, params = {}) {
     cells = loaded.cells.map((row) => row.slice());
     elapsedMs = loaded.elapsedMs;
     solvedAt = loaded.solvedAt;
-    Object.assign(rules, loaded.rules);
+    for (const key of Object.keys(rules)) rules[key] = loaded.rules[key] === true;
   }
   const history = createHistory(cells);
 
@@ -147,7 +174,23 @@ export function mount(container, params = {}) {
     count.textContent = `${strokeCells(cells, drag).length} cells`;
   };
 
+  const helpers = helpersAvailability(puzzle.verdict);
+  const formatTime = (ms) => {
+    const total = Math.floor(ms / 1000);
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${pad(Math.floor(total / 60))}:${pad(total % 60)}`;
+  };
+
   function refresh() {
+    const checkOn = rules.check && helpers.enabled && solvedAt === null;
+    grid.setWrong(checkOn ? wrongFills(cells, puzzle.solution) : []);
+    for (const key of Object.keys(toggles)) {
+      toggles[key].checked = rules[key];
+      toggles[key].disabled = key !== 'autoCross' && !helpers.enabled;
+    }
+    hintBtn.disabled = !(rules.hint && helpers.enabled) || solvedAt !== null;
+    ruleNote.textContent = helpers.note;
+    timerEl.textContent = formatTime(elapsedMs);
     grid.update(solvedAt === null ? cells : reveal(cells));
     grid.setSatisfied(satisfiedLines(cells, clues));
     solvedMsg.hidden = solvedAt === null;
@@ -158,9 +201,14 @@ export function mount(container, params = {}) {
   /** One committed move (a stroke, or later a hint) is one undo step. */
   function commit(next) {
     if (sameGrid(cells, next)) return;
+    // Auto-cross rides in the same undo step as the move that completed a line.
+    if (rules.autoCross) next = autoCross(next, clues, cells);
     cells = next;
     history.push(cells);
-    if (isSolved(cells, clues)) solvedAt = Date.now();
+    if (isSolved(cells, clues)) {
+      tick(); // bank the time up to the solving move
+      solvedAt = Date.now();
+    }
     dirty = true;
     refresh();
     persist();
@@ -190,6 +238,40 @@ export function mount(container, params = {}) {
     onPointer,
   });
   refresh();
+
+  for (const [key, box] of Object.entries(toggles)) {
+    box.addEventListener('change', () => {
+      rules[key] = box.checked;
+      dirty = true;
+      refresh();
+      persist();
+    });
+  }
+  hintBtn.addEventListener('click', () => {
+    if (solvedAt !== null || drag || !rules.hint || !helpers.enabled) return;
+    const hint = hintCell(cells, puzzle.solution);
+    if (!hint) return;
+    const next = cells.map((row) => row.slice());
+    next[hint.r][hint.c] = hint.value;
+    commit(next);
+  });
+
+  // Timer: accumulate while mounted, the document is visible, and unsolved.
+  let lastTick = Date.now();
+  const tick = () => {
+    const now = Date.now();
+    if (!document.hidden && solvedAt === null) elapsedMs += now - lastTick;
+    lastTick = now;
+    timerEl.textContent = formatTime(elapsedMs);
+  };
+  const timer = setInterval(tick, 500);
+  const onVisibility = () => tick();
+  document.addEventListener('visibilitychange', onVisibility);
+  cleanup.push(() => {
+    tick();
+    clearInterval(timer);
+    document.removeEventListener('visibilitychange', onVisibility);
+  });
 
   function step(fn) {
     if (solvedAt !== null || drag) return;
@@ -254,10 +336,10 @@ export function mount(container, params = {}) {
 }
 
 export function unmount() {
+  for (const fn of cleanup) fn(); // includes the final timer tick
+  cleanup = [];
   persistNow();
   persistNow = () => {};
-  for (const fn of cleanup) fn();
-  cleanup = [];
   grid?.destroy();
   root?.remove();
   grid = null;

@@ -23,3 +23,22 @@
 .nng-grid-holder {
   overflow: auto;
 }
+
+.nng-timer {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.nng-rules,
+.nng-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.nng-note,
+.nng-msg {
+  color: var(--muted);
+}

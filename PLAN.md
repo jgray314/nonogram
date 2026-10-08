@@ -120,6 +120,7 @@ Tags on each step read `[wave·lane]`. Steps in the same wave but different lane
 | W3 | K, creator | 10 → 11a → 11b → 11c | 6a, 2, 6b; 11b also needs 4b | `src/views/create.js`, `css/create.css` |
 | W3 | L, library | 12 → 12p → 12d | 6a, 5; 12 also needs 5x; 12d also needs 12b | `src/views/library.js`, `css/library.css`, `src/views/print.js`, `src/backup.js` |
 | W4 | n/a | 12c tile creator UI + set save | K (incl. 11c), 12b | `src/views/create.js` (after K is done) |
+| W5 | n/a | 12s cozy styling pass | 12c, 12d (all views exist) | `css/*.css`, `index.html` head, `src/theme.js` |
 | n/a | n/a | 13 close | all | n/a |
 
 **Where it pays off.** W1 is the real win: four pure-logic lanes with no DOM and no shared files. W3 is a moderate win. Its three UI lanes are separate, but they share the grid renderer and base CSS. **Any change to `src/views/grid.js` or `css/base.css` after the W2 gate goes back to one owner** (the P lane) and doesn't get made in parallel.
@@ -246,6 +247,30 @@ Update the plan before W2 starts. One line to you with the result.
 12c. `[W4]` Creator UI: an R x C picker (up to 4x4), a solver report for each tile (run through the worker, in sequence), and a flag on any tile that is all blank or all filled, since those make degenerate puzzles. "Save set" writes every tile puzzle (each with its `verdict`) and then the set record, using the 11c save path. Test: `set save writes tiles before set record` (pure), so a half-written set never points at missing tiles. **[manual]**
 12d. `[W3·L]` The library groups each set into a mosaic view, where solved tiles show their picture and unsolved tiles stay blank. Clicking a tile plays it. Test: `set progress counts solved tiles`. **[manual]**
 
+### Phase 5. Cozy styling (added 2026-10-08 at Jess's request)
+12s. `[W5 seq]` Restyle every view in a cozy game aesthetic. It runs sequentially, after all views exist, because it touches every CSS file. Lanes do functional styling only until then.
+- **Direction (rec, overridable via Q8):**
+  - A warm, soft palette: cream paper background, cocoa-brown ink for fills, muted sage or terracotta accents.
+  - Rounded corners and soft shadows on panels and buttons, with a subtle paper texture drawn in CSS gradients (no image files).
+  - A friendly rounded font for headings, with a clean font kept for clues.
+  - Small, gentle motion:
+    - a fill "pop" on cells
+    - clues that fade when satisfied
+    - a short celebratory reveal on solve
+  - All motion respects `prefers-reduced-motion`.
+- **Guardrails:**
+  - Legibility at 25x25 wins over decoration. Clue digits stay high-contrast.
+  - Filled, empty and crossed cells must be distinguishable at a glance, and in print.
+  - Colors are CSS custom properties on `:root`, so the theme is one block.
+- Tests:
+  - `theme contrast: clue text and fills meet 4.5:1 against background` (pure, a WCAG contrast ratio computed from the `src/theme.js` token values).
+  - **[manual]** before/after screenshots of library, create, play (10x10 and 25x25), print preview, and the solved state.
+
+**Q8 (open, needed before 12s starts).**
+1. Font: system rounded stack (no network) **(rec)**, or a Google Font such as Nunito (needs network at load).
+2. Light only **(rec)**, or light plus a cozy dark "evening" theme.
+3. Any reference games or palettes you want it to feel like?
+
 ### Close
 13. `[seq]` Register in the toolkit. Run `/gate-review`. Calibrate the difficulty labels by playing about 5 puzzles you made.
 
@@ -282,6 +307,7 @@ What isn't on this list (contract shapes, ownership, dependency order) was revie
 - Parallel execution (2026-10-08, at Jess's request): four waves, with one branch per lane in its own git worktree, merged `--no-ff` into an always-green `main`. Interface contracts are frozen in the Parallel lanes section. This overrides coding-preferences' "one thread, no subagents", which was written for time-boxed sessions, not this project. Rejected a single thread: W1 has four independent pure-logic lanes, and running them one after another wastes most of that.
 - Q6 Grid shape: width and height are picked independently from {5, 10, 15, 20, 25}. The default is the closest match to the image's aspect, with a center crop and a draggable offset. Rejected square-only (Picross itself uses 25x20) and squashing (distorts the picture). Tiling was added on top (Q7).
 - 2026-10-08: lane subagents use Sonnet (Jess). This is a cost and speed call for well-specified, contract-bound pieces. The orchestrator stays on Opus for merges, contract calls and manual verification.
+- 2026-10-08: cozy game aesthetic added as step 12s (W5, sequential), at Jess's request. It comes after all views exist, so one owner touches every stylesheet instead of three lanes restyling in parallel. Q8 (font, dark theme, references) is open.
 - Plan-review pass 6: XML export got a UI action in step 12. Set saving is owned by 12c. Validators were added in `format.js` and used by the store and every import. `innerHTML` is banned by lint. Images are downscaled on load.
 - Plan-review pass 5: Q6's size picker and crop now land in step 10. `verdict` carries sweeps. Undo has keyboard shortcuts and the stroke length shows live. A test runtime rule was added. The W1r retro checkpoint and the Limits section were added.
 - Plan-review pass 4: lanes merge per step, not per lane. XML export moved to 5x. `verdict` is cached on the puzzle. The creator owns saving. Library backup was added. Tiles use one global threshold.

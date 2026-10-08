@@ -1,13 +1,15 @@
 // Hash router. Each route maps to a view module exporting mount(el, params)
-// and unmount(). Routes: #/library (default), #/create, #/play/<id>.
+// and unmount(). Routes: #/library (default), #/create, #/play/<id>, #/print/<id>.
 import * as library from './views/library.js';
 import * as create from './views/create.js';
 import * as play from './views/play.js';
+import * as print from './views/print.js';
 
 const ROUTES = {
   library: { view: library, nav: 'library' },
   create: { view: create, nav: 'create' },
   play: { view: play, nav: null },
+  print: { view: print, nav: null },
 };
 const DEFAULT = '#/library';
 
@@ -18,7 +20,7 @@ function parse(hash) {
   const [, name, ...rest] = hash.split('/');
   if (!Object.hasOwn(ROUTES, name)) return null;
   const id = rest.length ? decodeURIComponent(rest.join('/')) : undefined;
-  if (name === 'play' && !id) return null;
+  if ((name === 'play' || name === 'print') && !id) return null;
   return { name, params: id === undefined ? {} : { id } };
 }
 

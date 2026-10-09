@@ -19,6 +19,7 @@ import {
   solvedSummary,
 } from '../game.js';
 import { clueProgress, solutionProgress } from '../clue-progress.js';
+import { sampleLabel } from '../library-logic.js';
 import { createStore } from '../store.js';
 import { validatePuzzle, validateSave, idMatches } from '../format.js';
 import { serializeSaveFile, parseSaveFile, importWrites } from '../save.js';
@@ -83,7 +84,12 @@ export function mount(container, params = {}) {
   }
 
   root = el('section', 'nng-play');
-  const title = el('h1', undefined, puzzle.title || 'Untitled');
+  // UX27 (D15): the name plus a badge, as in the library; the stored title keeps its prefix.
+  const label = sampleLabel(puzzle.title || 'Untitled');
+  const title = el('h1', undefined, label.name);
+  if (label.ai) {
+    title.append(' ', el('span', 'nng-badge nng-badge-ai nng-header-badge', 'AI test sample'));
+  }
   const status = el('div', 'nng-status');
   const solvedMsg = el('span', 'nng-solved');
   solvedMsg.hidden = true;

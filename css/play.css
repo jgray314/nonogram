@@ -10,16 +10,27 @@
   margin-bottom: 8px;
 }
 
+/* A flat status badge, not a button-like pill (UX25): no heavy border or drop shadow. */
 .nng-solved {
   display: inline-block;
-  font-weight: 800;
+  font-size: 0.9em;
+  font-weight: 700;
   color: var(--ink);
   background: var(--accent-soft);
-  border: 3px solid var(--accent);
-  border-radius: 999px;
-  padding: 2px 16px;
-  box-shadow: 0 3px 0 var(--accent);
+  border-radius: 6px;
+  padding: 1px 10px;
   animation: nng-banner 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* The AI-sample badge in the header, styled as in the library (UX27). */
+.nng-play .nng-badge {
+  border-radius: 999px;
+  padding: 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid currentColor;
+  color: var(--muted);
+  vertical-align: 2px;
 }
 
 .nng-solved::after {

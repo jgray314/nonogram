@@ -1,7 +1,7 @@
 # Nonogram Studio — Plan
 
 **Created:** 2026-10-08
-**Status:** D1 to D5 closed. `/plan-review` passes 1, 1b (tiling), 2 through 6 done 2026-10-08, with fixes applied. Q6 and Q7 closed. Step 0 done 2026-10-08. Next: launch W1.
+**Status:** All build steps (0 to 12s) merged to main and checked by hand in the browser, 2026-10-08. 119 tests pass. Registered in the toolkit. Remaining in step 13: `/gate-review`, Jess's print preview check, and difficulty calibration by play.
 **Platform:** web browser, desktop first.
 **What it is:** A personal tool to turn an image (your own picture, no AI in the content) into a nonogram, check that it's a fair puzzle, then play it with state saved. Single user, no accounts.
 

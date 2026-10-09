@@ -52,11 +52,13 @@
 }
 
 /* When the grid is bigger than the holder, the clues stay in view while the cells scroll.
-   A sticky offset is measured from the scroll box's edge, so each one adds the space
-   before the grid's first gutter slot (holder padding 8px + grid padding 6px). Without
-   it, a pinned clue sits 14px left of or above its own slot. */
+   A sticky offset is measured from inside the holder's padding, so each one adds only
+   the grid's own padding (6px) to land on its slot. (14px, counting the holder padding
+   too, left an 8px gap where scrolled clues showed through: v1.3 manual check.) */
 .nng-grid-holder {
-  --stick: 14px;
+  --stick: 6px;
+  /* The shadows that hide scrolled clues must also cover the holder padding (8px). */
+  --stick-cover: 14px;
 }
 
 .nng-play .nng-clue,
@@ -80,20 +82,20 @@
   top: var(--stick);
   left: var(--stick);
   box-shadow:
-    calc(var(--stick) * -1) 0 0 var(--panel),
-    0 calc(var(--stick) * -1) 0 var(--panel),
-    calc(var(--stick) * -1) calc(var(--stick) * -1) 0 var(--panel);
+    calc(var(--stick-cover) * -1) 0 0 var(--panel),
+    0 calc(var(--stick-cover) * -1) 0 var(--panel),
+    calc(var(--stick-cover) * -1) calc(var(--stick-cover) * -1) 0 var(--panel);
 }
 
 /* The shadows cover the strip between the scroll box's edge and the gutter. */
 .nng-play .nng-gutter-cols {
   top: var(--stick);
-  box-shadow: 0 calc(var(--stick) * -1) 0 var(--panel);
+  box-shadow: 0 calc(var(--stick-cover) * -1) 0 var(--panel);
 }
 
 .nng-play .nng-gutter-rows {
   left: var(--stick);
-  box-shadow: calc(var(--stick) * -1) 0 0 var(--panel);
+  box-shadow: calc(var(--stick-cover) * -1) 0 0 var(--panel);
 }
 
 .nng-play .nng-clue-row {
@@ -155,9 +157,23 @@
   margin-bottom: 8px;
 }
 
-/* Save file buttons: secondary, below the grid, lighter than Restart (UX28). */
+/* Save file buttons: secondary, below the grid, lighter than Restart (UX28). They share
+   a row with the legend, so they cost no extra height under the grid. */
+.nng-below {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 16px;
+  margin-top: 4px;
+}
+
+.nng-below .nng-legend {
+  margin: 0;
+}
+
 .nng-toolbar {
-  margin: 8px 0 0;
+  margin: 0;
   gap: 8px;
 }
 

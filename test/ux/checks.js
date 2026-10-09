@@ -170,6 +170,41 @@ export const CHECKS = [
     },
   },
   {
+    id: 'play-restart-message-zen',
+    name: "Restart's confirm says what resets, and that Zen stays on in Zen (UX20)",
+    async run(app, ids) {
+      const ask = async () => {
+        let text = '';
+        const real = app.win().confirm;
+        app.win().confirm = (m) => ((text = m), false); // answer no: nothing restarts
+        try {
+          app.buttonByText('Restart', '.nng-rules').click();
+        } finally {
+          app.win().confirm = real;
+        }
+        return text;
+      };
+      await app.open(`#/play/${ids[HEART]}`);
+      app.stroke([[1, 0]]);
+      const hearts = await ask();
+      assert(/hearts and hints reset/.test(hearts), `hearts mode says "${hearts}"`);
+      app.toggleByLabel('Zen mode').click();
+      const zen = await ask();
+      assert(/Zen mode stays on/.test(zen), `Zen mode says "${zen}"`);
+    },
+  },
+  {
+    id: 'play-header-sample-badge',
+    name: 'The Play header shows the sample name plus the AI badge, like the library (UX27)',
+    async run(app, ids) {
+      await app.open(`#/play/${ids[HEART]}`);
+      const h1 = app.$('.nng-play h1');
+      assert(!h1.textContent.includes('AI test sample:'), `header reads "${h1.textContent}"`);
+      assert(h1.textContent.startsWith('Heart (5x5)'), `header reads "${h1.textContent}"`);
+      assert(h1.querySelector('.nng-badge-ai'), 'no AI badge in the header');
+    },
+  },
+  {
     id: 'play-clue-done-on-completion',
     name: 'A clue number greys out once its block is complete, with no crosses needed',
     async run(app, ids) {

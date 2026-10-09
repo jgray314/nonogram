@@ -209,18 +209,11 @@ export function mount(container, params = {}) {
     'nng-rule-default',
     "Zen and Auto-cross also apply to puzzles you haven't started yet.",
   );
-  root.append(
-    title,
-    status,
-    outPanel,
-    rulesBar,
-    ruleDefault,
-    sizeNote,
-    holder,
-    strip,
-    legend,
-    toolbar, // Export / Import save: quiet, below the grid (UX28)
-  );
+  // The legend and the quiet Export / Import save buttons (UX28) share one row
+  // under the grid, so the save buttons don't cost a 25x25 its fit at 1024x768.
+  const belowRow = el('div', 'nng-below');
+  belowRow.append(legend, toolbar);
+  root.append(title, status, outPanel, rulesBar, ruleDefault, sizeNote, holder, strip, belowRow);
   container.append(root);
 
   const clues = puzzleClues(puzzle.solution);
@@ -476,7 +469,7 @@ export function mount(container, params = {}) {
       (sizeNote.hidden ? 0 : sizeNote.offsetHeight + 8);
     // Room under the grid for the legend and the solved strip, so "Back to
     // library" lands on screen after a solve (gate pass 3, M3).
-    const below = legend.offsetHeight + toolbar.offsetHeight + 52;
+    const below = belowRow.offsetHeight + 44;
     const avail =
       window.innerHeight -
       (holder.getBoundingClientRect().top + window.scrollY - lost) -
@@ -496,6 +489,11 @@ export function mount(container, params = {}) {
     holder.style.maxHeight = `${Math.max(200, Math.floor(avail))}px`;
   }
   sizeGrid();
+  // Measure again once the first layout and the font have settled: the first pass
+  // can see a taller header, which showed the size note on a 25x25 that fits.
+  const settle = () => holder.isConnected && sizeGrid();
+  requestAnimationFrame(settle);
+  document.fonts?.ready.then(settle);
   window.addEventListener('resize', sizeGrid);
   cleanup.push(() => window.removeEventListener('resize', sizeGrid));
 

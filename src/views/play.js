@@ -199,6 +199,7 @@ export function mount(container, params = {}) {
     timerEl.textContent = formatTime(elapsedMs);
     grid.update(solvedAt === null ? cells : reveal(cells));
     grid.setSatisfied(satisfiedLines(cells, clues));
+    holder.classList.toggle('nng-celebrate', solvedAt !== null); // styling hook for the solve glow
     solvedMsg.hidden = solvedAt === null;
     solvedMsg.textContent = solvedAt === null ? '' : 'Solved';
     count.textContent = '';

@@ -76,11 +76,18 @@ export function renderGrid(container, { width, height, clues, cells, onPointer =
     nodes.push(rowNodes);
   }
 
+  let painted = false; // the first update draws the initial state without popping
   function update(next) {
     for (let r = 0; r < height; r++) {
       for (let c = 0; c < width; c++) {
         const v = next[r][c];
         const node = nodes[r][c];
+        if (painted && v >= 1 && !node.classList.contains('nng-filled')) {
+          node.classList.add('nng-pop'); // styling hook: a small pop on newly filled cells
+          node.addEventListener('animationend', () => node.classList.remove('nng-pop'), {
+            once: true,
+          });
+        }
         node.classList.toggle('nng-filled', v >= 1);
         node.classList.toggle('nng-crossed', v === -1);
         node.classList.toggle('nng-unknown', v === 0);
@@ -88,6 +95,7 @@ export function renderGrid(container, { width, height, clues, cells, onPointer =
         else delete node.dataset.color;
       }
     }
+    painted = true;
   }
 
   function setSatisfied({ rows = [], cols = [] }) {

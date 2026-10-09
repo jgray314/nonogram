@@ -6,11 +6,11 @@ export const MAX_LOAD_SIDE = 1024;
 
 const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi);
 
-/** Closest SIZES value to `target`; ties go to the smaller one. */
+/** Closest SIZES value to `target`; ties go to the larger one. */
 function nearestSize(target) {
   let best = SIZES[0];
   for (const s of SIZES) {
-    if (Math.abs(s - target) < Math.abs(best - target)) best = s;
+    if (Math.abs(s - target) <= Math.abs(best - target)) best = s;
   }
   return best;
 }

@@ -12,8 +12,8 @@ import {
 
 test('defaultSize picks closest aspect', () => {
   assert.deepEqual(defaultSize(800, 800), { width: 15, height: 15 });
-  // 2:1 -> short 7.5, closest of SIZES is 5 (tie 5/10 -> smaller)
-  assert.deepEqual(defaultSize(1000, 500), { width: 15, height: 5 });
+  // 2:1 -> short 7.5, a tie between 5 and 10 goes to the larger
+  assert.deepEqual(defaultSize(1000, 500), { width: 15, height: 10 });
   // 3:2 -> short 10
   assert.deepEqual(defaultSize(600, 400), { width: 15, height: 10 });
   // tall 1:3 -> short 5, long side is height

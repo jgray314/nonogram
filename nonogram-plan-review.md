@@ -189,3 +189,25 @@
 **Trend:** 9, 11, 6, 7, 6, then 6 now. Pass 6's findings are smaller than pass 4's: no lane stalls, no data model changes beyond the validators. Two (XML export and set save) came from edits in earlier passes that didn't carry through. That's the risk of reviewing a plan many times: each fix can open a new seam. A pass 7 would most likely mostly re-check pass 6's edits.
 
 **Verdict:** Ready to execute. Start with step 0.
+
+## Plan review: v1.1 play feedback, 2026-10-08
+
+**Scope:** the "v1.1: play feedback" section of `PLAN.md` (steps 14a to 17), plus its Decisions log entry. First run with check 9 (trust-boundary upper bounds).
+
+**Findings (all fixed in the plan):**
+1. **#5, the N lane's contract: main would break between merges.** N removed `setSatisfied` from `grid.js`, but `play.js` (lane H) still calls it until step 17. Node tests would stay green while the browser broke. **Fixed:** N keeps `setSatisfied`. Step 17 swaps the call and then removes it.
+2. **#7, `heartsStroke`: two builders could disagree on stroke mode.** "Applying the stroke cell by cell" didn't say how the mode is chosen, so one builder could reimplement the v1 rules and drift. **Fixed:** the mode comes from `applyStroke`, and only cells that `applyStroke` changes are walked. Added the test `heartsStroke follows the v1 stroke mode`.
+3. **#7, step 14c: out-of-hearts state underspecified.** Not stated: whether the timer stops, what reopening a save with 0 hearts shows, whether the red cross is saved, whether hints cost hearts. **Fixed:** each is now stated.
+4. **#7, step 14c: Restart on a solved puzzle.** v1 blocks every move once solved, so Restart could have inherited that block, which would defeat replay. **Fixed:** Restart works on solved puzzles.
+5. **#7, `clueProgress`: "stop if the two scans meet" was ambiguous.** It could mean cells or clues. **Fixed:** the end scan stops at the first clue the start scan already marked.
+6. **Gate lesson 5 at plan time, step 15b.** The planned test for `setClueDone` was a shape check on arrays, named as if it tested the DOM behavior. **Fixed:** removed; 15b is a manual check. Step 14c's view tests became a pure `restartCells` test in 14a.
+
+**Clean checks:**
+- #9: the only new numbers crossing a trust boundary are `hearts` (bounded 0 to `MAX_HEARTS`, integer) and `rules.zen` (boolean). The mistake mark isn't saved. No new imports.
+- #6: D6 to D10 each carry a reason and a rejected option. D10's variant was picked by the reviewer, because the owner answered "5" without a variant, and the log says so.
+- #3: tooling exists from v1.
+- #1, #2, #4, #8: N/A. There's no model, no new personal data, and this isn't a showcase project. The one "never" property (a wrong cross never costs a heart) has a named test.
+
+**Owner call flagged, not blocking:** v1 saves load in hearts mode with full hearts (D7). An in-progress v1 game gains hearts it can lose.
+
+**Verdict:** Ready to execute after the owner's go.

@@ -7,12 +7,14 @@ import {
   autoCross,
   createHistory,
   crossEmptyLines,
+  formatTime,
   heartsAvailable,
   heartsStroke,
   helpersAvailability,
   hintCell,
   isSolved,
   restartCells,
+  solvedSummary,
 } from '../game.js';
 import { clueProgress, solutionProgress } from '../clue-progress.js';
 import { createStore } from '../store.js';
@@ -130,6 +132,7 @@ export function mount(container, params = {}) {
   }
   const hintBtn = el('button', undefined, 'Reveal a cell');
   hintBtn.type = 'button';
+  const hintCount = el('span', 'nng-hint-count');
   const restartBtn = el('button', undefined, 'Restart');
   restartBtn.type = 'button';
   const ruleNote = el('span', 'nng-note');
@@ -142,7 +145,7 @@ export function mount(container, params = {}) {
   redoBtn.title = 'Redo (Ctrl+Y)';
   redoBtn.setAttribute('aria-keyshortcuts', 'Control+Y');
   const legend = el('p', 'nng-legend', 'Left-drag to fill · Right-drag to cross · Ctrl+Z to undo');
-  rulesBar.append(undoBtn, redoBtn, hintBtn, restartBtn, ruleNote);
+  rulesBar.append(undoBtn, redoBtn, hintBtn, hintCount, restartBtn, ruleNote);
   // Shown once a solve is final (after the art fade, if any): the time and a way back.
   const strip = el('div', 'nng-solved-strip');
   strip.hidden = true;
@@ -165,6 +168,7 @@ export function mount(container, params = {}) {
   let elapsedMs = 0;
   let solvedAt = null;
   let hearts = MAX_HEARTS;
+  let hints = 0; // reveals used on this play-through; undo doesn't refund them (D18)
   let wrongMark = null; // [r, c] of the last wrong fill; memory only, cleared on the next move
   let dirty = false;
   const existing = store ? store.get('save', puzzle.id) : null;
@@ -180,6 +184,7 @@ export function mount(container, params = {}) {
     elapsedMs = loaded.elapsedMs;
     solvedAt = loaded.solvedAt;
     hearts = loaded.hearts ?? MAX_HEARTS;
+    hints = loaded.hints ?? 0;
     for (const key of Object.keys(rules)) rules[key] = loaded.rules[key] === true;
   }
   // A loaded save gets empty lines crossed too (v1 saves had none), before the
@@ -200,6 +205,7 @@ export function mount(container, params = {}) {
     rules: { ...rules },
     solvedAt,
     hearts,
+    hints,
   });
   function persist() {
     if (!store || !(dirty || loaded)) return;
@@ -223,11 +229,6 @@ export function mount(container, params = {}) {
   const heartsOk = heartsAvailable(puzzle.verdict);
   const zen = () => rules.zen || !heartsOk;
   const outOfHearts = () => !zen() && hearts === 0 && solvedAt === null;
-  const formatTime = (ms) => {
-    const total = Math.floor(ms / 1000);
-    const pad = (n) => String(n).padStart(2, '0');
-    return `${pad(Math.floor(total / 60))}:${pad(total % 60)}`;
-  };
 
   function refresh() {
     const out = outOfHearts();
@@ -249,6 +250,7 @@ export function mount(container, params = {}) {
     hintBtn.disabled = !helpers.enabled || solvedAt !== null || out;
     undoBtn.disabled = !history.canUndo() || solvedAt !== null || out;
     redoBtn.disabled = !history.canRedo() || solvedAt !== null || out;
+    hintCount.textContent = `Hints used: ${hints}`;
     ruleNote.textContent = helpers.note;
     timerEl.textContent = formatTime(elapsedMs);
     grid.update(solvedAt === null ? cells : reveal(cells));
@@ -273,7 +275,7 @@ export function mount(container, params = {}) {
   const reduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   function showStrip() {
     clearTimeout(revealTimer);
-    stripText.textContent = `Solved in ${formatTime(elapsedMs)}`;
+    stripText.textContent = solvedSummary(elapsedMs, hints);
     strip.hidden = false;
   }
   function clearReveal() {
@@ -432,6 +434,8 @@ export function mount(container, params = {}) {
     if (!hint) return;
     const next = cells.map((row) => row.slice());
     next[hint.r][hint.c] = hint.value;
+    // Undo doesn't refund, so repeats are possible; the save format caps the count at the cell count.
+    hints = Math.min(hints + 1, puzzle.width * puzzle.height);
     commit(next);
   });
 
@@ -467,6 +471,7 @@ export function mount(container, params = {}) {
     history = createHistory(cells);
     elapsedMs = 0;
     hearts = MAX_HEARTS;
+    hints = 0;
     wrongMark = null;
     drag = null;
     lastTick = Date.now();

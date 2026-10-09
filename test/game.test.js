@@ -12,6 +12,7 @@ import {
   heartsStroke,
   heartsAvailable,
   restartCells,
+  solvedSummary,
 } from '../src/game.js';
 import { puzzleClues } from '../src/clues.js';
 
@@ -330,4 +331,16 @@ test('restartCells is blank plus empty-line crosses', () => {
     [-1, -1, -1],
     [0, -1, 0],
   ]);
+});
+
+test('solvedSummary formats time', () => {
+  assert.equal(solvedSummary(192000, 0), 'Solved in 03:12');
+  assert.equal(solvedSummary(0, 0), 'Solved in 00:00');
+  assert.equal(solvedSummary(59999, 0), 'Solved in 00:59');
+});
+
+test('solvedSummary adds the hint count', () => {
+  assert.equal(solvedSummary(192000, 0), 'Solved in 03:12');
+  assert.equal(solvedSummary(192000, 1), 'Solved in 03:12 · 1 hint');
+  assert.equal(solvedSummary(192000, 2), 'Solved in 03:12 · 2 hints');
 });

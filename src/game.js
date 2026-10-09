@@ -157,3 +157,16 @@ export function restartCells(clues, width, height) {
   const blank = Array.from({ length: height }, () => new Array(width).fill(0));
   return crossEmptyLines(blank, clues);
 }
+
+/** mm:ss for a play time in milliseconds. */
+export function formatTime(ms) {
+  const total = Math.floor(ms / 1000);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${pad(Math.floor(total / 60))}:${pad(total % 60)}`;
+}
+
+/** The solved line: the time, plus the hints used when there were any (D18). */
+export function solvedSummary(elapsedMs, hints) {
+  const base = `Solved in ${formatTime(elapsedMs)}`;
+  return hints > 0 ? `${base} · ${hints} ${hints === 1 ? 'hint' : 'hints'}` : base;
+}

@@ -127,6 +127,24 @@
   box-shadow: 0 4px 0 var(--shadow);
 }
 
+/* Narrow screens: the panel spans its row (left and right edges inside the
+   screen) and still opens just under the More button. */
+@media (max-width: 599px) {
+  .nng-lib-row {
+    position: relative;
+  }
+
+  .nng-more {
+    position: static;
+  }
+
+  .nng-more-panel {
+    left: 10px;
+    right: 10px;
+    min-width: 0;
+  }
+}
+
 .nng-more-panel .nng-btn,
 .nng-more-panel button {
   text-align: center;

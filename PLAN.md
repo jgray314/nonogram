@@ -1,7 +1,7 @@
 # Nonogram Studio — Plan
 
 **Created:** 2026-10-08
-**Status (2026-10-08):** v1 (steps 0 to 13) is built, gated (`nonogram-gate.md` pass 1) and print-checked. v1.1 (steps 14a to 17, hearts, Zen mode, restart, per-number clues, print key switch) is merged, checked by hand in the browser, and through a slim gate (pass 2). Run `npm test` for the current count. Remaining: difficulty calibration by play (step 13).
+**Status (2026-10-09):** v1 (steps 0 to 13) is built, gated (`nonogram-gate.md` pass 1) and print-checked. v1.1 (steps 14a to 17, hearts, Zen mode, restart, per-number clues, print key switch) is merged and through gate pass 2. v1.2 (steps 19a to 22, the UX pass 1 fixes, the solve reveal, the hint counter, and D19 auto-cross by default) is merged, through gate pass 3 and UX pass 2, and all UX checks pass. Run `npm test` for the current count. Remaining: the owner's calls on UX pass 2's new findings (UX18 to UX28), and difficulty calibration by play (step 13).
 **Platform:** web browser, desktop first.
 **What it is:** A personal tool to turn an image (your own picture, no AI in the content) into a nonogram, check that it's a fair puzzle, then play it with state saved. Single user, no accounts.
 
@@ -249,7 +249,7 @@ Update the plan before W2 starts. One line to you with the result.
 11a. `[W3·K]` Cell editor (paint and erase, using the step 6b stroke logic) and blank-grid drawing (D3). **[manual]**
 11b. `[W3·K]` Live solver report: verdict, difficulty label, and highlighting. `differing` cells are highlighted when the result is `multiple`, and `unresolved` cells when it's `unique-needs-guessing`. The solver runs in the worker on edit, debounced, and a newer edit cancels a stale result. Test: `report updates after edit` (pure). **[manual]**
 11c. `[W3·K]` "Save to library" from the creator. It computes the id and writes `verdict` from the latest report, then calls `store.put`. The creator owns saving. The library only lists, plays, deletes and backs up. Tests: `saved puzzle carries verdict`, `save waits for a fresh report` (no saving a stale verdict). **[manual]**
-12. `[W3·L]` Library: list, play, delete, through `store.js`. **The source image is never stored, only the grid.** Each puzzle shows its size and difficulty label (from `verdict.sweeps`). Puzzles that aren't fair show a "not fair" badge. Each puzzle has an "Export webpbn XML" action (using step 5x). **Backup:** `backup.js` exports every puzzle, save and set as one JSON file and imports it back, skipping duplicate ids. `localStorage` is the only store, and clearing browser data would otherwise wipe everything. Tests: `library lists saved puzzles`, `library record has no image data`, `badge shown for non-unique verdict`, `difficulty label from verdict`, `backup round-trip restores all kinds`, `import skips existing ids`, `import reports and skips invalid records` (pure). **[manual]**
+12. `[W3·L]` Library: list, play, delete, through `store.js`. **The source image is never stored, only the grid.** *(Reversed in v1.2 by D14: a bounded crop is stored as `art` for the solve reveal. The test below became `only art holds image data, and it is bounded`.)* Each puzzle shows its size and difficulty label (from `verdict.sweeps`). Puzzles that aren't fair show a "not fair" badge. Each puzzle has an "Export webpbn XML" action (using step 5x). **Backup:** `backup.js` exports every puzzle, save and set as one JSON file and imports it back, skipping duplicate ids. `localStorage` is the only store, and clearing browser data would otherwise wipe everything. Tests: `library lists saved puzzles`, `library record has no image data`, `badge shown for non-unique verdict`, `difficulty label from verdict`, `backup round-trip restores all kinds`, `import skips existing ids`, `import reports and skips invalid records` (pure). **[manual]**
 12p. `[W3·L]` Print view showing clues and an empty grid, with the answer key on page 2. **[manual]** Print preview at 10x10 and 25x25.
 
 ### Phase 4. Tiled sets (Q7)
@@ -379,7 +379,7 @@ Lane rules from v1 apply unchanged: stop after 2 failures, never edit a contract
 - **`create-logic.js` (lane C):** `defaultSize(imgW, imgH)` returns the image's own size when both sides are in `SIZES` (pixel-art sources). Otherwise it's unchanged. `titleFromFile(name)` turns `my-cat_2.png` into `my cat 2` (extension dropped, `-` and `_` become spaces, trimmed, at most 60 characters). An empty result gives `Untitled`.
 - **`library-logic.js` (lane L):** the progress values are `'solved' | 'in progress' | 'not started'` ('new' is renamed). A save whose cells equal `restartCells` for that puzzle, with `elapsedMs < 1000` and `solvedAt` null, is `'not started'`. The order is in progress, then not started, then solved, with titles A to Z within each group (case-insensitive, ignoring the AI-sample prefix). `sampleLabel(title)` returns `{name, ai}`.
 - **`game.js` (lane P):** `hintCell(cells, solution)` follows D17. The cell with value 1 is from the row or column with the fewest unknown cells that still has an unfilled solution cell; ties go to the first row, then column. It returns `null` when every solution cell is filled.
-- **Prefs (lane P):** `play.zen` and `play.autoCross`, read through `store.getPref` and written through `setPref` only. Anything other than `true` counts as false, so a hand-edited pref can't break play.
+- **Prefs (lane P):** `play.zen` and `play.autoCross`, read through `store.getPref` and written through `setPref` only. Anything other than `true` counts as false, so a hand-edited pref can't break play. *(Since D19, `play.autoCross` is the other way round: on unless it is a literal `false`.)*
 - **`grid.js` (lane P):** `setOverlay(node | null)` places one node over exactly the cell area (spanning the cell rows and columns of the CSS grid, above the cells), or removes it. Create and print don't call it, so their behavior is unchanged.
 - **UX checks:** lanes can't run `ux-checks.html` (the server serves `main`), so lanes verify with Node tests and describe their DOM hooks in the report. The orchestrator flips the KNOWN flags and adds the new checks in step 22, after merging.
 - **CSS ownership:** lane L owns `css/base.css` (the nav). Lane P sizes the play grid by setting `--cell` on the play grid holder from `play.js`, and doesn't edit `base.css`.
@@ -388,12 +388,10 @@ Lane rules from v1 apply unchanged: stop after 2 failures, never edit a contract
 
 | Lane | Steps | Owns files |
 |---|---|---|
-| C, Create | 19a to 19f | `src/views/create.js`, `src/create-logic.js`, `css/create.css`, their tests |
-| P, Play | 20a to 20f | `src/views/play.js`, `src/game.js`, `src/views/grid.js`, `css/play.css`, their tests |
+| C, Create | 19a to 19g | `src/views/create.js`, `src/create-logic.js`, `css/create.css`, their tests |
+| P, Play | 20a to 20h | `src/views/play.js`, `src/game.js`, `src/views/grid.js`, `css/play.css`, their tests |
 | L, Library and shell | 21a to 21e | `src/views/library.js`, `src/library-logic.js`, `src/theme.js`, `css/library.css`, `css/base.css`, `index.html`, their tests |
 | Orchestrator | 22 | `src/format.js` (the `art` and `hints` fields, landed before the lanes), `test/ux/checks.js`, docs |
-
-C runs 19a to 19g, P runs 20a to 20h.
 
 v1 lane rules apply.
 
@@ -421,6 +419,8 @@ v1 lane rules apply.
 21e. `[L]` Polish. The theme switch no longer flashes (no color transition while a theme is being applied), and the auto label names what it resolved to: "Theme: auto (evening)". Test: `auto theme label names the resolved theme`. **[manual]** switch themes and watch for a flash.
 22. `[seq]` Orchestrator. The `art` and `hints` contracts in `format.js` first (done before the lanes), then merges, flipping the KNOWN flags, the full UX check run (all pass, none KNOWN except the out-of-scope items), the manual reveal check in both themes, a slim `/gate-review` and a `/ux-gate-review` pass 2 on the result.
 
+**Done 2026-10-09.** Prep `05796c4` (the `art` and `hints` contracts). Lanes merged `--no-ff`: L `3c48608`, C `b98b755`, P `990db9f` (P's agent hit a usage limit after committing all 8 steps; verified from the branch). Step 22 checks `e10193a` (33 pass, 0 known). The solve reveal was checked by hand in evening and day, including reopening. Gate pass 3 (`nonogram-gate.md`) found 1 High and 3 Medium; fixes and D19 landed on branch `gate3-fixes`, and the UX checks went to 35 pass. UX pass 2 is in `nonogram-ux-review.md`, with its new findings waiting on the owner.
+
 ---
 
 ## Backlog (post-v1, collected 2026-10-08 from lane reports and browser checks)
@@ -433,7 +433,7 @@ Each item has a trigger. Items marked **kill** are recorded only so they aren't 
 - `toWebpbn` throws when a palette needs more than about 60 distinct characters.
 
 **Trust (gate pass 2, L1):**
-- Hearts, check and hint trust an imported puzzle's `verdict`. A hand-edited verdict could switch hearts on for a puzzle with several solutions. Accepted for a personal tool. Trigger: sharing puzzles with other people; then re-solve on import.
+- Hearts, mistake marks and hints trust an imported puzzle's `verdict`. A hand-edited verdict could switch hearts on for a puzzle with several solutions. Accepted for a personal tool. Trigger: sharing puzzles with other people; then re-solve on import.
 
 **Solver:**
 - Search always guesses the first unresolved cell. Revisit if a real 25x25 puzzle you make hits `unknown`.
@@ -442,8 +442,13 @@ Each item has a trigger. Items marked **kill** are recorded only so they aren't 
 **Creator and player feel (revisit after you've played about 5 puzzles):**
 - In the editor, clues update on stroke release, not during the drag.
 - There's no way back to the source image after pressing "Blank grid".
-- Opening an already-solved puzzle replays the solve glow once.
-- The grid scrolls rather than shrinking on a narrow window. Desktop is the target (D4).
+- Opening an already-solved puzzle replays the solve glow once. (The picture reveal itself doesn't replay; checked by `play-solve-reveal`.)
+- Below a 16px cell the play grid scrolls rather than shrinking (20f fits 16 to 32px). Desktop is the target (D4).
+
+**Trust (gate pass 3, L2), accepted for a personal tool:**
+- `validatePuzzle` lets unknown extra keys through, and the store keeps them. localStorage's quota bounds the size. Trigger: sharing puzzles with other people; then keep only `PUZZLE_KEYS` on import.
+- The `art` bound counts characters, not decoded pixels, so a crafted 200,000-character JPEG could declare a huge size and cost memory when revealed. It can't run script (it is only an `img` source). Same trigger.
+- A 4x4 tile set can store 16 art strings, about 3.2M characters at worst, near the storage quota. Typical art is a few KB, and a failed save rolls back the whole set. Trigger: a quota error on save.
 
 **Owner's hands-on testing, 2026-10-08:** reset, hearts, per-number clues, print key hidden, and crossing empty lines at the start shipped as v1.1 (steps 14a to 17). Print preview itself worked as planned, so step 13's print check is done.
 
@@ -512,4 +517,9 @@ What isn't on this list (contract shapes, ownership, dependency order) was revie
 **2026-10-08. v1.2 decisions D14 to D18, from UX pass 1.** Full text in the v1.2 section's Decisions.
 - D14 Store a bounded source crop (`art`) for the solve reveal. Owner: "1". This **reverses v1's "the source image is never stored"**: the reveal the owner asked for can't exist without it. Bounded to 200,000 characters, never in the id hash, never sent anywhere. Rejected: no storage with a strip only (owner picked the fade).
 - D15 to D17 as in the v1.2 section (sample badge, rule defaults, hint without a switch).
-- D18 Hint counter per play-through, reset by every restart. Owner: "add a hint counter per puzzle". Rejected: a lifetime total.
+- D18 Hint counter per play-through, reset by every restart. Owner: "add a hint counter per puzzle". Rejected: a lifetime total. Corrected at gate pass 3: the `w * h` bound in the save is a sanity cap, not a true maximum, since reveal, undo, reveal counts twice.
+
+**2026-10-09. Gate pass 3 calls.**
+- H1 The play timer starts with the first click on the grid (or a first hint), not on open or restart. Owner: "start timer with first click". So a puzzle you only opened, or restarted and looked at, stays "not started". Rejected: comparing cells only in the library (the timer would still show time that was never played).
+- D19 Auto-cross is on by default, and its crosses sweep in along the line. Owner: "when all fill is done for a row or column quickly add in the applied xs when you cross out the final number in the key". In hearts and Zen mode the last number crosses out exactly when the line's fills are complete, which is when auto-cross fires. The switch stays, and turning it off is remembered as the default (D16). Saves made before this keep their own setting. Rejected: removing the switch (some players like to cross by hand).
+- Everything else in gate pass 3: the reviewers' recommendations, per the owner ("rest clean up per your recommendation"). The dispositions are in `nonogram-gate.md`.

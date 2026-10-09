@@ -52,4 +52,62 @@ A real print to paper. Export, Import and webpbn downloads. Whether Delete confi
 `ux-checks.html` (with `test/ux/`) replays the reviewer's walkthrough against the running app on `127.0.0.1`. **First run, after D11 to D13:** 14 pass, and 10 KNOWN fail for the reasons above: UX1, UX2, UX3 (twice), UX5, UX6, UX10, UX12, UX14, and the shared Tiles label. Two KNOWN checks first passed when they shouldn't have, one through a timing race and one through a too-loose label test. Both were tightened until they failed for the reason the reviewer saw.
 
 ## Disposition
-*Pending the owner's calls.*
+Owner's calls (2026-10-08): "1, 2a, 3, 4a, 6, minors as recommended. On 5 when complete fade to original image crop including original color palette. Back to library strip below the image appears once fade is complete." Then "1, add a hint counter per puzzle, do polish items too if they are easy". Built as v1.2 (PLAN.md steps 19a to 22).
+
+| Finding | Disposition |
+|---|---|
+| UX1 | **Fixed** (19a). |
+| UX2 | **Fixed** (19d), option 2a: the draft survives navigation; `beforeunload` warns. |
+| UX3 | **Fixed** (20a). |
+| UX4 | **Fixed** (20b), option 4a: Continue in Zen mode. |
+| UX5 | **Replaced** by the solve reveal (D14, 20c). The status strip and sticky header were out of scope. |
+| UX6 | **Fixed** (21d). |
+| UX7 to UX15 | **Fixed** as recommended (21b, 21c, 20d with D17, 20e with D16, 19b, 19c, 21a, 20f). UX14 was only partly fixed until gate pass 3's H1 (the timer now starts on the first click). |
+| UX16 | **Fixed** (19g, 20h, 21e). |
+| UX17 | **Not taken** (taste). |
+| Tiles label (a11y) | **Fixed** (19e). |
+
+# UX pass 2, 2026-10-09
+
+**Scope:** v1.2 at `e10193a`, served on `127.0.0.1:8123`. Themes: evening, day and auto. Widths: 1024x768 and the mobile preset (375x812, touch emulated). Data: the throwaway `127.0.0.1` storage only, the samples plus one test puzzle; `localhost` was never opened. The UX checks ran 33/0/0 before and after.
+**Reviewer:** one read-only subagent following `/ux-gate-review`, cold. It stubbed `confirm()` (the pane closes native dialogs), so it read the confirm wording but didn't see the dialogs.
+**Core tasks walked:** find and start; play with mistakes; undo; out of hearts and Continue in Zen; Reveal and Hints used; solve, with the reveal on a puzzle made from an image; restart; Create from a blank grid and from an image, leave and return, save; the More menu at both widths; print with and without the key; load samples; keyboard order and contrast in all three theme states.
+
+## Findings
+
+### Major
+- **UX18. Saving a grid that matches a puzzle already in the library silently takes it over.** The id is a hash of the grid, so a banana made from `banana-10x10.png` at 10x10 got the sample Banana's id. Create said "Saved.", "Play it" opened a puzzle already solved, and the library row was renamed with no AI badge. "Load sample puzzles" then said all 9 were present, so the sample couldn't come back. **Recommend:** 1. If the id exists, say "This grid is already in your library as '<title>'" with Open it or Cancel, and never overwrite the title. 2. Keep the existing record and show "Already in your library" in place of "Saved."
+
+### Minor
+- **UX19.** Undoing a wrong fill removes the red cross but keeps the heart lost, so the board no longer explains the loss. **Recommend:** 1. Undo skips mistake crosses (they're facts the player paid for). 2. Undo refunds the heart.
+- **UX20.** After Continue in Zen, Restart keeps Zen on, but its confirm says "Progress and hearts reset". **Recommend:** 1. Restart returns to the default rules. 2. Keep it, and change the copy.
+- **UX21.** At 375px the More menu opens off the left edge ("ort for other solvers"), and on the last row below the fold. **Recommend:** 1. Left-align it to its button at narrow widths. 2. Flip it upward.
+- **UX22.** At 375px, a scrolled 25x25 draws row clues over column clues in the corner, and stray clues show left of the gutter. **Recommend:** 1. Opaque gutter and corner backgrounds, the whole row gutter sticky, the corner pinned above both. 2. No sticky gutters below 768px until the touch pass.
+- **UX23. *Plan-sourced: D4.*** On a touch phone there's no way to cross, and the legend gives mouse instructions. **Recommend:** 1. On a coarse pointer, say "Crossing needs a mouse for now". 2. A Fill/Cross toggle in the touch pass.
+- **UX24.** At 375px the Create grid runs 61px past the screen, and Create has double the side padding. **Recommend:** 1. Same page padding as other screens, and fit Create's cells to the width like Play.
+
+### Polish
+- **UX25.** "Solved!" and Create's "Difficulty: …" look like buttons. **Recommend:** a flat badge.
+- **UX26.** "Difficulty: Unchecked" before anything is filled; "Drop an image above, or start from a blank grid" beside a blank grid already on screen. **Recommend:** "Choose an image above, or draw on the grid below", and hide or rename "Blank grid" until an image is loaded.
+- **UX27.** The Play header shows "AI test sample: Heart (5x5)" while the library shows the name and a badge (D15). **Recommend:** the same name and badge on Play.
+
+### Taste
+- **UX28.** Export save and Import save sit above the grid with Restart's weight.
+
+## Pass 1 status, as observed
+UX1, UX2, UX3, UX4, UX6, UX7, UX8 (desktop), UX10, UX11, UX12, UX13 resolved. UX5 partly (as scoped: the reveal and strip work; a past mistake cross goes grey like a player's own cross, and hearts are still small). UX9 partly (UX27, UX28). UX14 partly (fixed since, gate pass 3 H1). UX15 resolved at desktop, partly at 375 (UX22). UX16 mostly resolved. UX17 not addressed.
+
+## What works
+Direct drag-to-fill with a live run count; pre-crossed empty lines, "0" clues and numbers greying out, clear in both themes; mistake feedback at the cell; an unambiguous out-of-hearts state with two named ways out; a useful Reveal and an honest hint count; **the solve reveal is the emotional high point and must stay**; Create's instant conversion, self-picking threshold, title from the file name, live solver report, blocked empty Save, kept draft and clear next steps; a library with one primary button and an honest AI label; visible focus; text contrast 5.7:1 to 14:1.
+
+## Accessibility basics (not an audit)
+The play grid still isn't keyboard reachable (known). The theme button's accessible name ("Cycle theme…") doesn't contain its visible text, which can trip voice control. A lost heart is shown only by a ~10px glyph until the panel appears.
+
+## Not checked
+The native confirm dialogs themselves; a real print; export, import and webpbn downloads; Delete itself; tile sets; drag and drop onto Create; real touch hardware; screen readers, reduced motion, the theme flash; the hover crosshair after a solve; `beforeunload`; a 100+ puzzle library.
+
+## UX checks
+Gate pass 3 added `play-solve-reveal`, `play-auto-cross-sweep`, and stricter hint, not-started and 0-clue checks: 35 pass, 0 known. The reviewer suggested KNOWN checks for UX18 to UX22 and UX24; they are added once the owner decides those findings.
+
+## Disposition
+*Pending the owner's calls on UX18 to UX28.*

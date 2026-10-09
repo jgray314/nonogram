@@ -3,7 +3,16 @@
 import { cellLuminance, otsu, binarize } from '../image.js';
 import { puzzleClues } from '../clues.js';
 import { renderGrid } from './grid.js';
-import { SIZES, defaultSize, centerCrop, loadScale, newEditorState } from '../create-logic.js';
+import { applyStroke } from '../play-state.js';
+import {
+  SIZES,
+  defaultSize,
+  centerCrop,
+  loadScale,
+  blankGrid,
+  newEditorState,
+  regenerateNeedsConfirm,
+} from '../create-logic.js';
 
 const PREVIEW_MAX = 320;
 const CSS_ID = 'nng-create-css';
@@ -84,6 +93,7 @@ export function mount(container) {
   const sliderValue = el('span', { className: 'nng-create-threshold-value', text: '128' });
   const resetBtn = el('button', { type: 'button', text: 'Reset to auto' });
   const invertBox = el('input', { type: 'checkbox' });
+  const blankBtn = el('button', { type: 'button', text: 'Blank grid' });
 
   const controls = el(
     'div',
@@ -94,6 +104,7 @@ export function mount(container) {
     el('label', {}, 'Threshold ', slider, sliderValue),
     resetBtn,
     el('label', {}, invertBox, 'Invert'),
+    blankBtn,
   );
 
   const previewCanvas = el('canvas', { className: 'nng-create-preview' });
@@ -191,8 +202,37 @@ export function mount(container) {
     });
   }
 
-  // Step 11a replaces this with the stroke handler.
-  function onGridPointer() {}
+  // Editor: left-drag paints/clears via applyStroke. The grid is only updated
+  // in place during a stroke (its DOM must survive the drag); the clues are
+  // rebuilt by re-rendering when the stroke ends. The right button is ignored.
+  let stroke = null; // [r, c][] while a left stroke is held
+  const strokeOf = (path) => ({ button: 'left', path });
+
+  function onGridPointer({ type, r, c, button }) {
+    if (type === 'down') {
+      if (button === 'left' && r !== null) stroke = [[r, c]];
+      return;
+    }
+    if (!stroke || button !== 'left') return;
+    if (r !== null) stroke.push([r, c]);
+    if (type === 'enter') {
+      gridView.update(applyStroke(st.grid, strokeOf(stroke)));
+    } else if (type === 'up') {
+      const next = applyStroke(st.grid, strokeOf(stroke));
+      stroke = null;
+      if (JSON.stringify(next) !== JSON.stringify(st.grid)) st.manualEdits = true;
+      st.grid = next;
+      renderGridNow();
+    }
+  }
+
+  /** Ask before a regeneration throws away hand edits. */
+  function okToDiscard() {
+    return (
+      !regenerateNeedsConfirm(st.manualEdits) ||
+      confirm('This will discard your manual edits to the grid. Continue?')
+    );
+  }
 
   /** Rebuild the grid from the image with the current settings. */
   function regenerate() {
@@ -218,6 +258,10 @@ export function mount(container) {
       showError(`Could not read "${file.name}" as an image. Try a PNG, JPEG, GIF or WebP file.`);
       return;
     }
+    if (!okToDiscard()) {
+      fileInput.value = '';
+      return;
+    }
     image = decoded;
     st.hasImage = true;
     st.offset = { dx: 0, dy: 0 };
@@ -229,31 +273,66 @@ export function mount(container) {
   }
 
   function onSize() {
+    if (!okToDiscard()) {
+      syncControls();
+      return;
+    }
     st.width = Number(widthSel.value);
     st.height = Number(heightSel.value);
-    regenerate();
+    if (image) {
+      regenerate();
+    } else {
+      newBlank();
+    }
   }
 
   function onSlider() {
+    if (!okToDiscard()) {
+      syncControls();
+      return;
+    }
     st.autoThreshold = false;
     st.threshold = Number(slider.value);
     regenerate();
   }
 
   function onReset() {
+    if (!okToDiscard()) return;
     st.autoThreshold = true;
     regenerate();
   }
 
   function onInvert() {
+    if (!okToDiscard()) {
+      syncControls();
+      return;
+    }
     st.invert = invertBox.checked;
     regenerate();
+  }
+
+  /** Start the editor from an all-zero grid at the chosen size, no image. */
+  function newBlank() {
+    image = null;
+    st.hasImage = false;
+    st.offset = { dx: 0, dy: 0 };
+    st.grid = blankGrid(st.width, st.height);
+    st.manualEdits = false;
+    fileInput.value = '';
+    syncControls();
+    drawPreview();
+    renderGridNow();
+  }
+
+  function onBlank() {
+    if (!okToDiscard()) return;
+    newBlank();
   }
 
   // Crop drag: pointer movement shifts the crop in image pixels.
   let drag = null;
   function onPreviewDown(e) {
-    if (!image || e.button !== 0) return;
+    if (!image || e.button !== 0 || !okToDiscard()) return;
     const base = centerCrop(image.w, image.h, st.width, st.height);
     drag = { x: e.clientX, y: e.clientY, from: currentCrop(), base };
     previewCanvas.setPointerCapture(e.pointerId);
@@ -281,6 +360,7 @@ export function mount(container) {
   slider.addEventListener('input', onSlider);
   resetBtn.addEventListener('click', onReset);
   invertBox.addEventListener('change', onInvert);
+  blankBtn.addEventListener('click', onBlank);
   previewCanvas.addEventListener('pointerdown', onPreviewDown);
   previewCanvas.addEventListener('pointermove', onPreviewMove);
   previewCanvas.addEventListener('pointerup', onPreviewUp);

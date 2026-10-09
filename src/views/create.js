@@ -16,6 +16,10 @@ import {
   createEditHistory,
   hasUnsavedWork,
   gridSig,
+  artSize,
+  tileCropRect,
+  pickArt,
+  withArts,
   centerCrop,
   loadScale,
   blankGrid,
@@ -429,6 +433,24 @@ export function mount(container) {
     });
   }
 
+  /**
+   * The source crop for tile (row, col) as a small JPEG data URL (D14), or
+   * undefined for a blank-grid puzzle or when no attempt fits the size limit.
+   */
+  function artFor(row, col) {
+    if (!image) return undefined;
+    const rect = tileCropRect(currentCrop(), st.tileRows, st.tileCols, row, col);
+    return pickArt((side, quality) => {
+      const size = artSize(rect.w, rect.h, side);
+      const canvas = el('canvas', { width: size.width, height: size.height });
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff'; // JPEG has no alpha: transparent pixels would turn black
+      ctx.fillRect(0, 0, size.width, size.height);
+      ctx.drawImage(image.canvas, rect.x, rect.y, rect.w, rect.h, 0, 0, size.width, size.height);
+      return canvas.toDataURL('image/jpeg', quality);
+    });
+  }
+
   function onSave() {
     return tiled() ? saveSet() : saveSingle();
   }
@@ -436,7 +458,7 @@ export function mount(container) {
   async function saveSingle() {
     const run = reportRun;
     if (!canSave(reports[0])) return;
-    const puzzle = buildPuzzleRecord(st.grid, titleInput.value, reports[0].result);
+    const puzzle = buildPuzzleRecord(st.grid, titleInput.value, reports[0].result, artFor(0, 0));
     puzzle.id = await puzzleId(puzzle);
     // The grid may have changed while the id was computed: never save a verdict
     // that does not match the current grid.
@@ -467,7 +489,8 @@ export function mount(container) {
     const tiles = sliceTiles(st.grid, st.tileRows, st.tileCols);
     const made = await makeSet({ title, tiles, palette: DEFAULT_PALETTE.map((p) => ({ ...p })) });
     if (run !== reportRun || !canSaveSet(reports)) return;
-    const puzzles = withVerdicts(made.puzzles, reports);
+    const arts = made.puzzles.map((_, i) => artFor(Math.floor(i / st.tileCols), i % st.tileCols));
+    const puzzles = withArts(withVerdicts(made.puzzles, reports), arts);
     const bad = puzzles.map(validatePuzzle).find((v) => !v.ok) ?? validateSet(made.set);
     if (!bad.ok) {
       showSaveMessage('Could not save: ' + bad.error);

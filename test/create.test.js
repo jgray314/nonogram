@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { puzzleId, validatePuzzle } from '../src/format.js';
+import { puzzleId, validatePuzzle, ART_PREFIX, MAX_ART_CHARS } from '../src/format.js';
 import { makeSet, tileGrid } from '../src/tiles.js';
 import {
   SIZES,
@@ -10,6 +10,10 @@ import {
   createEditHistory,
   hasUnsavedWork,
   gridSig,
+  artSize,
+  tileCropRect,
+  pickArt,
+  withArts,
   centerCrop,
   loadScale,
   blankGrid,
@@ -342,6 +346,74 @@ test('hasUnsavedWork is true until the current grid is saved', () => {
   // a loaded image counts even when the grid came out empty
   const blankWithImage = { ...newEditorState({ width: 5, height: 5 }), hasImage: true };
   assert.equal(hasUnsavedWork(blankWithImage, null), true);
+});
+
+test('artSize caps the long side at 320 and never upscales', () => {
+  assert.deepEqual(artSize(640, 320), { width: 320, height: 160 });
+  assert.deepEqual(artSize(100, 400), { width: 80, height: 320 });
+  assert.deepEqual(artSize(200, 100), { width: 200, height: 100 });
+  assert.deepEqual(artSize(640, 320, 160), { width: 160, height: 80 });
+  assert.deepEqual(artSize(1000, 1), { width: 320, height: 1 });
+});
+
+test('tileCropRect gives each tile its own slice of the crop', () => {
+  const crop = { x: 10, y: 20, w: 300, h: 200 };
+  assert.deepEqual(tileCropRect(crop, 1, 1, 0, 0), crop);
+  assert.deepEqual(tileCropRect(crop, 2, 3, 0, 0), { x: 10, y: 20, w: 100, h: 100 });
+  assert.deepEqual(tileCropRect(crop, 2, 3, 1, 2), { x: 210, y: 120, w: 100, h: 100 });
+  // slices tile the crop exactly, even when it does not divide evenly
+  const odd = { x: 0, y: 0, w: 10, h: 7 };
+  const widths = [0, 1, 2].map((c) => tileCropRect(odd, 1, 3, 0, c));
+  assert.equal(
+    widths.reduce((s, r) => s + r.w, 0),
+    10,
+  );
+  assert.equal(widths[2].x + widths[2].w, 10);
+});
+
+test('pickArt retries smaller and drops art that never fits', () => {
+  const tries = [];
+  const url = (n) => ART_PREFIX + 'A'.repeat(n);
+  const fits = pickArt((side, q) => {
+    tries.push([side, q]);
+    return tries.length < 3 ? url(MAX_ART_CHARS) : url(1000);
+  });
+  assert.equal(fits, url(1000));
+  assert.equal(tries.length, 3);
+  assert.deepEqual(tries[0], [320, 0.8]);
+  assert.ok(tries[2][0] < 320 || tries[2][1] < 0.8, 'later attempts are smaller or lower quality');
+  // never fits, or an encoder that gives up: no art
+  assert.equal(
+    pickArt(() => url(MAX_ART_CHARS)),
+    undefined,
+  );
+  assert.equal(
+    pickArt(() => 'data:image/png;base64,AAAA'),
+    undefined,
+  );
+});
+
+test('buildPuzzleRecord carries art only when there is one, and it validates', async () => {
+  const grid = [
+    [1, 0],
+    [0, 1],
+  ];
+  const report = { status: 'unique-line-solvable', sweeps: 1 };
+  assert.equal('art' in buildPuzzleRecord(grid, 't', report), false);
+  const art = ART_PREFIX + 'AAAA';
+  const p = buildPuzzleRecord(grid, 't', report, art);
+  const bare = buildPuzzleRecord(grid, 't', report);
+  assert.equal(p.art, art);
+  assert.equal(await puzzleId(p), await puzzleId(bare), 'art is not part of the id');
+  p.id = await puzzleId(p);
+  assert.equal(validatePuzzle(p).ok, true);
+});
+
+test('withArts adds each tile its own art and leaves others alone', () => {
+  const puzzles = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
+  const out = withArts(puzzles, ['x', undefined, 'z']);
+  assert.deepEqual(out, [{ id: 'a', art: 'x' }, { id: 'b' }, { id: 'c', art: 'z' }]);
+  assert.equal('art' in puzzles[0], false, 'input is not mutated');
 });
 
 test('hasFilledCell is false for a blank grid and true once a cell is filled', () => {

@@ -317,7 +317,7 @@ export function mount(container, params = {}) {
 
   const onKey = (e) => {
     if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
-    const k = e.key.toLowerCase();
+    const k = (e.key ?? '').toLowerCase(); // synthetic events can lack a key
     if (k === 'z' && !e.shiftKey) step(history.undo);
     else if (k === 'y' || (k === 'z' && e.shiftKey)) step(history.redo);
     else return;

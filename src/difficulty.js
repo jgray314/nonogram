@@ -1,5 +1,5 @@
 // Difficulty label from a cached solver verdict ({status, sweeps}).
-// Thresholds are provisional; step 13 calibrates them by play.
+// Thresholds are provisional; PLAN.md step 13 calibrates them by play.
 const EASY_MAX_SWEEPS = 3;
 
 export function isFair(verdict) {

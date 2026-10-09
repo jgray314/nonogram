@@ -1,7 +1,7 @@
 # Nonogram Studio — Plan
 
 **Created:** 2026-10-08
-**Status:** All build steps (0 to 12s) merged to main and checked by hand in the browser, 2026-10-08. 119 tests pass. Registered in the toolkit. Remaining in step 13: `/gate-review`, Jess's print preview check, and difficulty calibration by play.
+**Status:** All build steps (0 to 12s) merged to main and checked by hand in the browser, 2026-10-08. Run `npm test` for the current count. Registered in the toolkit. Remaining in step 13: `/gate-review`, Jess's print preview check, and difficulty calibration by play.
 **Platform:** web browser, desktop first.
 **What it is:** A personal tool to turn an image (your own picture, no AI in the content) into a nonogram, check that it's a fair puzzle, then play it with state saved. Single user, no accounts.
 
@@ -61,7 +61,7 @@ Recommend both. "Draw from blank" is the same editor started without an image.
 2. Normal (Picross-style) by default.
 
 **Q6. Grid shape and image aspect (CLOSED 2026-10-08: option 1, plus tiling, see Q7).** Should the grid be square only, or allow independent width and height (Picross uses 25x20)? And when the image's aspect ratio doesn't match the grid, what happens?
-1. **(rec)** Width and height are picked independently from {5, 10, 15, 20, 25}. The default is the preset closest to the image's aspect. A mismatched image gets center-cropped, with a crop offset you can drag.
+1. **(rec)** Width and height are picked independently from {5, 10, 15, 20, 25}. The default is the preset closest to the image's aspect. *As built:* the long side is 15 and the short side snaps to the nearest preset, with ties going to the larger one. A mismatched image gets center-cropped, with a crop offset you can drag.
 2. Square only, with center crop.
 3. Independent width and height, with the image squashed to fit (distorts the picture).
 
@@ -245,7 +245,7 @@ Update the plan before W2 starts. One line to you with the result.
 9. `[W3·P]` Rule toggles (check mistakes, reveal-cell hint), a timer, and optional auto-cross of completed lines. Check and hint compare against the stored solution, so they're disabled with a note when the puzzle's cached `verdict` isn't unique. The player never imports the solver. Tests: `check flags only wrong fills`, `hint reveals an unsolved cell`, `check disabled when not unique`. **[manual]** 25x25 legibility check, which may trigger a layout fix.
 
 ### Phase 3. Creator
-10. `[W3·K]` Upload an image and preview the grid. Width and height are picked independently from {5, 10, 15, 20, 25} (Q6). The default size comes from `defaultSize(imgW, imgH)`, which picks the preset pair closest to the image's aspect. There's a center crop with a draggable offset, a threshold slider and an invert toggle. A one-line hint says simple, high-contrast images convert best. Images are downscaled on load to at most 1024px on the long side, so a phone photo doesn't stall `getImageData`. A file that won't decode shows an error, not a blank grid. Tests: `defaultSize picks closest aspect`, `crop stays inside image bounds`, `load scale caps long side at 1024` (pure). **[manual]** Uses your sample images (see Limits).
+10. `[W3·K]` Upload an image and preview the grid. Width and height are picked independently from {5, 10, 15, 20, 25} (Q6). The default size comes from `defaultSize(imgW, imgH)`, which sets the long side to 15 and snaps the short side to the nearest preset, with ties going to the larger one. There's a center crop with a draggable offset, a threshold slider and an invert toggle. A one-line hint says simple, high-contrast images convert best. Images are downscaled on load to at most 1024px on the long side, so a phone photo doesn't stall `getImageData`. A file that won't decode shows an error, not a blank grid. Tests: `defaultSize picks closest aspect`, `crop stays inside image bounds`, `load scale caps long side at 1024` (pure). **[manual]** Uses your sample images (see Limits).
 11a. `[W3·K]` Cell editor (paint and erase, using the step 6b stroke logic) and blank-grid drawing (D3). **[manual]**
 11b. `[W3·K]` Live solver report: verdict, difficulty label, and highlighting. `differing` cells are highlighted when the result is `multiple`, and `unresolved` cells when it's `unique-needs-guessing`. The solver runs in the worker on edit, debounced, and a newer edit cancels a stale result. Test: `report updates after edit` (pure). **[manual]**
 11c. `[W3·K]` "Save to library" from the creator. It computes the id and writes `verdict` from the latest report, then calls `store.put`. The creator owns saving. The library only lists, plays, deletes and backs up. Tests: `saved puzzle carries verdict`, `save waits for a fresh report` (no saving a stale verdict). **[manual]**

@@ -5,6 +5,10 @@ const HEX = /^#[0-9a-fA-F]{6}$/;
 // Largest tile set the creator makes (4x4). Bounding it keeps a hostile record
 // from making the library allocate rows*cols cells (gate pass 1, H1).
 export const MAX_SET_SIDE = 4;
+// Largest grid the creator offers, and the most colors the solver's bitmask
+// holds (it uses 1 << color). Same unbounded-number shape as H1.
+export const MAX_GRID_SIDE = 25;
+export const MAX_PALETTE = 30;
 
 const isObj = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
 const isInt = (x) => Number.isInteger(x);
@@ -65,9 +69,13 @@ export function validatePuzzle(x) {
     if (x.v !== 1) return fail('unsupported puzzle version');
     if (typeof x.id !== 'string' || x.id === '') return fail('id must be a non-empty string');
     if (typeof x.title !== 'string') return fail('title must be a string');
-    if (!isInt(x.width) || x.width < 1) return fail('width must be a positive integer');
-    if (!isInt(x.height) || x.height < 1) return fail('height must be a positive integer');
-    if (!Array.isArray(x.palette) || x.palette.length < 1) return fail('palette must be non-empty');
+    if (!isInt(x.width) || x.width < 1 || x.width > MAX_GRID_SIDE)
+      return fail(`width must be 1 to ${MAX_GRID_SIDE}`);
+    if (!isInt(x.height) || x.height < 1 || x.height > MAX_GRID_SIDE)
+      return fail(`height must be 1 to ${MAX_GRID_SIDE}`);
+    if (!Array.isArray(x.palette) || x.palette.length < 1 || x.palette.length > MAX_PALETTE) {
+      return fail(`palette must have 1 to ${MAX_PALETTE} colors`);
+    }
     for (const p of x.palette) {
       if (
         !isObj(p) ||

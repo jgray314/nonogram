@@ -287,3 +287,13 @@ test('idMatches rejects a forged id (gate M3)', async () => {
   );
   assert.equal(await idMatches({ ...p, id: 'demo' }), false);
 });
+
+test('validate bounds grid size and palette length (gate H1 shape sweep)', () => {
+  const ok = makePuzzle();
+  assert.equal(validatePuzzle(ok).ok, true);
+  const wide = 26;
+  const big = { ...ok, width: wide, height: 1, solution: [Array(wide).fill(0)] };
+  assert.equal(validatePuzzle(big).ok, false);
+  const palette = Array.from({ length: 31 }, (_, i) => ({ name: `c${i}`, hex: '#000000' }));
+  assert.equal(validatePuzzle({ ...ok, palette }).ok, false);
+});

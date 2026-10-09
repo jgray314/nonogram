@@ -11,6 +11,8 @@ import {
   setProgress,
   PUZZLE_KEYS,
 } from '../src/library-logic.js';
+import { restartCells } from '../src/game.js';
+import { puzzleClues } from '../src/clues.js';
 import { samplePuzzles, loadSamples } from '../src/samples.js';
 
 function memoryStorage() {
@@ -107,8 +109,8 @@ test('library row label comes from the verdict', () => {
   assert.equal(label(null), 'Unchecked');
 });
 
-test('progress from save', () => {
-  assert.equal(progressOf(null), 'new');
+test('progress label is not started, not new', () => {
+  assert.equal(progressOf(null), 'not started');
   assert.equal(
     progressOf(
       save('a', [
@@ -116,7 +118,7 @@ test('progress from save', () => {
         [0, 0],
       ]),
     ),
-    'new',
+    'not started',
   );
   assert.equal(
     progressOf(
@@ -140,6 +142,32 @@ test('progress from save', () => {
     ),
     'solved',
   );
+});
+
+test('restarted grid with only auto-crosses is not started', () => {
+  // Row 1 and column 0 of this solution are empty, so a restart crosses them.
+  const p = puzzle('x', {
+    width: 2,
+    height: 2,
+    solution: [
+      [0, 1],
+      [0, 0],
+    ],
+  });
+  const start = restartCells(puzzleClues(p.solution), 2, 2);
+  assert.ok(
+    start.some((row) => row.some((v) => v !== 0)),
+    'the start grid has crosses',
+  );
+  const fresh = { ...save('x', start), elapsedMs: 0 };
+  assert.equal(progressOf(fresh, p), 'not started');
+  assert.equal(progressOf({ ...fresh, elapsedMs: 999 }, p), 'not started');
+  assert.equal(progressOf({ ...fresh, elapsedMs: 1000 }, p), 'in progress');
+  assert.equal(progressOf({ ...fresh, solvedAt: 5 }, p), 'solved');
+  const touched = start.map((row) => [...row]);
+  touched[0][1] = 1;
+  assert.equal(progressOf({ ...fresh, cells: touched }, p), 'in progress');
+  assert.equal(rowModel(p, fresh).progress, 'not started');
 });
 
 test('safeFilename strips unsafe characters', () => {

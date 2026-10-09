@@ -1,5 +1,7 @@
 // Pure helpers for the library view.
 import { difficultyLabel, isFair } from './difficulty.js';
+import { restartCells } from './game.js';
+import { puzzleClues } from './clues.js';
 
 /** The keys a stored puzzle may have (PLAN.md D2, the tile `set` field, and D14's `art`). */
 export const PUZZLE_KEYS = [
@@ -15,11 +17,23 @@ export const PUZZLE_KEYS = [
   'art',
 ];
 
-/** 'solved' | 'in progress' | 'new', from a save record (or null). */
-export function progressOf(save) {
-  if (!save) return 'new';
+function sameGrid(a, b) {
+  return a.length === b.length && a.every((row, r) => row.every((v, c) => v === b[r][c]));
+}
+
+/**
+ * 'solved' | 'in progress' | 'not started', from a save record (or null).
+ * A save still at the starting grid (a restart's automatic crosses included)
+ * with under a second played counts as not started.
+ */
+export function progressOf(save, puzzle = null) {
+  if (!save) return 'not started';
   if (save.solvedAt !== null && save.solvedAt !== undefined) return 'solved';
-  return save.cells.some((row) => row.some((v) => v !== 0)) ? 'in progress' : 'new';
+  const start = puzzle
+    ? restartCells(puzzleClues(puzzle.solution), puzzle.width, puzzle.height)
+    : save.cells.map((row) => row.map(() => 0));
+  const atStart = sameGrid(save.cells, start) && (save.elapsedMs ?? 0) < 1000;
+  return atStart ? 'not started' : 'in progress';
 }
 
 export function rowModel(puzzle, save) {
@@ -32,7 +46,7 @@ export function rowModel(puzzle, save) {
     size: `${puzzle.width} x ${puzzle.height}`,
     label: difficultyLabel(puzzle.verdict),
     badge,
-    progress: progressOf(save),
+    progress: progressOf(save, puzzle),
   };
 }
 

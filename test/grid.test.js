@@ -17,18 +17,24 @@ test('layout: gutter fits max clue count', () => {
   assert.deepEqual(gutterSize(tall), { top: 4, left: 1 });
 });
 
-test('layout: empty clues give a gutter of zero', () => {
+test('layout: a puzzle with no lines has a zero gutter', () => {
   assert.deepEqual(gutterSize({ rows: [], cols: [] }), { top: 0, left: 0 });
 });
 
-test('empty line gets a zero clue gutter', () => {
-  // Row 1 and column 1 are empty. A line with no clues still shows a "0", so it counts as depth 1.
+test('with zeroClues, an empty line shows a 0 clue, so it counts as gutter depth 1', () => {
+  // Row 1 and column 1 are empty.
   const clues = puzzleClues([
     [1, 0],
     [0, 0],
   ]);
   assert.deepEqual(clues.rows[1], []);
-  assert.deepEqual(gutterSize(clues), { top: 1, left: 1 });
+  assert.deepEqual(gutterSize(clues, { zeroClues: true }), { top: 1, left: 1 });
   // A completely blank puzzle has a gutter of one for the "0"s, not zero.
-  assert.deepEqual(gutterSize(puzzleClues([[0, 0]])), { top: 1, left: 1 });
+  assert.deepEqual(gutterSize(puzzleClues([[0, 0]]), { zeroClues: true }), { top: 1, left: 1 });
+});
+
+test('without zeroClues (Create, Print), empty lines add no gutter', () => {
+  // Create passes all-empty lists for a tile set on purpose (gate pass 3, M1).
+  const blank = { rows: [[], []], cols: [[], []] };
+  assert.deepEqual(gutterSize(blank), { top: 0, left: 0 });
 });

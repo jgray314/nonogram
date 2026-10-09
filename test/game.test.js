@@ -13,6 +13,7 @@ import {
   heartsAvailable,
   restartCells,
   solvedSummary,
+  changedCells,
 } from '../src/game.js';
 import { puzzleClues } from '../src/clues.js';
 
@@ -98,6 +99,9 @@ test('history reports whether undo and redo have anything to do', () => {
   h.undo();
   assert.equal(h.canUndo(), false);
   assert.equal(h.canRedo(), true);
+  // A new edit after an undo drops the redo branch (Create's hand edits rely on this).
+  h.push([[0, 1]]);
+  assert.equal(h.canRedo(), false);
 });
 
 test('history does not alias caller arrays', () => {
@@ -147,7 +151,7 @@ test('hintCell returns null when all fills are done', () => {
   assert.equal(hintCell(crossed, SOL), null);
 });
 
-test('check disabled when not unique', () => {
+test('helpers (hearts, mistake marks, hints) disabled when not unique', () => {
   assert.equal(helpersAvailability({ status: 'unique-line-solvable', sweeps: 2 }).enabled, true);
   assert.equal(helpersAvailability({ status: 'unique-needs-guessing', sweeps: 3 }).enabled, true);
   for (const verdict of [
@@ -339,8 +343,24 @@ test('solvedSummary formats time', () => {
   assert.equal(solvedSummary(59999, 0), 'Solved in 00:59');
 });
 
+test('changedCells lists the differing cells in reading order', () => {
+  const a = [
+    [0, 1, 0],
+    [0, 0, 0],
+  ];
+  const b = [
+    [-1, 1, 0],
+    [0, -1, -1],
+  ];
+  assert.deepEqual(changedCells(a, b), [
+    [0, 0],
+    [1, 1],
+    [1, 2],
+  ]);
+  assert.deepEqual(changedCells(a, a), []);
+});
+
 test('solvedSummary adds the hint count', () => {
-  assert.equal(solvedSummary(192000, 0), 'Solved in 03:12');
   assert.equal(solvedSummary(192000, 1), 'Solved in 03:12 · 1 hint');
   assert.equal(solvedSummary(192000, 2), 'Solved in 03:12 · 2 hints');
 });

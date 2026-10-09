@@ -1,6 +1,5 @@
 // Pure helpers for the creator view. No DOM.
 import { difficultyLabel } from './difficulty.js';
-import { createHistory } from './game.js';
 import { ART_PREFIX, MAX_ART_CHARS } from './format.js';
 
 export const SIZES = [5, 10, 15, 20, 25];
@@ -28,34 +27,6 @@ export function defaultSize(imgW, imgH) {
   const short = Math.min(imgW, imgH);
   const s = Math.max(5, nearestSize((LONG_SIDE * short) / long));
   return imgW >= imgH ? { width: LONG_SIDE, height: s } : { width: s, height: LONG_SIDE };
-}
-
-/**
- * Undo/redo for hand edits: game.js's createHistory plus what the Undo and Redo
- * buttons need to know. A regenerate (threshold, size, invert) makes a new one.
- */
-export function createEditHistory(grid) {
-  const inner = createHistory(grid);
-  let at = 0;
-  let last = 0;
-  return {
-    push(next) {
-      inner.push(next);
-      at += 1;
-      last = at;
-    },
-    undo() {
-      if (at > 0) at -= 1;
-      return inner.undo();
-    },
-    redo() {
-      if (at < last) at += 1;
-      return inner.redo();
-    },
-    current: () => inner.current(),
-    canUndo: () => at > 0,
-    canRedo: () => at < last,
-  };
 }
 
 /** A string that changes whenever the saved-or-not content of the editor changes. */

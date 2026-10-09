@@ -10,6 +10,10 @@ import {
   fromJSON,
   ART_PREFIX,
   MAX_ART_CHARS,
+  MAX_TITLE_CHARS,
+  MAX_NAME_CHARS,
+  MAX_SET_ID_CHARS,
+  MAX_SWEEPS,
 } from '../src/format.js';
 import { MAX_HEARTS } from '../src/game.js';
 
@@ -336,6 +340,29 @@ test('art over the bound, or not a JPEG data URL, rejected', () => {
   for (const art of bad) {
     assert.equal(validatePuzzle(makePuzzle({ art })).ok, false, String(art).slice(0, 30));
   }
+});
+
+test('art at exactly the bound is valid, one character over is not', () => {
+  const at = ART_PREFIX + 'A'.repeat(MAX_ART_CHARS - ART_PREFIX.length);
+  assert.equal(at.length, MAX_ART_CHARS);
+  assert.deepEqual(validatePuzzle(makePuzzle({ art: at })), { ok: true });
+  assert.equal(validatePuzzle(makePuzzle({ art: at + 'A' })).ok, false);
+});
+
+test('over-long title, palette name, set id or sweeps rejected (gate pass 3, L2)', () => {
+  const long = (n) => 'x'.repeat(n + 1);
+  const bad = [
+    { title: long(MAX_TITLE_CHARS) },
+    { palette: [{ name: long(MAX_NAME_CHARS), hex: '#000000' }] },
+    { set: { id: long(MAX_SET_ID_CHARS), row: 0, col: 0 } },
+    { verdict: { status: 'unique-line-solvable', sweeps: MAX_SWEEPS + 1 } },
+  ];
+  for (const over of bad) {
+    assert.equal(validatePuzzle(makePuzzle(over)).ok, false, Object.keys(over)[0]);
+  }
+  assert.deepEqual(validatePuzzle(makePuzzle({ title: 'x'.repeat(MAX_TITLE_CHARS) })), {
+    ok: true,
+  });
 });
 
 test('hints from 0 to the cell count are valid, missing means 0', () => {

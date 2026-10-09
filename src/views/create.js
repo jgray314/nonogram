@@ -4,6 +4,7 @@ import { cellLuminance, otsu } from '../image.js';
 import { puzzleClues } from '../clues.js';
 import { renderGrid } from './grid.js';
 import { applyStroke } from '../play-state.js';
+import { createHistory } from '../game.js';
 import { puzzleId, validatePuzzle, validateSet } from '../format.js';
 import { tileGrid, tileFlags, makeSet } from '../tiles.js';
 import { createStore } from '../store.js';
@@ -13,7 +14,6 @@ import {
   defaultSize,
   titleFromFile,
   hasFilledCell,
-  createEditHistory,
   hasUnsavedWork,
   gridSig,
   artSize,
@@ -160,7 +160,7 @@ export function mount(container) {
   let reportTimer = null;
   let reportRun = 0; // id of the newest report request; older results are dropped
   let titleTouched = restored?.titleTouched ?? false; // true once the title was typed by hand
-  let history = restored?.history ?? createEditHistory(st.grid); // hand edits since the last regenerate
+  let history = restored?.history ?? createHistory(st.grid); // hand edits since the last regenerate
   let baseline = restored?.baseline ?? JSON.stringify(st.grid); // the grid as generated, before hand edits
   let savedSig = restored?.savedSig ?? null; // gridSig of the last successful save
 
@@ -591,7 +591,7 @@ export function mount(container) {
 
   /** A fresh history for the grid as it now stands (after a regenerate or a blank). */
   function resetHistory() {
-    history = createEditHistory(st.grid);
+    history = createHistory(st.grid);
     baseline = JSON.stringify(st.grid);
     syncHistoryButtons();
   }

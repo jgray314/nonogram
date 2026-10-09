@@ -75,12 +75,20 @@ test('library reports skipped corrupt records', () => {
 test('only art holds image data, and it is bounded', async () => {
   const store = createStore(memoryStorage());
   await loadSamples(store);
+  // One record with art, so the loop below checks a real one (samples have none).
+  const [first] = store.list('puzzle').records;
+  store.put('puzzle', { ...first, art: ART_PREFIX + 'AAAA' });
+  let withArt = 0;
   for (const p of store.list('puzzle').records) {
     for (const key of Object.keys(p)) assert.ok(PUZZLE_KEYS.includes(key), `unexpected key ${key}`);
     const { art, ...rest } = p;
     assert.ok(!JSON.stringify(rest).includes('data:image'));
-    if (art !== undefined) assert.ok(art.length <= MAX_ART_CHARS);
+    if (art !== undefined) {
+      withArt += 1;
+      assert.ok(art.length <= MAX_ART_CHARS);
+    }
   }
+  assert.equal(withArt, 1);
   const [sample] = store.list('puzzle').records;
   const tooBig = { ...sample, art: ART_PREFIX + 'A'.repeat(MAX_ART_CHARS) };
   assert.equal(validatePuzzle(tooBig).ok, false);

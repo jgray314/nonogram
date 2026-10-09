@@ -2,6 +2,14 @@
   display: flex;
   gap: 8px;
   margin-bottom: 16px;
+  align-items: center;
+}
+
+.nng-print-keytoggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
 }
 
 .nng-print-meta {

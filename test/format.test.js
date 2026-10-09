@@ -9,6 +9,7 @@ import {
   toJSON,
   fromJSON,
 } from '../src/format.js';
+import { MAX_HEARTS } from '../src/game.js';
 
 function makePuzzle(over = {}) {
   return {
@@ -296,4 +297,29 @@ test('validate bounds grid size and palette length (gate H1 shape sweep)', () =>
   assert.equal(validatePuzzle(big).ok, false);
   const palette = Array.from({ length: 31 }, (_, i) => ({ name: `c${i}`, hex: '#000000' }));
   assert.equal(validatePuzzle({ ...ok, palette }).ok, false);
+});
+
+test('v1 save without hearts is valid', () => {
+  const save = makeSave();
+  assert.equal('hearts' in save, false);
+  assert.deepEqual(validateSave(save, makePuzzle()), { ok: true });
+  assert.deepEqual(validateSave(makeSave({ hearts: 0 }), makePuzzle()), { ok: true });
+  assert.deepEqual(validateSave(makeSave({ hearts: MAX_HEARTS }), makePuzzle()), { ok: true });
+  assert.deepEqual(validateSave(makeSave({ rules: { zen: true } }), makePuzzle()), { ok: true });
+});
+
+test('hearts above MAX_HEARTS rejected', () => {
+  assert.equal(validateSave(makeSave({ hearts: MAX_HEARTS + 1 }), makePuzzle()).ok, false);
+});
+
+test('negative or fractional hearts rejected', () => {
+  for (const hearts of [-1, 1.5, NaN, '2', null]) {
+    assert.equal(validateSave(makeSave({ hearts }), makePuzzle()).ok, false, String(hearts));
+  }
+});
+
+test('non-boolean zen rejected', () => {
+  for (const zen of [1, 'true', null]) {
+    assert.equal(validateSave(makeSave({ rules: { zen } }), makePuzzle()).ok, false, String(zen));
+  }
 });

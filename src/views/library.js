@@ -1,4 +1,5 @@
 // Library view: saved puzzles, backup export/import, sample loader.
+import { idMatches } from '../format.js';
 import { createStore } from '../store.js';
 import { toWebpbn } from '../webpbn.js';
 import { buildBackup, parseBackup, planImport } from '../backup.js';
@@ -67,25 +68,48 @@ function deletePuzzle(id, title) {
 }
 
 function exportLibrary() {
-  const text = buildBackup({
-    puzzles: store.list('puzzle').records,
-    saves: store.list('save').records,
-    sets: store.list('set').records,
-  });
+  const puzzles = store.list('puzzle');
+  const saves = store.list('save');
+  const sets = store.list('set');
+  const text = buildBackup({ puzzles: puzzles.records, saves: saves.records, sets: sets.records });
   const stamp = new Date().toISOString().slice(0, 10);
   download(`nonogram-library-${stamp}.json`, text, 'application/json');
-  say('Library exported.');
+  const lost = puzzles.skipped + saves.skipped + sets.skipped;
+  // Corrupt records cannot be exported; say so rather than imply a full backup.
+  say(
+    lost
+      ? `Library exported. ${lost} corrupt record${lost === 1 ? ' was' : 's were'} left out.`
+      : 'Library exported.',
+  );
 }
 
 async function importLibrary(file) {
   const parsed = parseBackup(await file.text(), (id) => store.get('puzzle', id));
   if (!parsed.ok) return say(`Import failed: ${parsed.error}.`);
+  // Reject puzzles whose id is not the hash of their content, and their saves.
+  const forged = new Set();
+  for (const p of parsed.puzzles) if (!(await idMatches(p))) forged.add(p.id);
+  if (forged.size) {
+    parsed.puzzles = parsed.puzzles.filter((p) => !forged.has(p.id));
+    parsed.saves = parsed.saves.filter((s) => !forged.has(s.puzzleId));
+    for (const id of forged)
+      parsed.skipped.push({ kind: 'puzzle', id, error: 'id does not match content' });
+  }
   const plan = planImport(parsed, {
     puzzles: store.list('puzzle').records.map((p) => p.id),
     saves: store.list('save').records.map((s) => s.puzzleId),
     sets: store.list('set').records.map((s) => s.setId),
   });
-  for (const { kind, record } of plan) store.put(kind, record);
+  let written = 0;
+  try {
+    for (const { kind, record } of plan) {
+      store.put(kind, record);
+      written += 1;
+    }
+  } catch (e) {
+    render();
+    return say(`Import stopped after ${written} of ${plan.length} records: ${e.message}.`);
+  }
   const valid = parsed.puzzles.length + parsed.saves.length + parsed.sets.length;
   const parts = [`Imported ${plan.length} record${plan.length === 1 ? '' : 's'}`];
   if (valid > plan.length) parts.push(`${valid - plan.length} already existed`);

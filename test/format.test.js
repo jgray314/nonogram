@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   puzzleId,
+  idMatches,
   validatePuzzle,
   validateSave,
   validateSet,
@@ -231,4 +232,58 @@ test('id independent of key order', async () => {
     await puzzleId(makePuzzle({ palette: [{ name: 'b', hex: '#ABCDEF' }] })),
     await puzzleId(makePuzzle({ palette: [{ name: 'c', hex: '#abcdef' }] })),
   );
+});
+
+test('validate bounds tile set position and set size (gate H1)', () => {
+  const base = {
+    v: 1,
+    id: 'p',
+    title: 't',
+    width: 1,
+    height: 1,
+    palette: [{ name: 'black', hex: '#000000' }],
+    solution: [[1]],
+    verdict: null,
+  };
+  assert.equal(validatePuzzle({ ...base, set: { id: 's', row: 3, col: 3 } }).ok, true);
+  assert.equal(validatePuzzle({ ...base, set: { id: 's', row: 4, col: 0 } }).ok, false);
+  assert.equal(validatePuzzle({ ...base, set: { id: 's', row: 100000, col: 100000 } }).ok, false);
+  const set = {
+    v: 1,
+    setId: 's',
+    title: 't',
+    rows: 5,
+    cols: 1,
+    tileIds: ['a', 'b', 'c', 'd', 'e'],
+  };
+  assert.equal(validateSet(set).ok, false);
+});
+
+test('validate rejects empty ids (gate M2)', () => {
+  const base = {
+    v: 1,
+    id: '',
+    title: 't',
+    width: 1,
+    height: 1,
+    palette: [{ name: 'black', hex: '#000000' }],
+    solution: [[1]],
+    verdict: null,
+  };
+  assert.equal(validatePuzzle(base).ok, false);
+  assert.equal(
+    validateSet({ v: 1, setId: '', title: 't', rows: 1, cols: 1, tileIds: ['a'] }).ok,
+    false,
+  );
+});
+
+test('idMatches rejects a forged id (gate M3)', async () => {
+  const p = makePuzzle();
+  p.id = await puzzleId(p);
+  assert.equal(await idMatches(p), true);
+  assert.equal(
+    await idMatches({ ...p, solution: p.solution.map((r) => r.map((v) => 1 - v)) }),
+    false,
+  );
+  assert.equal(await idMatches({ ...p, id: 'demo' }), false);
 });

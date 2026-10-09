@@ -2,6 +2,9 @@
 
 const STATUSES = ['unique-line-solvable', 'unique-needs-guessing', 'multiple', 'none', 'unknown'];
 const HEX = /^#[0-9a-fA-F]{6}$/;
+// Largest tile set the creator makes (4x4). Bounding it keeps a hostile record
+// from making the library allocate rows*cols cells (gate pass 1, H1).
+export const MAX_SET_SIDE = 4;
 
 const isObj = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
 const isInt = (x) => Number.isInteger(x);
@@ -29,6 +32,18 @@ export async function puzzleId(puzzle) {
   return hex.slice(0, 16);
 }
 
+/**
+ * True when the record's id is the hash of its content. Imports check this so a
+ * forged id cannot attach a save to a different puzzle (gate pass 1, M3).
+ */
+export async function idMatches(puzzle) {
+  try {
+    return (await puzzleId(puzzle)) === puzzle.id;
+  } catch {
+    return false;
+  }
+}
+
 /** Returns an error string, or null if grid is a width x height array of ints in [min, max]. */
 function gridError(grid, width, height, min, max, name) {
   if (!Array.isArray(grid) || grid.length !== height) return `${name} must have ${height} rows`;
@@ -48,7 +63,7 @@ export function validatePuzzle(x) {
   try {
     if (!isObj(x)) return fail('puzzle must be an object');
     if (x.v !== 1) return fail('unsupported puzzle version');
-    if (typeof x.id !== 'string') return fail('id must be a string');
+    if (typeof x.id !== 'string' || x.id === '') return fail('id must be a non-empty string');
     if (typeof x.title !== 'string') return fail('title must be a string');
     if (!isInt(x.width) || x.width < 1) return fail('width must be a positive integer');
     if (!isInt(x.height) || x.height < 1) return fail('height must be a positive integer');
@@ -77,8 +92,10 @@ export function validatePuzzle(x) {
         typeof s.id !== 'string' ||
         !isInt(s.row) ||
         s.row < 0 ||
+        s.row >= MAX_SET_SIDE ||
         !isInt(s.col) ||
-        s.col < 0
+        s.col < 0 ||
+        s.col >= MAX_SET_SIDE
       ) {
         return fail('set must be {id, row, col}');
       }
@@ -120,10 +137,13 @@ export function validateSet(x) {
   try {
     if (!isObj(x)) return fail('set must be an object');
     if (x.v !== 1) return fail('unsupported set version');
-    if (typeof x.setId !== 'string') return fail('setId must be a string');
+    if (typeof x.setId !== 'string' || x.setId === '')
+      return fail('setId must be a non-empty string');
     if (typeof x.title !== 'string') return fail('title must be a string');
-    if (!isInt(x.rows) || x.rows < 1) return fail('rows must be a positive integer');
-    if (!isInt(x.cols) || x.cols < 1) return fail('cols must be a positive integer');
+    if (!isInt(x.rows) || x.rows < 1 || x.rows > MAX_SET_SIDE)
+      return fail(`rows must be 1 to ${MAX_SET_SIDE}`);
+    if (!isInt(x.cols) || x.cols < 1 || x.cols > MAX_SET_SIDE)
+      return fail(`cols must be 1 to ${MAX_SET_SIDE}`);
     if (!Array.isArray(x.tileIds) || x.tileIds.length !== x.rows * x.cols) {
       return fail('tileIds length must equal rows*cols');
     }

@@ -12,7 +12,7 @@ import {
   wrongFills,
 } from '../game.js';
 import { createStore } from '../store.js';
-import { validatePuzzle, validateSave } from '../format.js';
+import { validatePuzzle, validateSave, idMatches } from '../format.js';
 import { serializeSaveFile, parseSaveFile, importWrites } from '../save.js';
 
 const CSS_HREF = 'css/play.css';
@@ -311,6 +311,16 @@ export function mount(container, params = {}) {
     const parsed = parseSaveFile(await file.text());
     if (!parsed.ok) {
       message.textContent = `Import failed: ${parsed.error}`;
+      return;
+    }
+    if (!(await idMatches(parsed.puzzle))) {
+      message.textContent = 'Import failed: puzzle id does not match its content';
+      return;
+    }
+    if (
+      store.get('save', parsed.puzzle.id) &&
+      !confirm('Replace your saved progress on this puzzle?')
+    ) {
       return;
     }
     try {

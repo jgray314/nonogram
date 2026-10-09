@@ -1,7 +1,7 @@
 // Pure helpers for the library view.
 import { difficultyLabel, isFair } from './difficulty.js';
 
-/** The keys a stored puzzle may have (PLAN.md D2 plus the tile `set` field). */
+/** The keys a stored puzzle may have (PLAN.md D2, the tile `set` field, and D14's `art`). */
 export const PUZZLE_KEYS = [
   'v',
   'id',
@@ -12,6 +12,7 @@ export const PUZZLE_KEYS = [
   'solution',
   'verdict',
   'set',
+  'art',
 ];
 
 /** 'solved' | 'in progress' | 'new', from a save record (or null). */

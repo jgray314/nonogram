@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createStore } from '../src/store.js';
-import { puzzleId, validatePuzzle } from '../src/format.js';
+import { puzzleId, validatePuzzle, ART_PREFIX, MAX_ART_CHARS } from '../src/format.js';
 import {
   libraryModel,
   rowModel,
@@ -69,13 +69,20 @@ test('library reports skipped corrupt records', () => {
   assert.equal(libraryModel(store).skipped, 1);
 });
 
-test('library record has no image data', async () => {
+test('only art holds image data, and it is bounded', async () => {
   const store = createStore(memoryStorage());
   await loadSamples(store);
   for (const p of store.list('puzzle').records) {
     for (const key of Object.keys(p)) assert.ok(PUZZLE_KEYS.includes(key), `unexpected key ${key}`);
-    assert.ok(!JSON.stringify(p).includes('data:image'));
+    const { art, ...rest } = p;
+    assert.ok(!JSON.stringify(rest).includes('data:image'));
+    if (art !== undefined) assert.ok(art.length <= MAX_ART_CHARS);
   }
+  const [sample] = store.list('puzzle').records;
+  const tooBig = { ...sample, art: ART_PREFIX + 'A'.repeat(MAX_ART_CHARS) };
+  assert.equal(validatePuzzle(tooBig).ok, false);
+  const png = { ...sample, art: 'data:image/png;base64,AAAA' };
+  assert.equal(validatePuzzle(png).ok, false);
 });
 
 test('badge shown for non-unique verdict', () => {

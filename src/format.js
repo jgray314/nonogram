@@ -1,5 +1,6 @@
 // Record formats: puzzle, save, set. See PLAN.md D2, step 5, step 12b, and the
-// v1.1 Contracts (save `hearts` and `rules.zen`).
+// v1.1 Contracts (save `hearts` and `rules.zen`), and the v1.2 Contracts (puzzle
+// `art`, save `hints`).
 
 import { MAX_HEARTS } from './game.js';
 
@@ -12,6 +13,10 @@ export const MAX_SET_SIDE = 4;
 // holds (it uses 1 << color). Same unbounded-number shape as H1.
 export const MAX_GRID_SIDE = 25;
 export const MAX_PALETTE = 30;
+// Optional source-crop image for the solve reveal (D14): a JPEG data URL of at
+// most 320px on the long side. Not part of the id hash.
+export const ART_PREFIX = 'data:image/jpeg;base64,';
+export const MAX_ART_CHARS = 200000;
 
 const isObj = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
 const isInt = (x) => Number.isInteger(x);
@@ -111,6 +116,15 @@ export function validatePuzzle(x) {
         return fail('set must be {id, row, col}');
       }
     }
+    if (x.art !== undefined) {
+      if (
+        typeof x.art !== 'string' ||
+        !x.art.startsWith(ART_PREFIX) ||
+        x.art.length > MAX_ART_CHARS
+      ) {
+        return fail(`art must be a JPEG data URL of at most ${MAX_ART_CHARS} characters`);
+      }
+    }
     return OK;
   } catch (e) {
     return fail(`unexpected error: ${e && e.message}`);
@@ -141,6 +155,12 @@ export function validateSave(x, puzzle) {
     // A missing hearts value means a full set, so every v1 save stays valid.
     if (x.hearts !== undefined && (!isInt(x.hearts) || x.hearts < 0 || x.hearts > MAX_HEARTS)) {
       return fail(`hearts must be an integer from 0 to ${MAX_HEARTS}`);
+    }
+    // Hints used (D18). Missing means 0. Each hint reveals a different cell, so
+    // the grid size bounds it.
+    const maxHints = puzzle.width * puzzle.height;
+    if (x.hints !== undefined && (!isInt(x.hints) || x.hints < 0 || x.hints > maxHints)) {
+      return fail(`hints must be an integer from 0 to ${maxHints}`);
     }
     if (x.solvedAt !== null && (typeof x.solvedAt !== 'number' || !Number.isFinite(x.solvedAt))) {
       return fail('solvedAt must be null or a number');

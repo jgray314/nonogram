@@ -8,6 +8,8 @@ import {
   validateSet,
   toJSON,
   fromJSON,
+  ART_PREFIX,
+  MAX_ART_CHARS,
 } from '../src/format.js';
 import { MAX_HEARTS } from '../src/game.js';
 
@@ -318,6 +320,33 @@ test('hearts above MAX_HEARTS rejected', () => {
 test('negative or fractional hearts rejected', () => {
   for (const hearts of [-1, 1.5, NaN, '2', null]) {
     assert.equal(validateSave(makeSave({ hearts }), makePuzzle()).ok, false, String(hearts));
+  }
+});
+
+test('art is optional and excluded from the id', async () => {
+  const plain = makePuzzle();
+  const withArt = makePuzzle({ art: ART_PREFIX + 'AAAA' });
+  assert.deepEqual(validatePuzzle(plain), { ok: true });
+  assert.deepEqual(validatePuzzle(withArt), { ok: true });
+  assert.equal(await puzzleId(withArt), await puzzleId(plain));
+});
+
+test('art over the bound, or not a JPEG data URL, rejected', () => {
+  const bad = [ART_PREFIX + 'A'.repeat(MAX_ART_CHARS), 'data:image/png;base64,AAAA', 42, null];
+  for (const art of bad) {
+    assert.equal(validatePuzzle(makePuzzle({ art })).ok, false, String(art).slice(0, 30));
+  }
+});
+
+test('hints from 0 to the cell count are valid, missing means 0', () => {
+  assert.deepEqual(validateSave(makeSave(), makePuzzle()), { ok: true });
+  assert.deepEqual(validateSave(makeSave({ hints: 0 }), makePuzzle()), { ok: true });
+  assert.deepEqual(validateSave(makeSave({ hints: 6 }), makePuzzle()), { ok: true });
+});
+
+test('hints above the cell count, negative or fractional, rejected', () => {
+  for (const hints of [7, -1, 1.5, '2', null, 1e9]) {
+    assert.equal(validateSave(makeSave({ hints }), makePuzzle()).ok, false, String(hints));
   }
 });
 

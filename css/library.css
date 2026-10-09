@@ -63,6 +63,83 @@
   border: 1px solid currentColor;
 }
 
+.nng-badge-ai {
+  color: var(--muted);
+  font-weight: 600;
+  vertical-align: 1px;
+}
+
+/* Play is the one primary button on a row. */
+.nng-lib-actions {
+  align-items: center;
+}
+
+.nng-lib-actions .nng-btn-primary {
+  background: var(--accent);
+  color: var(--panel);
+  border-color: var(--wood-dark);
+  box-shadow: 0 3px 0 var(--wood-dark);
+}
+
+.nng-lib-actions .nng-btn-primary:hover {
+  background: var(--accent);
+  color: var(--panel);
+  filter: brightness(1.1);
+}
+
+/* The More menu: a <details> that opens a small panel under its summary. */
+.nng-more {
+  position: relative;
+}
+
+.nng-more summary {
+  list-style: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+  padding: 5px 12px;
+  border: 2px solid var(--line);
+  border-radius: 999px;
+}
+
+.nng-more summary::-webkit-details-marker {
+  display: none;
+}
+
+.nng-more[open] summary {
+  color: var(--ink);
+  border-color: var(--line-thick);
+}
+
+.nng-more-panel {
+  position: absolute;
+  right: 0;
+  z-index: 5;
+  display: grid;
+  gap: 6px;
+  min-width: 15em;
+  margin-top: 6px;
+  padding: 10px;
+  background: var(--panel);
+  border: 2px solid var(--line-thick);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 0 var(--shadow);
+}
+
+.nng-more-panel .nng-btn,
+.nng-more-panel button {
+  text-align: center;
+}
+
+.nng-more-panel .nng-btn-danger {
+  margin-top: 6px;
+  color: var(--danger);
+  background: var(--danger-bg);
+  border-color: var(--danger);
+  box-shadow: 0 3px 0 var(--danger);
+}
+
 .nng-badge-not-fair {
   color: var(--danger);
 }

@@ -6,6 +6,7 @@ import {
   libraryModel,
   rowModel,
   progressOf,
+  sampleLabel,
   safeFilename,
   groupSets,
   setProgress,
@@ -304,4 +305,18 @@ test('library orders in progress, not started, solved, then by title', () => {
   );
   // in progress (Bee, Zebra), not started (Cat ignoring the prefix, Moth), solved (Ant, apple)
   assert.deepEqual(order, ['e', 'a', 'c', 'd', 'f', 'b']);
+});
+
+test('sampleLabel splits the AI prefix', () => {
+  assert.deepEqual(sampleLabel('AI test sample: Cat (10x10)'), { name: 'Cat (10x10)', ai: true });
+  assert.deepEqual(sampleLabel('My cat'), { name: 'My cat', ai: false });
+  // Only a leading prefix counts, and the stored title is never changed.
+  assert.deepEqual(sampleLabel('Not an AI test sample: x'), {
+    name: 'Not an AI test sample: x',
+    ai: false,
+  });
+  const row = rowModel(puzzle('a', { title: 'AI test sample: Cat' }), null);
+  assert.equal(row.title, 'AI test sample: Cat');
+  assert.equal(row.name, 'Cat');
+  assert.equal(row.ai, true);
 });

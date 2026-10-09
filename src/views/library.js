@@ -61,8 +61,8 @@ function exportXml(id) {
   download(`${safeFilename(puzzle.title)}.xml`, toWebpbn(puzzle), 'application/xml');
 }
 
-function deletePuzzle(id, title) {
-  if (!confirm(`Delete "${title}" and its saved progress?`)) return;
+function deletePuzzle(id, name) {
+  if (!confirm(`Delete "${name}" and its saved progress? This can't be undone.`)) return;
   store.remove('puzzle', id);
   render();
 }
@@ -134,25 +134,45 @@ async function addSamples() {
   );
 }
 
+/** A script-free "More" menu: Print, export for other solvers, and a tucked-away Delete. */
+function moreMenu(row) {
+  const menu = el('details', 'nng-more');
+  menu.append(el('summary', null, 'More'));
+  const panel = el('div', 'nng-more-panel');
+  const del = button('Delete', () => deletePuzzle(row.id, row.name));
+  del.classList.add('nng-btn-danger');
+  panel.append(
+    link('Print', `#/print/${encodeURIComponent(row.id)}`),
+    button('Export for other solvers (webpbn)', () => exportXml(row.id)),
+    del,
+  );
+  menu.append(panel);
+  return menu;
+}
+
 function rowNode(row) {
   const item = el('li', 'nng-lib-row');
   const info = el('div', 'nng-lib-info');
-  info.append(el('strong', 'nng-lib-title', row.title));
+  const heading = el('strong', 'nng-lib-title', row.name);
+  info.append(heading);
+  // D15: the stored title keeps its prefix; the row shows the name plus a badge.
+  if (row.ai) info.append(' ', el('span', 'nng-badge nng-badge-ai', 'AI test sample'));
   const meta = el('div', 'nng-lib-meta');
-  meta.append(el('span', null, row.size), el('span', null, row.label));
-  if (row.badge)
-    meta.append(el('span', `nng-badge nng-badge-${row.badge.replace(' ', '-')}`, row.badge));
+  // One fairness label per row: the difficulty label, flagged when it is a warning.
+  const fairness = el(
+    'span',
+    row.badge ? `nng-badge nng-badge-${row.badge.replace(' ', '-')}` : 'nng-lib-label',
+    row.label,
+  );
+  meta.append(el('span', null, row.size), fairness);
   const progress = row.progress === 'solved' ? '✓ solved' : row.progress;
   meta.append(el('span', `nng-progress nng-progress-${row.progress.replace(' ', '-')}`, progress));
   info.append(meta);
 
   const actions = el('div', 'nng-lib-actions');
-  actions.append(
-    link('Play', `#/play/${encodeURIComponent(row.id)}`),
-    link('Print', `#/print/${encodeURIComponent(row.id)}`),
-    button('Export webpbn XML', () => exportXml(row.id)),
-    button('Delete', () => deletePuzzle(row.id, row.title)),
-  );
+  const play = link('Play', `#/play/${encodeURIComponent(row.id)}`);
+  play.classList.add('nng-btn-primary');
+  actions.append(play, moreMenu(row));
   item.append(info, actions);
   return item;
 }

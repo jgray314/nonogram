@@ -43,6 +43,8 @@ export function rowModel(puzzle, save) {
   return {
     id: puzzle.id,
     title: puzzle.title,
+    name: sampleLabel(puzzle.title).name,
+    ai: sampleLabel(puzzle.title).ai,
     size: `${puzzle.width} x ${puzzle.height}`,
     label: difficultyLabel(puzzle.verdict),
     badge,

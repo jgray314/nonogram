@@ -20,6 +20,7 @@ import {
   canSaveSet,
   withVerdicts,
   setWrites,
+  rollbackTargets,
 } from '../src/create-logic.js';
 
 test('defaultSize picks closest aspect', () => {
@@ -267,4 +268,17 @@ test('sliceTiles agrees with tileGrid tiles', () => {
     [1, 1, 0, 0],
   ]);
   assert.deepEqual(sliceTiles(full, 1, 2), tiles);
+});
+
+test('set save rollback spares records that existed before (gate M4)', () => {
+  const written = [
+    { kind: 'puzzle', record: { id: 'old' } },
+    { kind: 'puzzle', record: { id: 'new' } },
+    { kind: 'set', record: { setId: 's' } },
+  ];
+  const existed = (kind, id) => kind === 'puzzle' && id === 'old';
+  assert.deepEqual(rollbackTargets(written, existed), [
+    ['puzzle', 'new'],
+    ['set', 's'],
+  ]);
 });

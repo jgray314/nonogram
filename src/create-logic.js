@@ -190,3 +190,14 @@ export function withVerdicts(puzzles, reports) {
 export function setWrites(set, puzzles) {
   return [...puzzles.map((record) => ({ kind: 'puzzle', record })), { kind: 'set', record: set }];
 }
+
+/**
+ * Which of a half-finished set save's writes to undo. Records that existed
+ * before the save (a re-saved identical set reuses ids) are kept, along with
+ * the progress saved against them (gate pass 1, M4).
+ */
+export function rollbackTargets(written, existedBefore) {
+  return written
+    .map(({ kind, record }) => [kind, kind === 'set' ? record.setId : record.id])
+    .filter(([kind, id]) => !existedBefore(kind, id));
+}

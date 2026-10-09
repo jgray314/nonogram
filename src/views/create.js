@@ -27,6 +27,7 @@ import {
   canSaveSet,
   withVerdicts,
   setWrites,
+  rollbackTargets,
 } from '../create-logic.js';
 
 const PREVIEW_MAX = 320;
@@ -410,16 +411,22 @@ export function mount(container) {
     }
     const store = createStore();
     const written = [];
+    const writes = setWrites(made.set, puzzles);
+    const before = new Set(
+      writes
+        .filter(({ kind, record }) => store.get(kind, kind === 'set' ? record.setId : record.id))
+        .map(({ kind, record }) => `${kind}:${kind === 'set' ? record.setId : record.id}`),
+    );
     try {
-      for (const { kind, record } of setWrites(made.set, puzzles)) {
+      for (const { kind, record } of writes) {
         store.put(kind, record);
         written.push({ kind, record });
       }
     } catch {
       // Leave no half-written set behind.
-      for (const { kind, record } of written) {
+      for (const [kind, id] of rollbackTargets(written, (k, i) => before.has(`${k}:${i}`))) {
         try {
-          store.remove(kind, kind === 'set' ? record.setId : record.id);
+          store.remove(kind, id);
         } catch {
           // best effort
         }

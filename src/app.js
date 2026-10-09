@@ -21,7 +21,12 @@ let current = null;
 function parse(hash) {
   const [, name, ...rest] = hash.split('/');
   if (!Object.hasOwn(ROUTES, name)) return null;
-  const id = rest.length ? decodeURIComponent(rest.join('/')) : undefined;
+  let id;
+  try {
+    id = rest.length ? decodeURIComponent(rest.join('/')) : undefined;
+  } catch {
+    return null; // a malformed escape falls back to the default route
+  }
   if ((name === 'play' || name === 'print') && !id) return null;
   return { name, params: id === undefined ? {} : { id } };
 }

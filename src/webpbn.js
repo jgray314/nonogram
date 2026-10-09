@@ -2,7 +2,14 @@
 import { puzzleClues } from './clues.js';
 
 const ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' };
-const esc = (s) => String(s).replace(/[&<>"']/g, (ch) => ESCAPES[ch]);
+// Control characters (except tab, LF, CR) are not allowed in XML 1.0, so they
+// are dropped before escaping.
+const allowedInXml = (ch) => ch >= ' ' || '\t\n\r'.includes(ch);
+const esc = (s) =>
+  Array.from(String(s))
+    .filter(allowedInXml)
+    .join('')
+    .replace(/[&<>"']/g, (ch) => ESCAPES[ch]);
 
 /** "#RRGGBB" to hex without '#', shortened to 3 digits when every pair repeats. */
 function hexOf(hex) {

@@ -90,3 +90,16 @@ test('non-default color count gets color attribute', () => {
   assert.ok(xml.includes('<line><count color="red">2</count></line>'));
   assert.ok(xml.includes('|XR|\n|RR|'));
 });
+
+test('control characters are dropped from exported text (gate L8)', () => {
+  const xml = toWebpbn({
+    v: 1,
+    id: 'x',
+    title: 'bad\u0001title',
+    width: 1,
+    height: 1,
+    palette: [{ name: 'black', hex: '#000000' }],
+    solution: [[1]],
+  });
+  assert.ok(xml.includes('<title>badtitle</title>'));
+});

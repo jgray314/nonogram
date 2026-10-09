@@ -17,30 +17,6 @@ import { serializeSaveFile, parseSaveFile, importWrites } from '../save.js';
 
 const CSS_HREF = 'css/play.css';
 
-// Dev-only built-in puzzle for id "demo"; it is never written to the store.
-const DEMO_ART = [
-  '..########',
-  '.#........',
-  '#.##..##.#',
-  '#.##..##.#',
-  '#........#',
-  '#.#....#.#',
-  '#..####..#',
-  '.#......#.',
-  '..#....#..',
-  '...####...',
-];
-const DEMO = {
-  v: 1,
-  id: 'demo',
-  title: 'Demo (dev only)',
-  width: 10,
-  height: 10,
-  palette: [{ name: 'Black', hex: '#20252c' }],
-  solution: DEMO_ART.map((row) => Array.from(row, (ch) => (ch === '#' ? 1 : 0))),
-  verdict: { status: 'unique-line-solvable', sweeps: 2 },
-};
-
 function ensureCss() {
   if (document.querySelector(`link[data-nng="play"]`)) return;
   const link = document.createElement('link');
@@ -58,7 +34,6 @@ function el(tag, className, text) {
 }
 
 function loadPuzzle(store, id) {
-  if (id === 'demo') return DEMO;
   const rec = store.get('puzzle', id);
   return rec && validatePuzzle(rec).ok ? rec : null;
 }
@@ -93,7 +68,7 @@ export function mount(container, params = {}) {
   } catch {
     store = null;
   }
-  const puzzle = store || params.id === 'demo' ? loadPuzzle(store, params.id) : null;
+  const puzzle = store ? loadPuzzle(store, params.id) : null;
   if (!puzzle) {
     root = showMissing(container);
     return;

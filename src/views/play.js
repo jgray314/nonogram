@@ -155,6 +155,12 @@ export function mount(container, params = {}) {
     for (const key of Object.keys(rules)) rules[key] = loaded.rules[key] === true;
   }
   const history = createHistory(cells);
+  // A puzzle can be satisfied before any move: an all-blank tile has only empty
+  // clues. Filling anything would break it, so count it solved on open.
+  if (solvedAt === null && isSolved(cells, clues)) {
+    solvedAt = Date.now();
+    dirty = true;
+  }
 
   const snapshot = () => ({ puzzleId: puzzle.id, cells, elapsedMs, rules: { ...rules }, solvedAt });
   function persist() {

@@ -356,6 +356,63 @@ Lane rules from v1 apply unchanged: stop after 2 failures, never edit a contract
 
 ---
 
+## v1.2: UX pass 1 fixes (2026-10-08)
+
+**Source:** `nonogram-ux-review.md` UX pass 1. **Owner's calls:** "1, 2a, 3, 4a, 6, minors as recommended. On 5 when complete fade to original image crop including original color palette. Back to library strip below the image appears once fade is complete." So UX1, UX2 (keep the draft), UX3, UX4 (continue in Zen), UX6, UX7 to UX15 as recommended (option 1 each), and UX5 replaced by the solve reveal (D14). Not in scope: UX16 polish, UX17 taste, and UX5's status strip and sticky header.
+
+**Done means:** each finding's KNOWN UX check in `test/ux/checks.js` flips to passing and loses its flag, plus new checks where noted. Node tests cover the pure helpers. Steps are review units per the 2026-10-08 sizing rule.
+
+### Decisions
+
+- **D14 (pending owner, blocks 19f and 20c only): store a small copy of the source crop.** The reveal needs the original image, and v1 deliberately stored none (plan review #4, the test `library record has no image data`, "the source image is never stored"). Recommended: an optional `art` field on the puzzle record, a JPEG data URL of the crop scaled to at most 320px on the long side (about 15 to 40KB), saved by Create with the puzzle and never sent anywhere. It is excluded from the id hash, like `verdict`. Puzzles with no art (blank-grid puzzles, samples, everything made before v1.2) skip the fade, and the strip appears at once.
+- **D15 UX9 vs the AI-label rule.** The reviewer recommended plain sample names, but the owner's rule is that AI-made samples say so. Resolved: the library shows the name ("Cat (10x10)") with a small "AI test sample" badge, rendered from the stored title prefix. The record and its exports keep the full title, so the label still travels with the puzzle. No schema change.
+- **D16 UX11 rule defaults.** The Zen and Auto-cross switches change this puzzle and also become the default for puzzles you haven't started yet (prefs `play.zen`, `play.autoCross`). A line under the switches says so. D12 still applies: on a started puzzle, leaving Zen restarts it.
+- **D17 UX10 hints.** The Hints switch is removed. "Reveal a cell" is always available on puzzles with a unique solution. It reveals a cell that should be filled, in the line that has the fewest unknown cells left, and never an empty cell.
+
+### Contracts (frozen before lanes start)
+
+- **Puzzle record `art?` (D14, if approved).** A string that starts with `data:image/jpeg;base64,`, at most 200,000 characters (check 9). `validatePuzzle` rejects anything else. Not part of `puzzleId`. The test `library record has no image data` becomes `only art holds image data, and it is bounded`.
+- **`create-logic.js` (lane C):** `defaultSize(imgW, imgH)` returns the image's own size when both sides are in `SIZES` (pixel-art sources). Otherwise it's unchanged. `titleFromFile(name)` turns `my-cat_2.png` into `my cat 2` (extension dropped, `-` and `_` become spaces, trimmed, at most 60 characters). An empty result gives `Untitled`.
+- **`library-logic.js` (lane L):** the progress values are `'solved' | 'in progress' | 'not started'` ('new' is renamed). A save whose cells equal `restartCells` for that puzzle, with `elapsedMs < 1000` and `solvedAt` null, is `'not started'`. The order is in progress, then not started, then solved, with titles A to Z within each group (case-insensitive, ignoring the AI-sample prefix). `sampleLabel(title)` returns `{name, ai}`.
+- **`game.js` (lane P):** `hintCell(cells, solution)` follows D17. The cell with value 1 is from the row or column with the fewest unknown cells that still has an unfilled solution cell; ties go to the first row, then column. It returns `null` when every solution cell is filled.
+- **Prefs (lane P):** `play.zen` and `play.autoCross`, read through `store.getPref` and written through `setPref` only. Anything other than `true` counts as false, so a hand-edited pref can't break play.
+- **`grid.js` (lane P):** `setOverlay(node | null)` places one node over exactly the cell area (spanning the cell rows and columns of the CSS grid, above the cells), or removes it. Create and print don't call it, so their behavior is unchanged.
+- **UX checks:** lanes can't run `ux-checks.html` (the server serves `main`), so lanes verify with Node tests and describe their DOM hooks in the report. The orchestrator flips the KNOWN flags and adds the new checks in step 22, after merging.
+- **CSS ownership:** lane L owns `css/base.css` (the nav). Lane P sizes the play grid by setting `--cell` on the play grid holder from `play.js`, and doesn't edit `base.css`.
+
+### Lanes (one wave, three lanes)
+
+| Lane | Steps | Owns files |
+|---|---|---|
+| C, Create | 19a to 19f | `src/views/create.js`, `src/create-logic.js`, `css/create.css`, their tests |
+| P, Play | 20a to 20f | `src/views/play.js`, `src/game.js`, `src/views/grid.js`, `css/play.css`, their tests |
+| L, Library and shell | 21a to 21d | `src/views/library.js`, `src/library-logic.js`, `css/library.css`, `css/base.css`, `index.html`, their tests |
+| Orchestrator | 22 | `src/format.js` (the `art` field, before lanes start if D14 is approved), `test/ux/checks.js`, docs |
+
+v1 lane rules apply.
+
+### Steps
+
+19a. `[C]` UX1. The blank grid sizes to its cells: no flex shrink, and a minimum cell size. With nothing loaded, a line says "Drop an image above, or start from a blank grid." UX check `create-blank-grid-usable` flips.
+19b. `[C]` UX12. `defaultSize` native sizes, `titleFromFile` prefills the title, and the report and Save stay disabled until at least one cell is filled. Tests: `defaultSize keeps a preset-sized source`, `titleFromFile cleans a file name`, `titleFromFile falls back to Untitled`. UX check `create-no-save-when-empty` flips.
+19c. `[C]` UX13. Undo and redo for hand edits in Create (`createHistory`, Ctrl+Z / Ctrl+Y, plus Undo and Redo buttons, matching 20a). A regenerate (threshold, size, invert) starts a new history. New UX check `create-undo`.
+19d. `[C]` UX2a. The Create draft (source image, crop, settings, cells, history) lives in memory at module level and is restored when you come back to Create. It's cleared after a successful save, or by a "Start over" button. A `beforeunload` warning fires while there are unsaved edits, since a reload loses the in-memory draft. UX check `create-leave-warns` is rewritten as `create-draft-survives-navigation` (edit, go to Library, come back, and the edit is still there).
+19e. `[C]` Accessibility: each Tiles dropdown gets its own label ("Tile rows", "Tile columns"). UX check `a11y-create-inputs-labelled` flips.
+19f. `[C]` D14, if approved. On save, capture the crop at most 320px on the long side as JPEG quality 0.8 into `art`. Each tile in a set gets its own slice. **[manual]** Save, reload, and confirm the record carries art.
+20a. `[P]` UX3. Undo and Redo buttons, disabled when there's nothing to undo or redo, labelled with their shortcuts. A one-line legend under the grid: "Left-drag to fill · Right-drag to cross · Ctrl+Z to undo". UX checks `play-undo-visible` and `play-controls-legend` flip.
+20b. `[P]` UX4a. The out-of-hearts panel says "Restart clears the grid, timer and hearts." and offers **Restart** and **Continue in Zen mode**, which keeps the cells, turns Zen on and unlocks. The rules-bar Restart hides while the panel shows, so only one shows. New UX check `play-continue-in-zen`.
+20c. `[P]` D14 solve reveal. On solve, if the puzzle has `art`, an image of it is placed over the cell area through `grid.setOverlay` and fades in over about 1.2s while the cells fade out. With reduced motion, it swaps at once. Once the fade ends, a strip below the image shows "Solved in mm:ss" and a **Back to library** link. With no art, the strip shows at once. Reopening a solved puzzle shows the image and strip without the fade. UX5's `play-solved-next-step` check is rewritten as `play-solved-strip` (the library link appears after solving).
+20d. `[P]` D17. Remove the Hints switch, make Reveal always available on fair puzzles, and use the new `hintCell`. Tests: `hintCell reveals a filled cell`, `hintCell picks the line with fewest unknowns`, `hintCell returns null when all fills are done`. UX check `play-no-hint-gate` flips.
+20e. `[P]` D16. Defaults come from prefs when there is no save. A switch change writes the pref, and a line explains it. Test: none in Node (view wiring). New UX check `play-rule-defaults`: tick Zen on one puzzle, and an unstarted puzzle opens in Zen.
+20f. `[P]` UX15. The play grid's `--cell` is computed from the space left in the window: the largest size from 16 to 32px that fits the grid and its clue gutters in the viewport height under the header and the width of the main column. It's recomputed on resize. The clue gutters stay in view while the grid scrolls at narrow widths (sticky row and column clues). New UX check `play-25x25-fits-desktop` (Cat 25x25's last row is visible without page scroll at 1024x768).
+21a. `[L]` UX14 and UX9 status. `not started` per the contract. Tests: `restarted grid with only auto-crosses is not started`, `progress label is not started, not new`. UX check `library-restart-reads-new` flips (renamed `library-restart-reads-not-started`).
+21b. `[L]` UX7. Order per the contract. Test: `library orders in progress, not started, solved, then by title`.
+21c. `[L]` UX8 and UX9 row. **Play** is the one primary button. A "More" menu (`<details>`, no script needed) holds Print, "Export for other solvers (webpbn)" and **Delete**, styled as danger and confirming with the puzzle's name. One fairness label per row. Sample rows show the name plus an "AI test sample" badge (D15). Test: `sampleLabel splits the AI prefix`. New UX check `library-delete-is-tucked-away`.
+21d. `[L]` UX6. The nav wraps at narrow widths, so the Theme button stays on screen. UX check `narrow-nav-fits` flips.
+22. `[seq]` Orchestrator. The `art` contract in `format.js` first (if D14 is approved), then merges, flipping the KNOWN flags, the full UX check run (all pass, none KNOWN except the out-of-scope items), the manual reveal check in both themes, a slim `/gate-review` and a `/ux-gate-review` pass 2 on the result.
+
+---
+
 ## Backlog (post-v1, collected 2026-10-08 from lane reports and browser checks)
 
 Each item has a trigger. Items marked **kill** are recorded only so they aren't re-raised.

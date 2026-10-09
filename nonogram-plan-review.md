@@ -208,6 +208,26 @@
 - #3: tooling exists from v1.
 - #1, #2, #4, #8: N/A. There's no model, no new personal data, and this isn't a showcase project. The one "never" property (a wrong cross never costs a heart) has a named test.
 
-**Owner call flagged, not blocking:** v1 saves load in hearts mode with full hearts (D7). An in-progress v1 game gains hearts it can lose.
+**Owner call flagged, not blocking (v1.1):** v1 saves load in hearts mode with full hearts (D7). An in-progress v1 game gains hearts it can lose.
 
 **Verdict:** Ready to execute after the owner's go.
+
+## Plan review: v1.2 UX pass 1 fixes, 2026-10-08
+
+**Scope:** the "v1.2: UX pass 1 fixes" section of `PLAN.md` (steps 19a to 22, D14 to D17). Reviewed by the orchestrator, who also wrote the plan. That's weaker than a cold read, so the slim gate and UX pass 2 after the build carry more weight this time.
+
+**Findings (all fixed in the plan):**
+1. **#5, an unowned shared file.** The solve reveal has to cover exactly the cell area, which only `grid.js` knows, but no lane owned `grid.js`. **Fixed:** lane P owns it, with a frozen `setOverlay` contract that Create and print don't call.
+2. **#5, verification gap.** The plan's done-condition is the UX checks flipping, but lanes can't run them, because the server serves `main`. **Fixed:** lanes verify with Node tests and report their DOM hooks; the orchestrator flips checks at step 22.
+3. **#9, prefs read back from storage.** `play.zen` and `play.autoCross` come from localStorage. **Fixed:** anything but `true` counts as false.
+4. **#5, a stray owned file.** Lane L listed `samples.js` with nothing to do in it (D15 renders the prefix and leaves the record alone). **Fixed:** removed from the lane.
+
+**Clean checks:**
+- #9: `art` is bounded (prefix and 200,000 characters) and `titleFromFile` is capped at 60 characters. There are no other new stored numbers.
+- #6: D14 to D17 each carry a reason and a rejected option. D14 is explicitly pending.
+- #7: each changed pure helper has an exact contract and named tests. View steps name their UX check.
+- #2, the "never" property behind D14: art is only written by Create, only as a bounded JPEG data URL, and never sent anywhere. The rewritten test pins the bound.
+
+**Blocking owner decision:** D14 (store a small copy of the crop) blocks 19f and 20c only. Everything else can start.
+
+**Verdict:** Ready to execute after the owner's go. Without D14, the reveal becomes strip-only.

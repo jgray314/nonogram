@@ -70,5 +70,19 @@ export function createStore(storage = globalThis.localStorage) {
     return { records, skipped };
   }
 
-  return { get, put, list, remove };
+  // Small UI preferences (e.g. theme). Not records: no validator, never listed.
+  function getPref(key, fallback) {
+    try {
+      const raw = storage.getItem(`nng:pref:${key}`);
+      return raw === null ? fallback : JSON.parse(raw);
+    } catch {
+      return fallback;
+    }
+  }
+
+  function setPref(key, value) {
+    storage.setItem(`nng:pref:${key}`, JSON.stringify(value));
+  }
+
+  return { get, put, list, remove, getPref, setPref };
 }

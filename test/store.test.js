@@ -101,3 +101,14 @@ test('save listed only when its puzzle is valid', () => {
   );
   assert.equal(skipped, 2);
 });
+
+test('prefs round-trip and default when missing or corrupt', () => {
+  const storage = memoryStorage();
+  const store = createStore(storage);
+  assert.equal(store.getPref('theme', 'auto'), 'auto');
+  store.setPref('theme', 'evening');
+  assert.equal(store.getPref('theme', 'auto'), 'evening');
+  storage.setItem('nng:pref:theme', '{broken');
+  assert.equal(store.getPref('theme', 'auto'), 'auto');
+  assert.equal(store.list('puzzle').records.length, 0, 'prefs are not records');
+});

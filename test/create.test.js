@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { puzzleId, validatePuzzle, ART_PREFIX, MAX_ART_CHARS } from '../src/format.js';
 import { makeSet, tileGrid } from '../src/tiles.js';
+import { createStore } from '../src/store.js';
 import {
   SIZES,
   defaultSize,
@@ -29,6 +30,8 @@ import {
   withVerdicts,
   setWrites,
   rollbackTargets,
+  existingPuzzle,
+  narrowCellSize,
 } from '../src/create-logic.js';
 
 test('defaultSize picks closest aspect', () => {
@@ -397,6 +400,29 @@ test('withArts adds each tile its own art and leaves others alone', () => {
   const out = withArts(puzzles, ['x', undefined, 'z']);
   assert.deepEqual(out, [{ id: 'a', art: 'x' }, { id: 'b' }, { id: 'c', art: 'z' }]);
   assert.equal('art' in puzzles[0], false, 'input is not mutated');
+});
+
+test('narrowCellSize fits the grid to the width, with a 12px floor and a 24px ceiling', () => {
+  // 343px column, 15 cells, 3 clue columns of 22px: (343 - 66 - 20) / 15 = 17
+  assert.equal(narrowCellSize(343, 15, 3), 17);
+  assert.equal(narrowCellSize(343, 5, 0), 24, 'small grids stay at the normal size');
+  assert.equal(narrowCellSize(343, 25, 7), 12, 'large grids stop at 12 and scroll');
+});
+
+test('existingPuzzle finds a stored grid by id', () => {
+  const records = new Map([['nng:puzzle:abc', JSON.stringify({ id: 'abc', title: 'Banana' })]]);
+  const storage = {
+    getItem: (k) => records.get(k) ?? null,
+    setItem: (k, v) => records.set(k, v),
+    removeItem: (k) => records.delete(k),
+    key: (i) => [...records.keys()][i] ?? null,
+    get length() {
+      return records.size;
+    },
+  };
+  const store = createStore(storage);
+  assert.equal(existingPuzzle(store, 'abc'), 'Banana');
+  assert.equal(existingPuzzle(store, 'nope'), null);
 });
 
 test('hasFilledCell is false for a blank grid and true once a cell is filled', () => {

@@ -2,7 +2,7 @@
 // live solver report (11b), save to library (11c), tile sets (12c).
 import { cellLuminance, otsu } from '../image.js';
 import { puzzleClues } from '../clues.js';
-import { renderGrid } from './grid.js';
+import { renderGrid, gutterSize } from './grid.js';
 import { applyStroke } from '../play-state.js';
 import { createHistory } from '../game.js';
 import { puzzleId, validatePuzzle, validateSet } from '../format.js';
@@ -37,6 +37,8 @@ import {
   withVerdicts,
   setWrites,
   rollbackTargets,
+  existingPuzzle,
+  narrowCellSize,
 } from '../create-logic.js';
 
 const PREVIEW_MAX = 320;
@@ -178,7 +180,7 @@ export function mount(container) {
   const tileColsSel = sizeSelect(st.tileCols, TILE_COUNTS);
   tileRowsSel.setAttribute('aria-label', 'Tile rows');
   tileColsSel.setAttribute('aria-label', 'Tile columns');
-  const blankBtn = el('button', { type: 'button', text: 'Blank grid' });
+  const blankBtn = el('button', { type: 'button', text: 'Clear to blank' });
   const startOverBtn = el('button', { type: 'button', text: 'Start over' });
 
   const controls = el(
@@ -206,7 +208,7 @@ export function mount(container) {
   const gridHost = el('div');
   const emptyNote = el('p', {
     className: 'nng-create-empty-note',
-    text: 'Drop an image above, or start from a blank grid.',
+    text: 'Choose an image above, or draw on the grid below.',
   });
   const undoBtn = el('button', { type: 'button', text: 'Undo', disabled: true });
   undoBtn.title = 'Undo (Ctrl+Z)';
@@ -285,6 +287,7 @@ export function mount(container) {
     slider.disabled = !imgControls;
     resetBtn.disabled = !imgControls;
     invertBox.disabled = !imgControls;
+    blankBtn.hidden = !imgControls; // clearing to blank only means something once an image is loaded
   }
 
   const dims = () => fullSize(st.width, st.height, st.tileRows, st.tileCols);
@@ -320,6 +323,16 @@ export function mount(container) {
     ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
   }
 
+  /** Below 600px wide, size the cells so the grid fits the column (UX24). */
+  function fitCells(cols, clueCols) {
+    if (window.matchMedia('(max-width: 599px)').matches) {
+      const size = narrowCellSize(root.clientWidth, cols, clueCols);
+      gridHost.style.setProperty('--cell', `${size}px`);
+    } else {
+      gridHost.style.removeProperty('--cell');
+    }
+  }
+
   function renderGridNow() {
     gridView?.destroy();
     const d = dims();
@@ -330,6 +343,7 @@ export function mount(container) {
           cols: Array.from({ length: d.width }, () => []),
         }
       : puzzleClues(st.grid);
+    fitCells(d.width, gutterSize(clues).left);
     gridView = renderGrid(gridHost, {
       width: d.width,
       height: d.height,
@@ -362,7 +376,7 @@ export function mount(container) {
     const multi = tiled();
     if (!hasFilledCell(st.grid)) {
       // Nothing to check: no verdict, and nothing worth saving.
-      badgeLine.hidden = multi;
+      badgeLine.hidden = true; // no difficulty until something is filled
       tileList.replaceChildren();
       reportStatus.textContent = 'Fill in some cells to see a report.';
       reportBadge.textContent = 'Unchecked';
@@ -470,7 +484,17 @@ export function mount(container) {
       return;
     }
     try {
-      createStore().put('puzzle', puzzle);
+      const store = createStore();
+      // The id is a hash of the grid: the same grid is the same puzzle. Never
+      // overwrite it, so a sample keeps its title, verdict and art (UX18).
+      const have = existingPuzzle(store, puzzle.id);
+      if (have !== null) {
+        showSaveMessage(`This grid is already in your library as '${have}'.`, [
+          ['Open it', '#/play/' + encodeURIComponent(puzzle.id)],
+        ]);
+        return;
+      }
+      store.put('puzzle', puzzle);
     } catch {
       showSaveMessage('Could not save: browser storage is full or unavailable.');
       return;
@@ -806,6 +830,10 @@ export function mount(container) {
   undoBtn.addEventListener('click', () => stepHistory(true));
   redoBtn.addEventListener('click', () => stepHistory(false));
   document.addEventListener('keydown', onKeydown);
+  const onResize = () => {
+    if (!stroke) renderGridNow();
+  };
+  window.addEventListener('resize', onResize);
   titleInput.addEventListener('input', () => {
     titleTouched = true;
   });
@@ -826,6 +854,7 @@ export function mount(container) {
       : null;
     liveUnsaved = null;
     document.removeEventListener('keydown', onKeydown);
+    window.removeEventListener('resize', onResize);
     clearTimeout(reportTimer);
     reportRun++;
     solver.terminate();

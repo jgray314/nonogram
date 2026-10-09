@@ -167,6 +167,8 @@ function rowNode(row) {
   meta.append(el('span', null, row.size), fairness);
   const progress = row.progress === 'solved' ? '✓ solved' : row.progress;
   meta.append(el('span', `nng-progress nng-progress-${row.progress.replace(' ', '-')}`, progress));
+  // D20: shown only below 600px wide (css/library.css).
+  if (row.large) meta.append(el('span', 'nng-badge nng-badge-large', 'Best on a big screen'));
   info.append(meta);
 
   const actions = el('div', 'nng-lib-actions');

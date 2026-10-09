@@ -149,7 +149,7 @@ export function mount(container) {
     document.head.append(link);
   }
 
-  // Come back to the draft left by the last visit, if there is one (D: UX2).
+  // Come back to the draft left by the last visit, if there is one (UX2a).
   const restored = draft;
   draft = null;
   const st = restored?.st ?? newEditorState({ width: 15, height: 15 });
@@ -446,6 +446,7 @@ export function mount(container) {
       const ctx = canvas.getContext('2d');
       ctx.fillStyle = '#ffffff'; // JPEG has no alpha: transparent pixels would turn black
       ctx.fillRect(0, 0, size.width, size.height);
+      ctx.imageSmoothingEnabled = size.width <= rect.w; // upscaled pixel art stays blocky
       ctx.drawImage(image.canvas, rect.x, rect.y, rect.w, rect.h, 0, 0, size.width, size.height);
       return canvas.toDataURL('image/jpeg', quality);
     });

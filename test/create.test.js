@@ -325,12 +325,18 @@ test('hasUnsavedWork is true until the current grid is saved', () => {
   assert.equal(hasUnsavedWork(blankWithImage, null), true);
 });
 
-test('artSize caps the long side at 320 and never upscales', () => {
+test('artSize caps the long side at 320, and upscales only tiny sources', () => {
   assert.deepEqual(artSize(640, 320), { width: 320, height: 160 });
   assert.deepEqual(artSize(100, 400), { width: 80, height: 320 });
   assert.deepEqual(artSize(200, 100), { width: 200, height: 100 });
   assert.deepEqual(artSize(640, 320, 160), { width: 160, height: 80 });
   assert.deepEqual(artSize(1000, 1), { width: 320, height: 1 });
+});
+
+test('artSize scales pixel art up in whole steps to about 160px', () => {
+  assert.deepEqual(artSize(5, 5), { width: 160, height: 160 });
+  assert.deepEqual(artSize(25, 20), { width: 150, height: 120 });
+  assert.deepEqual(artSize(10, 10, 80), { width: 80, height: 80 });
 });
 
 test('tileCropRect gives each tile its own slice of the crop', () => {

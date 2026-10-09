@@ -156,6 +156,7 @@ export const DEFAULT_PALETTE = [{ name: 'black', hex: '#000000' }];
 // --- source-crop art for the solve reveal (D14) ---
 
 export const ART_MAX_SIDE = 320;
+export const ART_MIN_SIDE = 160;
 /** [long side, JPEG quality] to try in order until the data URL fits MAX_ART_CHARS. */
 export const ART_ATTEMPTS = [
   [ART_MAX_SIDE, 0.8],
@@ -164,9 +165,16 @@ export const ART_ATTEMPTS = [
   [160, 0.5],
 ];
 
-/** Size of a w x h source scaled to at most `maxSide` on the long side, never upscaled. */
+/**
+ * Size of a w x h source scaled to at most `maxSide` on the long side. A tiny
+ * source (pixel art) is scaled up to ART_MIN_SIDE, in whole steps so each pixel
+ * stays a crisp block (gate pass 3, L3); otherwise it is never upscaled.
+ */
 export function artSize(w, h, maxSide = ART_MAX_SIDE) {
-  const scale = Math.min(1, maxSide / Math.max(w, h));
+  const long = Math.max(w, h);
+  const up =
+    long < ART_MIN_SIDE ? Math.max(1, Math.floor(Math.min(ART_MIN_SIDE, maxSide) / long)) : 1;
+  const scale = Math.min(up, maxSide / long);
   return { width: Math.max(1, Math.round(w * scale)), height: Math.max(1, Math.round(h * scale)) };
 }
 

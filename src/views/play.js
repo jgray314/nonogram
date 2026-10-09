@@ -20,6 +20,7 @@ import { validatePuzzle, validateSave, idMatches } from '../format.js';
 import { serializeSaveFile, parseSaveFile, importWrites } from '../save.js';
 
 const CSS_HREF = 'css/play.css';
+const PREF_KEYS = { zen: 'play.zen', autoCross: 'play.autoCross' };
 
 function ensureCss() {
   if (document.querySelector(`link[data-nng="play"]`)) return;
@@ -149,7 +150,12 @@ export function mount(container, params = {}) {
   const stripLink = el('a', undefined, 'Back to library');
   stripLink.href = '#/library';
   strip.append(stripText, stripLink);
-  root.append(title, status, outPanel, rulesBar, toolbar, holder, strip, legend);
+  const ruleDefault = el(
+    'p',
+    'nng-rule-default',
+    "Zen and Auto-cross also apply to puzzles you haven't started yet.",
+  );
+  root.append(title, status, outPanel, rulesBar, ruleDefault, toolbar, holder, strip, legend);
   container.append(root);
 
   const clues = puzzleClues(puzzle.solution);
@@ -163,6 +169,12 @@ export function mount(container, params = {}) {
   let dirty = false;
   const existing = store ? store.get('save', puzzle.id) : null;
   const loaded = existing && validateSave(existing, puzzle).ok ? existing : null;
+  // No save yet: the rule switches start from what the player last chose (D16).
+  // Anything but a literal true counts as off, so a hand-edited pref can't break play.
+  if (!loaded && store) {
+    rules.zen = store.getPref(PREF_KEYS.zen, false) === true;
+    rules.autoCross = store.getPref(PREF_KEYS.autoCross, false) === true;
+  }
   if (loaded) {
     cells = loaded.cells.map((row) => row.slice());
     elapsedMs = loaded.elapsedMs;
@@ -361,6 +373,14 @@ export function mount(container, params = {}) {
   });
   refresh();
 
+  function rememberRule(key, value) {
+    if (!store || !(key in PREF_KEYS)) return;
+    try {
+      store.setPref(PREF_KEYS[key], value);
+    } catch {
+      // Storage unavailable: the switch still works for this puzzle.
+    }
+  }
   for (const [key, box] of Object.entries(toggles)) {
     box.addEventListener('change', () => {
       // Zen can be switched on any time, but hearts come back only with a
@@ -372,10 +392,12 @@ export function mount(container, params = {}) {
           return;
         }
         rules.zen = false;
+        rememberRule('zen', false);
         restart();
         return;
       }
       rules[key] = box.checked;
+      rememberRule(key, box.checked);
       dirty = true;
       refresh();
       persist();

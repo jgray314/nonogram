@@ -95,6 +95,12 @@
   font-weight: 700;
 }
 
+.nng-rule-default {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 0.9em;
+}
+
 .nng-legend {
   margin: 4px 0 0;
   color: var(--muted);

@@ -15,9 +15,11 @@ import {
   hintCell,
   isSolved,
   restartCells,
+  restartPrompt,
   solvedSummary,
 } from '../game.js';
 import { clueProgress, solutionProgress } from '../clue-progress.js';
+import { sampleLabel } from '../library-logic.js';
 import { createStore } from '../store.js';
 import { validatePuzzle, validateSave, idMatches } from '../format.js';
 import { serializeSaveFile, parseSaveFile, importWrites } from '../save.js';
@@ -82,7 +84,12 @@ export function mount(container, params = {}) {
   }
 
   root = el('section', 'nng-play');
-  const title = el('h1', undefined, puzzle.title || 'Untitled');
+  // UX27 (D15): the name plus a badge, as in the library; the stored title keeps its prefix.
+  const label = sampleLabel(puzzle.title || 'Untitled');
+  const title = el('h1', undefined, label.name);
+  if (label.ai) {
+    title.append(' ', el('span', 'nng-badge nng-badge-ai nng-header-badge', 'AI test sample'));
+  }
   const status = el('div', 'nng-status');
   const solvedMsg = el('span', 'nng-solved');
   solvedMsg.hidden = true;
@@ -106,6 +113,12 @@ export function mount(container, params = {}) {
     outRestartBtn,
     outZenBtn,
   );
+  const sizeNote = el(
+    'p',
+    'nng-size-note',
+    "This puzzle is big for this screen, so the grid scrolls. It's easiest on a wider window.",
+  );
+  sizeNote.hidden = true;
   const holder = el('div', 'nng-grid-holder');
   const toolbar = el('div', 'nng-toolbar');
   const exportBtn = el('button', undefined, 'Export save');
@@ -145,8 +158,45 @@ export function mount(container, params = {}) {
   redoBtn.type = 'button';
   redoBtn.title = 'Redo (Ctrl+Y)';
   redoBtn.setAttribute('aria-keyshortcuts', 'Control+Y');
-  const legend = el('p', 'nng-legend', 'Left-drag to fill · Right-drag to cross · Ctrl+Z to undo');
-  rulesBar.append(undoBtn, redoBtn, hintBtn, hintCount, restartBtn, ruleNote);
+  const MOUSE_LEGEND = 'Left-drag to fill · Right-drag to cross · Ctrl+Z to undo';
+  const TOUCH_LEGEND = 'Choose Fill or Cross, then tap or drag';
+  const legend = el('p', 'nng-legend', MOUSE_LEGEND);
+  // D21: on a touch screen a Fill / Cross selector stands in for the mouse buttons.
+  let touchMode = 'fill';
+  const modeBar = el('div', 'nng-mode');
+  modeBar.setAttribute('role', 'group');
+  modeBar.setAttribute('aria-label', 'Touch mode');
+  const modeBtns = {};
+  for (const [mode, label] of [
+    ['fill', 'Fill'],
+    ['cross', 'Cross'],
+  ]) {
+    const b = el('button', 'nng-mode-btn', label);
+    b.type = 'button';
+    modeBtns[mode] = b;
+    b.addEventListener('click', () => {
+      touchMode = mode;
+      syncMode();
+    });
+    modeBar.append(b);
+  }
+  function syncMode() {
+    for (const [mode, b] of Object.entries(modeBtns)) {
+      b.setAttribute('aria-pressed', String(mode === touchMode));
+      b.classList.toggle('nng-mode-on', mode === touchMode);
+    }
+  }
+  syncMode();
+  const coarse = window.matchMedia?.('(pointer: coarse)');
+  function syncCoarse() {
+    const on = !!coarse?.matches;
+    modeBar.hidden = !on;
+    legend.textContent = on ? TOUCH_LEGEND : MOUSE_LEGEND;
+  }
+  syncCoarse();
+  coarse?.addEventListener?.('change', syncCoarse);
+  cleanup.push(() => coarse?.removeEventListener?.('change', syncCoarse));
+  rulesBar.append(undoBtn, redoBtn, modeBar, hintBtn, hintCount, restartBtn, ruleNote);
   // Shown once a solve is final (after the art fade, if any): the time and a way back.
   const strip = el('div', 'nng-solved-strip');
   strip.hidden = true;
@@ -159,7 +209,18 @@ export function mount(container, params = {}) {
     'nng-rule-default',
     "Zen and Auto-cross also apply to puzzles you haven't started yet.",
   );
-  root.append(title, status, outPanel, rulesBar, ruleDefault, toolbar, holder, strip, legend);
+  root.append(
+    title,
+    status,
+    outPanel,
+    rulesBar,
+    ruleDefault,
+    sizeNote,
+    holder,
+    strip,
+    legend,
+    toolbar, // Export / Import save: quiet, below the grid (UX28)
+  );
   container.append(root);
 
   const clues = puzzleClues(puzzle.solution);
@@ -393,6 +454,7 @@ export function mount(container, params = {}) {
     clues,
     cells,
     onPointer,
+    touchButton: () => (touchMode === 'cross' ? 'right' : 'left'),
     zeroClues: true,
   });
   refresh();
@@ -407,10 +469,14 @@ export function mount(container, params = {}) {
     const clueW = px('--clue-w', 22);
     const clueH = px('--clue-h', 18);
     const chrome = 28; // holder padding (16) and the grid's own padding (12)
-    const lost = outPanel.hidden ? 0 : outPanel.offsetHeight + 8; // not part of the steady layout
+    // The out-of-hearts panel and the size note aren't part of the steady layout,
+    // so the note appearing can't change the size that decided to show it.
+    const lost =
+      (outPanel.hidden ? 0 : outPanel.offsetHeight + 8) +
+      (sizeNote.hidden ? 0 : sizeNote.offsetHeight + 8);
     // Room under the grid for the legend and the solved strip, so "Back to
     // library" lands on screen after a solve (gate pass 3, M3).
-    const below = legend.offsetHeight + 44;
+    const below = legend.offsetHeight + toolbar.offsetHeight + 52;
     const avail =
       window.innerHeight -
       (holder.getBoundingClientRect().top + window.scrollY - lost) -
@@ -419,6 +485,13 @@ export function mount(container, params = {}) {
     const byHeight = (avail - chrome - gutter.top * clueH) / puzzle.height;
     const byWidth = (holder.clientWidth - chrome - gutter.left * clueW) / puzzle.width;
     const size = Math.max(16, Math.min(32, Math.floor(Math.min(byHeight, byWidth))));
+    // D20: at the 16px floor and still too big for the holder, say the grid scrolls.
+    sizeNote.hidden = !(
+      holder.clientWidth > 0 && // no layout (a test DOM) means nothing to measure
+      size === 16 &&
+      (puzzle.width * 16 + gutter.left * clueW + chrome > holder.clientWidth ||
+        puzzle.height * 16 + gutter.top * clueH + chrome > avail)
+    );
     holder.style.setProperty('--cell', `${size}px`);
     holder.style.maxHeight = `${Math.max(200, Math.floor(avail))}px`;
   }
@@ -517,9 +590,7 @@ export function mount(container, params = {}) {
     persist();
   }
   restartBtn.addEventListener('click', () => {
-    if (confirm('Restart this puzzle? Progress and hearts reset, and this cannot be undone.')) {
-      restart();
-    }
+    if (confirm(restartPrompt(zen()))) restart();
   });
   // Out of hearts there is nothing left to lose, so this one skips the confirm.
   outRestartBtn.addEventListener('click', restart);

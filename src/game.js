@@ -165,6 +165,13 @@ export function restartCells(clues, width, height) {
   return crossEmptyLines(blank, clues);
 }
 
+/** The Restart confirm text; it says only what resets in the current mode (UX20). */
+export function restartPrompt(zen) {
+  return zen
+    ? "Restart this puzzle? The grid, timer and hints reset, and Zen mode stays on. This can't be undone."
+    : "Restart this puzzle? The grid, timer, hearts and hints reset. This can't be undone.";
+}
+
 /** mm:ss for a play time in milliseconds. */
 export function formatTime(ms) {
   const total = Math.floor(ms / 1000);

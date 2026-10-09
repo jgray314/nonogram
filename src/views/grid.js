@@ -32,6 +32,9 @@ function div(className, text) {
  *     r and c are null when the pointer is outside the cells.
  *     button is 'left' | 'right' while a press that began on a cell is held
  *     (down, enter and up), else null. Presses with other buttons are ignored.
+ *   touchButton: () => 'left' | 'right', read at the start of each touch or pen
+ *     stroke (the mouse always uses its own buttons). Default: 'left'.
+ *   The grid also holds one corner node (nng-grid-corner) over both gutters.
  * Returns {update(cells), setClueDone({rows, cols}), setOverlay(node | null),
  *   setWrong([r, c][]), setHighlight([r, c][]), sweep([r, c][]), destroy()}.
  *   sweep pops the given (auto-crossed) cells in one after another.
@@ -42,7 +45,15 @@ function div(className, text) {
  */
 export function renderGrid(
   container,
-  { width, height, clues, cells, onPointer = () => {}, zeroClues = false },
+  {
+    width,
+    height,
+    clues,
+    cells,
+    onPointer = () => {},
+    zeroClues = false,
+    touchButton = () => 'left',
+  },
 ) {
   const { top, left } = gutterSize(clues, { zeroClues });
   const root = div('nng-grid');
@@ -54,6 +65,25 @@ export function renderGrid(
     node.style.gridColumn = String(col);
     root.append(node);
   };
+
+  // Opaque backing for the gutters, so cells scrolled under a sticky gutter (Play)
+  // never show through the gaps between clues; and one corner node over both
+  // gutters, which play.css pins above them (UX22). Plain, empty divs elsewhere.
+  if (top > 0 && width > 0) {
+    const band = div('nng-gutter nng-gutter-cols');
+    band.style.gridArea = `1 / ${left + 1} / span ${top} / span ${width}`;
+    root.append(band);
+  }
+  if (left > 0 && height > 0) {
+    const band = div('nng-gutter nng-gutter-rows');
+    band.style.gridArea = `${top + 1} / 1 / span ${height} / span ${left}`;
+    root.append(band);
+  }
+  if (top > 0 && left > 0) {
+    const corner = div('nng-grid-corner');
+    corner.style.gridArea = `1 / 1 / span ${top} / span ${left}`;
+    root.append(corner);
+  }
 
   // Column clues are bottom-aligned, row clues right-aligned, against the cells.
   const rowClues = clues.rows.map(() => []);
@@ -193,18 +223,42 @@ export function renderGrid(
   let button = null; // held button, set only by a press that began on a cell
   const emit = (type, pos) => onPointer({ type, r: pos?.r ?? null, c: pos?.c ?? null, button });
 
+  // Touch and pen have no buttons to tell fill from cross, so the caller's mode
+  // decides (D21). The mouse path never looks at pointerType beyond this test.
+  const isTouch = (e) => e.pointerType === 'touch' || e.pointerType === 'pen';
+  const cellAtPoint = (e) => cellOf(document.elementFromPoint(e.clientX, e.clientY));
+
   const onDown = (e) => {
     const pos = cellOf(e.target);
     if (!pos || button !== null || !(e.button in BUTTONS)) return;
     e.preventDefault();
-    button = BUTTONS[e.button];
+    if (isTouch(e)) {
+      button = touchButton();
+      // A touch is captured by the cell it started on; let go so the drag can be
+      // followed across cells.
+      try {
+        if (e.target.hasPointerCapture?.(e.pointerId)) e.target.releasePointerCapture(e.pointerId);
+      } catch {
+        // No capture to release.
+      }
+    } else {
+      button = BUTTONS[e.button];
+    }
     emit('down', pos);
   };
-  const onOver = (e) => {
-    const pos = cellOf(e.target);
+  const enterCell = (pos) => {
     if (pos?.r === hot?.r && pos?.c === hot?.c) return;
     highlight(pos);
     emit('enter', pos);
+  };
+  const onOver = (e) => {
+    if (e.pointerType === 'touch') return; // touch is followed by onMove
+    enterCell(cellOf(e.target));
+  };
+  // A touch or pen drag follows the finger by the point under it.
+  const onMove = (e) => {
+    if (button === null || !isTouch(e)) return;
+    enterCell(cellAtPoint(e));
   };
   const onLeave = () => {
     if (!hot) return;
@@ -213,13 +267,16 @@ export function renderGrid(
   };
   const onUp = (e) => {
     if (button === null) return;
-    emit('up', cellOf(e.target));
+    const touch = isTouch(e);
+    emit('up', touch ? cellAtPoint(e) : cellOf(e.target));
     button = null;
+    if (e.pointerType === 'touch') highlight(null); // no hover to keep after a finger lifts
   };
   const onContext = (e) => e.preventDefault();
 
   root.addEventListener('pointerdown', onDown);
   root.addEventListener('pointerover', onOver);
+  root.addEventListener('pointermove', onMove);
   root.addEventListener('pointerleave', onLeave);
   root.addEventListener('contextmenu', onContext);
   // Listen on window so a release outside the grid still ends the stroke.

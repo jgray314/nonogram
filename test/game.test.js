@@ -14,6 +14,7 @@ import {
   restartCells,
   solvedSummary,
   changedCells,
+  restartPrompt,
 } from '../src/game.js';
 import { puzzleClues } from '../src/clues.js';
 
@@ -358,6 +359,17 @@ test('changedCells lists the differing cells in reading order', () => {
     [1, 2],
   ]);
   assert.deepEqual(changedCells(a, a), []);
+});
+
+test('restartPrompt says what resets in each mode', () => {
+  assert.equal(
+    restartPrompt(false),
+    "Restart this puzzle? The grid, timer, hearts and hints reset. This can't be undone.",
+  );
+  assert.equal(
+    restartPrompt(true),
+    "Restart this puzzle? The grid, timer and hints reset, and Zen mode stays on. This can't be undone.",
+  );
 });
 
 test('solvedSummary adds the hint count', () => {

@@ -423,6 +423,44 @@ v1 lane rules apply.
 
 ---
 
+## v1.3: UX pass 2 fixes (2026-10-09)
+
+**Source:** `nonogram-ux-review.md` UX pass 2. **Owner's calls:** "do ux18, ux19 undo is fine, ux20 update message, ux21 do it, ux22 do it but add warning to puzzles unlikely to render well due to size, ux23 give cross and fill selectors for mobile, ux24 do it, do polish, explain ux28". So UX18 option 1, UX19 accepted as is, UX20 option 2 (copy), UX21, UX22 option 1 plus a size warning (D20), UX23 a Fill/Cross selector (D21), UX24, UX25 to UX27. UX28 is explained to the owner, not changed.
+
+### Decisions
+- **D20 size warning.** A puzzle is "large for this screen" when Play's fitted cell size hits its 16px floor and the grid still doesn't fit the holder. Play then shows a note above the grid: "This puzzle is big for this screen, so the grid scrolls. It's easiest on a wider window." In the library, below 600px wide, a row whose width or height is 20 or more shows a small "Best on a big screen" badge. Rejected: blocking large puzzles on small screens.
+- **D21 touch input.** On a coarse pointer (`matchMedia('(pointer: coarse)')`), Play shows a **Fill / Cross** selector next to Undo. A touch or pen stroke uses the selected mode as its button; the mouse is unchanged (left fills, right crosses). Touch drags follow the finger (`pointermove` with `elementFromPoint`, after releasing the implicit pointer capture), and cells get `touch-action: none` so a drag on the cells doesn't scroll the page; the grid still scrolls by dragging the clue gutters. On a coarse pointer the legend reads "Choose Fill or Cross, then tap or drag". Create stays mouse-only for now. Rejected: long-press to cross (slow, and fights the browser's own long-press).
+- **UX18 duplicate grid.** Puzzle ids are a hash of the grid, so the same grid is the same puzzle. Saving one that already exists writes nothing and says: "This grid is already in your library as '<title>'." with an **Open it** link and the draft kept. Tile sets are unchanged (a tile's id includes its set id, so a new set can't collide).
+
+### Contracts (frozen before lanes start)
+- **`game.js` (lane P):** `restartPrompt(zen)` returns the Restart confirm text. Hearts: "Restart this puzzle? The grid, timer, hearts and hints reset. This can't be undone." Zen: "Restart this puzzle? The grid, timer and hints reset, and Zen mode stays on. This can't be undone."
+- **`grid.js` (lane P):** `renderGrid` takes `touchButton: () => 'left' | 'right'` (optional; default `'left'`), used for touch and pen pointers only. It also renders one corner node (`nng-grid-corner`) spanning the gutter rows and columns, which play.css pins above both gutters.
+- **`create-logic.js` (lane C):** `existingPuzzle(store, id)` returns the stored puzzle's title, or `null`.
+- **`library-logic.js` (lane C):** `largePuzzle(puzzle)` is true when width or height is 20 or more. `rowModel` gains `large`.
+- **`library-logic.js` `sampleLabel`** is imported by Play for UX27; lane P doesn't edit it.
+
+### Lanes
+| Lane | Steps | Owns files |
+|---|---|---|
+| P, Play | 23a to 23e | `src/views/play.js`, `src/game.js`, `src/views/grid.js`, `css/play.css`, their tests |
+| C, Create and library | 24a to 24e | `src/views/create.js`, `src/create-logic.js`, `css/create.css`, `src/views/library.js`, `src/library-logic.js`, `css/library.css`, their tests |
+| Orchestrator | 25 | `test/ux/checks.js`, docs |
+
+### Steps
+23a. `[P]` UX20. Restart's confirm uses `restartPrompt`. Test: `restartPrompt says what resets in each mode`.
+23b. `[P]` UX22. Opaque gutter and corner backgrounds; every row clue sticky to the left at its slot, every column clue sticky to the top, the corner pinned above both. **[manual]** Cat 25x25 at 375, scrolled right and down.
+23c. `[P]` D20 in Play: the size note. Test: none in Node (layout).
+23d. `[P]` D21. The Fill / Cross selector, touch strokes, the coarse-pointer legend. Test: none in Node (input wiring). **[manual]** mobile preset: fill, cross, drag a line of each.
+23e. `[P]` UX25 and UX27. "Solved" becomes a flat badge, not a button-like pill. The Play header shows `sampleLabel(title).name` plus the "AI test sample" badge styled as in the library.
+24a. `[C]` UX18 per the decision. Test: `existingPuzzle finds a stored grid by id`. **[manual]** save the banana image at 10x10 over the sample: the sample keeps its title.
+24b. `[C]` UX24. Create uses the same page padding as Library and Play, and below 600px wide its cell size fits the grid to the width (minimum 12px; larger grids scroll).
+24c. `[C]` UX25 and UX26. Create's "Difficulty: …" becomes a flat badge, and is hidden until something is filled. The empty line reads "Choose an image above, or draw on the grid below." "Blank grid" is shown only while an image is loaded, renamed "Clear to blank".
+24d. `[C]` UX21. Below 600px the More panel aligns to its button's left edge and stays inside the screen.
+24e. `[C]` D20 in the library: `largePuzzle`, and the "Best on a big screen" badge below 600px. Test: `largePuzzle is 20 or more on a side`.
+25. `[seq]` Orchestrator: merges, new UX checks (`create-save-duplicate-keeps-title`, `play-restart-message-zen`, `narrow-more-menu-on-screen`, `create-grid-fits-375`, `play-header-sample-badge`), manual checks at 375 (UX22, D21), docs.
+
+---
+
 ## Backlog (post-v1, collected 2026-10-08 from lane reports and browser checks)
 
 Each item has a trigger. Items marked **kill** are recorded only so they aren't re-raised.

@@ -172,6 +172,8 @@ export function mount(container) {
   const invertBox = el('input', { type: 'checkbox' });
   const tileRowsSel = sizeSelect(st.tileRows, TILE_COUNTS);
   const tileColsSel = sizeSelect(st.tileCols, TILE_COUNTS);
+  tileRowsSel.setAttribute('aria-label', 'Tile rows');
+  tileColsSel.setAttribute('aria-label', 'Tile columns');
   const blankBtn = el('button', { type: 'button', text: 'Blank grid' });
   const startOverBtn = el('button', { type: 'button', text: 'Start over' });
 

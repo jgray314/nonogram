@@ -7,6 +7,7 @@ import {
   rowModel,
   progressOf,
   sampleLabel,
+  largePuzzle,
   safeFilename,
   groupSets,
   setProgress,
@@ -327,4 +328,11 @@ test('sampleLabel splits the AI prefix', () => {
   assert.equal(row.title, 'AI test sample: Cat');
   assert.equal(row.name, 'Cat');
   assert.equal(row.ai, true);
+});
+
+test('largePuzzle is 20 or more on a side', () => {
+  assert.equal(largePuzzle({ width: 19, height: 19 }), false);
+  assert.equal(largePuzzle({ width: 20, height: 5 }), true);
+  assert.equal(largePuzzle({ width: 5, height: 25 }), true);
+  assert.equal(largePuzzle({ width: 15, height: 10 }), false);
 });

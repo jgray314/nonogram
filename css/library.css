@@ -158,6 +158,18 @@
   box-shadow: 0 3px 0 var(--danger);
 }
 
+.nng-badge-large {
+  display: none;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+@media (max-width: 599px) {
+  .nng-badge-large {
+    display: inline;
+  }
+}
+
 .nng-badge-not-fair {
   color: var(--danger);
 }

@@ -36,6 +36,11 @@ export function progressOf(save, puzzle = null) {
   return atStart ? 'not started' : 'in progress';
 }
 
+/** True when the grid is 20 or more cells on a side (D20): hard to fit on a small screen. */
+export function largePuzzle(puzzle) {
+  return puzzle.width >= 20 || puzzle.height >= 20;
+}
+
 export function rowModel(puzzle, save) {
   let badge = null;
   if (!puzzle.verdict) badge = 'unchecked';
@@ -48,6 +53,7 @@ export function rowModel(puzzle, save) {
     size: `${puzzle.width} x ${puzzle.height}`,
     label: difficultyLabel(puzzle.verdict),
     badge,
+    large: largePuzzle(puzzle),
     progress: progressOf(save, puzzle),
   };
 }

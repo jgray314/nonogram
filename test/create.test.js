@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { puzzleId, validatePuzzle, ART_PREFIX, MAX_ART_CHARS } from '../src/format.js';
 import { makeSet, tileGrid } from '../src/tiles.js';
+import { createStore } from '../src/store.js';
 import {
   SIZES,
   defaultSize,
@@ -29,6 +30,7 @@ import {
   withVerdicts,
   setWrites,
   rollbackTargets,
+  existingPuzzle,
 } from '../src/create-logic.js';
 
 test('defaultSize picks closest aspect', () => {
@@ -397,6 +399,22 @@ test('withArts adds each tile its own art and leaves others alone', () => {
   const out = withArts(puzzles, ['x', undefined, 'z']);
   assert.deepEqual(out, [{ id: 'a', art: 'x' }, { id: 'b' }, { id: 'c', art: 'z' }]);
   assert.equal('art' in puzzles[0], false, 'input is not mutated');
+});
+
+test('existingPuzzle finds a stored grid by id', () => {
+  const records = new Map([['nng:puzzle:abc', JSON.stringify({ id: 'abc', title: 'Banana' })]]);
+  const storage = {
+    getItem: (k) => records.get(k) ?? null,
+    setItem: (k, v) => records.set(k, v),
+    removeItem: (k) => records.delete(k),
+    key: (i) => [...records.keys()][i] ?? null,
+    get length() {
+      return records.size;
+    },
+  };
+  const store = createStore(storage);
+  assert.equal(existingPuzzle(store, 'abc'), 'Banana');
+  assert.equal(existingPuzzle(store, 'nope'), null);
 });
 
 test('hasFilledCell is false for a blank grid and true once a cell is filled', () => {

@@ -37,6 +37,7 @@ import {
   withVerdicts,
   setWrites,
   rollbackTargets,
+  existingPuzzle,
 } from '../create-logic.js';
 
 const PREVIEW_MAX = 320;
@@ -470,7 +471,17 @@ export function mount(container) {
       return;
     }
     try {
-      createStore().put('puzzle', puzzle);
+      const store = createStore();
+      // The id is a hash of the grid: the same grid is the same puzzle. Never
+      // overwrite it, so a sample keeps its title, verdict and art (UX18).
+      const have = existingPuzzle(store, puzzle.id);
+      if (have !== null) {
+        showSaveMessage(`This grid is already in your library as '${have}'.`, [
+          ['Open it', '#/play/' + encodeURIComponent(puzzle.id)],
+        ]);
+        return;
+      }
+      store.put('puzzle', puzzle);
     } catch {
       showSaveMessage('Could not save: browser storage is full or unavailable.');
       return;

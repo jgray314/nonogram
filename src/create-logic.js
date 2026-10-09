@@ -42,6 +42,12 @@ export function hasUnsavedWork(st, savedSig) {
   return (st.hasImage || hasFilledCell(st.grid)) && gridSig(st) !== savedSig;
 }
 
+/** The stored puzzle's title when `id` is already in the library, else null (UX18). */
+export function existingPuzzle(store, id) {
+  const found = store.get('puzzle', id);
+  return found ? String(found.title ?? '') : null;
+}
+
 const MAX_TITLE = 60;
 
 /** A puzzle title from a file name: extension dropped, `-` and `_` become spaces. */

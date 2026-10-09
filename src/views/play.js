@@ -94,7 +94,14 @@ export function mount(container, params = {}) {
   outPanel.hidden = true;
   const outRestartBtn = el('button', undefined, 'Restart');
   outRestartBtn.type = 'button';
-  outPanel.append(el('strong', undefined, 'Out of hearts'), outRestartBtn);
+  const outZenBtn = el('button', undefined, 'Continue in Zen mode');
+  outZenBtn.type = 'button';
+  outPanel.append(
+    el('strong', undefined, 'Out of hearts'),
+    el('span', 'nng-out-note', 'Restart clears the grid, timer and hearts.'),
+    outRestartBtn,
+    outZenBtn,
+  );
   const holder = el('div', 'nng-grid-holder');
   const toolbar = el('div', 'nng-toolbar');
   const exportBtn = el('button', undefined, 'Export save');
@@ -219,6 +226,7 @@ export function mount(container, params = {}) {
       node.classList.toggle('nng-heart-full', full);
     });
     outPanel.hidden = !out;
+    restartBtn.hidden = out; // the panel has its own Restart; show only one
     holder.classList.toggle('nng-locked', out);
     hintBtn.disabled = !(rules.hint && helpers.enabled) || solvedAt !== null || out;
     undoBtn.disabled = !history.canUndo() || solvedAt !== null || out;
@@ -366,6 +374,14 @@ export function mount(container, params = {}) {
   });
   // Out of hearts there is nothing left to lose, so this one skips the confirm.
   outRestartBtn.addEventListener('click', restart);
+  // Keep the cells and play on without hearts; the lost hearts stay lost until a restart.
+  outZenBtn.addEventListener('click', () => {
+    rules.zen = true;
+    lastTick = Date.now();
+    dirty = true;
+    refresh();
+    persist();
+  });
 
   exportBtn.addEventListener('click', () => {
     const blob = new Blob([serializeSaveFile(puzzle, snapshot())], { type: 'application/json' });

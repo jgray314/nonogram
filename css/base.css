@@ -63,9 +63,10 @@ body {
 .nng-nav {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 0 24px;
-  height: 56px;
+  flex-wrap: wrap; /* at narrow widths the links wrap, so Theme stays on screen */
+  gap: 6px 14px;
+  padding: 6px 24px;
+  min-height: 56px;
   color: var(--on-wood);
   background:
     repeating-linear-gradient(
@@ -100,6 +101,16 @@ body {
   background: var(--panel);
   color: var(--ink);
   border-color: var(--wood-dark);
+}
+
+@media (max-width: 520px) {
+  .nng-nav {
+    padding: 6px 12px;
+  }
+
+  .nng-brand {
+    margin-right: 0;
+  }
 }
 
 .nng-brand {

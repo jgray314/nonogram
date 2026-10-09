@@ -295,6 +295,59 @@ Update the plan before W2 starts. One line to you with the result.
 
 ---
 
+## v1.1: play feedback (from the owner's testing, 2026-10-08)
+
+**Decisions (owner, 2026-10-08):** D6 restart. D7 hearts on by default, 3 of them, only a wrong fill costs one, a wrong cross is ignored, 0 hearts means restart, and the heart-free mode is called **Zen mode**. D8 a clue number is done only when its block is closed in at the right position, as most apps do it. D9 the answer key on the print page starts hidden, and one switch controls whether it prints. D10 empty rows and columns are crossed at the start, always. Reasoning and rejected options are in the Decisions log.
+
+**Sizing:** steps are review units (one test-first commit each), per the owner's 2026-10-08 sizing rule. No hour estimates.
+
+### Contracts (frozen before lanes start)
+
+- **Save record, extended.** `{puzzleId, cells, elapsedMs, rules, solvedAt, hearts?}`. `rules.zen` is a boolean (missing means `false`). `hearts` is an integer from 0 to `MAX_HEARTS`; a missing value means `MAX_HEARTS`, so every v1 save stays valid. `validateSave` rejects a non-integer, a negative, or anything above `MAX_HEARTS`, and a non-boolean `rules.zen`. Upper bound per plan-review check 9.
+- **`game.js` additions (lane H owns):**
+  - `MAX_HEARTS = 3`.
+  - `crossEmptyLines(cells, clues)` returns a new grid with every unknown cell in a line whose clue list is empty set to `-1`. Other cells are unchanged.
+  - `heartsStroke(cells, stroke, solution)` returns `{next, wrong}`. The stroke's mode comes from `applyStroke` exactly as in v1: compute `full = applyStroke(cells, stroke)`, then walk `strokeCells(cells, stroke)` in order, keeping only cells where `full` differs from `cells`. Each such cell is applied in turn. A cell that becomes filled where the solution is empty is not applied: it becomes `-1` instead, `wrong` is `[r, c]`, and the walk stops there. Cells applied before it stay. Strokes that only cross or clear never cost a heart, and `wrong` is `null`. Monochrome only: a fill of the wrong color is out of scope until color mode.
+  - `heartsAvailable(verdict)` is `isFair(verdict)`. Hearts need the stored solution to be the only one.
+  - `restartCells(clues, width, height)` returns `crossEmptyLines` of a blank grid. Restart and a fresh game both start from it.
+- **`clue-progress.js` (new, lane N owns):** `clueProgress(cells, clues)` returns `{rows: boolean[][], cols: boolean[][]}`, one flag per clue number. Rule per line:
+  - If the whole line is satisfied (`lineSatisfied`), every number is done.
+  - Otherwise, scan from the start. Skip crossed cells. Stop at the first unknown cell. A filled run counts only if it's closed: bounded by the line edge or a crossed cell on both sides. A closed run that matches the next clue in length (and color) marks that clue done and the scan continues. Anything else stops the scan.
+  - Then do the same from the end, matching clues from the last one backwards. The end scan stops when it reaches a clue the start scan already marked, so no clue is matched twice.
+- **`grid.js` (lane N owns):** add `setClueDone({rows, cols})`, which takes the per-number flags and toggles `nng-clue-done` on each clue node. Lane N **keeps** `setSatisfied` so `play.js` still works between merges. Step 17 swaps the call in `play.js` and then removes `setSatisfied`.
+- **Hearts are not part of undo.** Undo and redo move cells only. A heart lost stays lost, and the corrected cross is an ordinary cell that undo can step back past.
+
+### Lanes (one wave, three lanes)
+
+| Lane | Steps | Owns files |
+|---|---|---|
+| H, hearts and restart | 14a, 14b, 14c | `src/game.js`, `src/format.js`, `src/views/play.js`, `css/play.css`, their tests |
+| N, per-number clues | 15a, 15b | `src/clue-progress.js`, `src/views/grid.js`, their tests |
+| P, print | 16 | `src/views/print.js`, `css/print.css` |
+
+Lane rules from v1 apply unchanged: stop after 2 failures, never edit a contract or another lane's file, paste real test output. Merges follow the same order, with the orchestrator wiring `setClueDone` into `play.js` after both H and N merge.
+
+### Steps
+
+14a. `[H]` Pure logic in `game.js` per the contract. Tests: `crossEmptyLines crosses only empty-clue lines`, `crossEmptyLines keeps marked cells`, `heartsStroke stops at the first wrong fill`, `heartsStroke keeps cells applied before the mistake`, `heartsStroke ignores wrong crosses`, `heartsStroke clear stroke costs nothing`, `heartsAvailable needs a unique verdict`, `heartsStroke follows the v1 stroke mode` (a left stroke starting on a filled cell clears, and costs nothing), `restartCells is blank plus empty-line crosses`.
+14b. `[H]` `validateSave` per the extended save contract. Tests: `v1 save without hearts is valid`, `hearts above MAX_HEARTS rejected`, `negative or fractional hearts rejected`, `non-boolean zen rejected`.
+14c. `[H]` Play view.
+   - Hearts show as 3 heart icons next to the timer, filled or empty.
+   - A **Zen mode** switch replaces nothing else: in Zen mode the v1 behavior is unchanged (Check mistakes, Hints, Auto-cross). With Zen off, a fill stroke goes through `heartsStroke`, a wrong cell is shown with a red cross until the next move, and Check mistakes is hidden since mistakes are corrected as they happen.
+   - On a puzzle that isn't fair, Zen mode is forced on, with the note "Hearts need a puzzle with a unique solution."
+   - At 0 hearts the grid locks, the timer stops, and an "Out of hearts" panel offers only **Restart**. Every switch is disabled while out of hearts. A save with `hearts: 0` reopens in this state.
+   - The red cross on a wrong cell lives in memory only. It isn't saved and clears on the next move.
+   - Hints work in both modes and never cost a heart.
+   - A **Restart** button (with a confirm) sets cells to `restartCells`, the timer to 0, `solvedAt` to null, hearts to `MAX_HEARTS`, and starts a new undo history. Rules are kept. It works on a solved puzzle too, since replay is the point.
+   - On open, cells go through `crossEmptyLines` before the undo history starts, so those crosses aren't an undo step. This covers v1 saves too. It doesn't mark the save dirty on its own.
+   - Tests: `restartCells is blank plus empty-line crosses` goes in 14a, since it's pure. The view wiring has no Node test: it's checked by hand. **[manual]** Lose all 3 hearts on a sample; reload while out of hearts; restart; switch Zen on and off; reload mid-game and check hearts persist; restart a solved puzzle.
+15a. `[N]` `clueProgress` per the contract. Tests: `closed run at the start marks the first number`, `run touching an unknown cell is not done`, `scan from the end marks the last number`, `wrong-length closed run stops the scan`, `satisfied line marks every number`, `empty clue line has no numbers`.
+15b. `[N]` `grid.js` `setClueDone` per the contract. No Node test: it only toggles classes on DOM nodes, and a shape-only test would claim more than it checks (gate lesson 5). **[manual]** after the orchestrator's wiring: numbers grey out one by one while solving.
+16. `[P]` Print page. A "Include answer key" switch, off at first, sits in the print controls. Off: the key isn't shown or printed. On: it shows and prints on page 2, as in v1. **[manual]** Print preview both ways.
+17. `[seq]` Orchestrator: wire `setClueDone` into `play.js`, remove `setSatisfied` from `grid.js` (and its doc comment), run the full suite, do the manual checks on merged `main`, then a slim `/gate-review` scoped to the v1.1 commits.
+
+---
+
 ## Backlog (post-v1, collected 2026-10-08 from lane reports and browser checks)
 
 Each item has a trigger. Items marked **kill** are recorded only so they aren't re-raised.
@@ -314,13 +367,7 @@ Each item has a trigger. Items marked **kill** are recorded only so they aren't 
 - Opening an already-solved puzzle replays the solve glow once.
 - The grid scrolls rather than shrinking on a narrow window. Desktop is the target (D4).
 
-**Owner's hands-on testing, 2026-10-08 (next round of work; decisions open):**
-- Reset a puzzle for replay.
-- A hearts system for errors: a wrong placement costs a heart automatically.
-- Mark each clue number done on its own, not only the whole row or column.
-- Print page: hide the answer key at first, and offer printing the puzzle sheet alone.
-- Cross out empty rows and columns (clue 0) automatically at the start.
-- Print preview itself worked as planned. Step 13's print check is done.
+**Owner's hands-on testing, 2026-10-08:** reset, hearts, per-number clues, print key hidden, and crossing empty lines at the start are now planned as v1.1 (steps 14a to 17). Print preview itself worked as planned, so step 13's print check is done.
 
 **Kill (harmless):**
 - With reduced motion on, a stray `nng-pop` class can stay on a cell. The animation is off, so nothing shows.
@@ -370,3 +417,11 @@ What isn't on this list (contract shapes, ownership, dependency order) was revie
   - A puzzle that isn't fair can still be saved, with a badge.
   Rejected: blocking unfair puzzles from saving, since you may want to keep a draft.
 - Q7 Tiling: an R x C set of independent puzzles from one image. Each tile's id hash includes its set position, so identical tiles get distinct ids. Rejected paging one large puzzle (worse at 25x25 screen sizes, and a solver speed risk).
+
+**2026-10-08. v1.1 decisions D6 to D10, from the owner's hands-on testing.** Owner: "1; 2a start with 3, only on wrong fill, ignore wrong cross, restart, name heart free version zen mode; 3 only when right like most aps, 4;5".
+- D6 Restart with a confirm, not undoable. Rejected: an undoable reset (a second history concept for one button).
+- D7 Hearts by default on fair puzzles, 3 hearts, wrong fill only, hard restart at 0, heart-free mode named Zen mode. This **reverses v1 decision 1** (free rules by default): the owner's hands-on testing asked for mistake feedback by default, and Zen mode keeps the v1 behavior one switch away. Wrong crosses are free because a cross is a note to yourself, not a claim. Rejected: hearts as an opt-in mode; costing hearts for wrong crosses; a "keep playing" option at 0. Old saves count as hearts mode with full hearts, which is the simplest valid default; a v1 game in progress gains hearts it can lose, which is acceptable for a personal tool.
+- D8 Per-number completion only for closed runs at the matching position from either edge. Rejected: any complete run of the right length (misleading).
+- D9 Answer key hidden by default, one switch for screen and print. Rejected: two separate print buttons.
+- D10 Empty lines crossed at the start, always, as part of the starting grid (not an undo step). The owner answered "5" without picking a variant; the recommended "always" was taken. Rejected: only with auto-cross on.
+- Samples: all samples, including the original three (which the library lane drew during the v1 build), are titled "AI test sample:" per the owner's no-AI-content rule. Owner: "label as ai generated for testing and put in library".

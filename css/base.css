@@ -152,7 +152,9 @@ a {
 
 /* Buttons (shared by every view and the print page). Chunky, with a
    bottom lip that squashes on press. */
-.nng-btn {
+/* Views build plain <button>s; give every one in main the same cozy pill. */
+.nng-btn,
+main button {
   display: inline-block;
   font: inherit;
   font-size: 13px;
@@ -171,19 +173,22 @@ a {
     background-color 0.15s ease;
 }
 
-.nng-btn:hover {
+.nng-btn:hover,
+main button:hover:not(:disabled) {
   background: var(--accent-soft);
   color: var(--ink);
   transform: translateY(-1px);
   box-shadow: 0 4px 0 var(--line-thick);
 }
 
-.nng-btn:active {
+.nng-btn:active,
+main button:active:not(:disabled) {
   transform: translateY(3px);
   box-shadow: 0 0 0 var(--line-thick);
 }
 
-.nng-btn:disabled {
+.nng-btn:disabled,
+main button:disabled {
   opacity: 0.5;
   cursor: default;
   transform: none;
@@ -352,4 +357,33 @@ a {
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* The hidden attribute must win over any display rule a component sets
+   (the solved banner showed as an empty pill while hidden). */
+[hidden] {
+  display: none !important;
+}
+
+/* Native form controls follow the theme instead of staying browser-white. */
+main select,
+main input[type='text'],
+main input[type='number'],
+main textarea {
+  font: inherit;
+  color: var(--ink);
+  background: var(--panel);
+  border: 2px solid var(--line-thick);
+  border-radius: 10px;
+  padding: 3px 8px;
+}
+
+main input[type='checkbox'],
+main input[type='range'] {
+  accent-color: var(--accent);
+}
+
+.nng-brand,
+.nng-theme-toggle {
+  white-space: nowrap;
 }

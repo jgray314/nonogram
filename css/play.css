@@ -40,6 +40,21 @@
   padding: 8px;
 }
 
+/* When the grid is bigger than the holder, the clues stay in view while the cells scroll. */
+.nng-play .nng-clue {
+  position: sticky;
+  z-index: 3;
+  background: var(--panel);
+}
+
+.nng-play .nng-clue-row {
+  left: calc(var(--clue-w) * var(--clue-i));
+}
+
+.nng-play .nng-clue-col {
+  top: calc(var(--clue-h) * var(--clue-i));
+}
+
 .nng-timer {
   font-variant-numeric: tabular-nums;
   font-weight: 600;

@@ -1,5 +1,5 @@
 // Play view: load a puzzle, wire strokes, undo/redo, solve detection.
-import { renderGrid } from './grid.js';
+import { renderGrid, gutterSize } from './grid.js';
 import { puzzleClues } from '../clues.js';
 import { applyStroke, strokeCells } from '../play-state.js';
 import {
@@ -372,6 +372,29 @@ export function mount(container, params = {}) {
     onPointer,
   });
   refresh();
+
+  // Cell size (UX15): the largest of 16..32px that fits the grid and its clue
+  // gutters in the window below the header, and in the main column's width.
+  // Smaller windows scroll inside the holder, where the clues stay put.
+  function sizeGrid() {
+    const gutter = gutterSize(clues);
+    const px = (name, fallback) =>
+      parseFloat(getComputedStyle(holder).getPropertyValue(name)) || fallback;
+    const clueW = px('--clue-w', 22);
+    const clueH = px('--clue-h', 18);
+    const chrome = 28; // holder padding (16) and the grid's own padding (12)
+    const lost = outPanel.hidden ? 0 : outPanel.offsetHeight + 8; // not part of the steady layout
+    const avail =
+      window.innerHeight - (holder.getBoundingClientRect().top + window.scrollY - lost) - 16;
+    const byHeight = (avail - chrome - gutter.top * clueH) / puzzle.height;
+    const byWidth = (holder.clientWidth - chrome - gutter.left * clueW) / puzzle.width;
+    const size = Math.max(16, Math.min(32, Math.floor(Math.min(byHeight, byWidth))));
+    holder.style.setProperty('--cell', `${size}px`);
+    holder.style.maxHeight = `${Math.max(200, Math.floor(avail))}px`;
+  }
+  sizeGrid();
+  window.addEventListener('resize', sizeGrid);
+  cleanup.push(() => window.removeEventListener('resize', sizeGrid));
 
   function rememberRule(key, value) {
     if (!store || !(key in PREF_KEYS)) return;

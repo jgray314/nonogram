@@ -53,6 +53,7 @@ export function renderGrid(container, { width, height, clues, cells, onPointer =
       const node = div('nng-clue nng-clue-col', String(clue.n));
       colClues[c].push(node);
       node.dataset.color = String(clue.c);
+      node.style.setProperty('--clue-i', String(top - list.length + k)); // slot in the gutter, for sticky clues
       place(node, top - list.length + k + 1, left + c + 1);
     });
   });
@@ -61,6 +62,7 @@ export function renderGrid(container, { width, height, clues, cells, onPointer =
       const node = div('nng-clue nng-clue-row', String(clue.n));
       rowClues[r].push(node);
       node.dataset.color = String(clue.c);
+      node.style.setProperty('--clue-i', String(left - list.length + k));
       place(node, top + r + 1, left - list.length + k + 1);
     });
   });

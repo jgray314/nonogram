@@ -7,6 +7,7 @@ import {
   defaultSize,
   titleFromFile,
   hasFilledCell,
+  createEditHistory,
   centerCrop,
   loadScale,
   blankGrid,
@@ -303,6 +304,28 @@ test('titleFromFile falls back to Untitled', () => {
   assert.equal(titleFromFile('.png'), 'Untitled');
   assert.equal(titleFromFile('---.gif'), 'Untitled');
   assert.equal(titleFromFile(''), 'Untitled');
+});
+
+test('edit history undoes and redoes, and a new edit drops the redo branch', () => {
+  const a = blankGrid(2, 2);
+  const h = createEditHistory(a);
+  assert.equal(h.canUndo(), false);
+  assert.equal(h.canRedo(), false);
+  const b = blankGrid(2, 2);
+  b[0][0] = 1;
+  h.push(b);
+  assert.equal(h.canUndo(), true);
+  assert.deepEqual(h.undo(), a);
+  assert.equal(h.canUndo(), false);
+  assert.equal(h.canRedo(), true);
+  assert.deepEqual(h.redo(), b);
+  assert.equal(h.canRedo(), false);
+  h.undo();
+  const c = blankGrid(2, 2);
+  c[1][1] = 1;
+  h.push(c);
+  assert.equal(h.canRedo(), false);
+  assert.deepEqual(h.undo(), a);
 });
 
 test('hasFilledCell is false for a blank grid and true once a cell is filled', () => {

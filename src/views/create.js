@@ -13,6 +13,7 @@ import {
   defaultSize,
   titleFromFile,
   hasFilledCell,
+  createEditHistory,
   centerCrop,
   loadScale,
   blankGrid,
@@ -135,6 +136,8 @@ export function mount(container) {
   let reportTimer = null;
   let reportRun = 0; // id of the newest report request; older results are dropped
   let titleTouched = false; // true once the title was typed by hand
+  let history = createEditHistory(st.grid); // hand edits since the last regenerate
+  let baseline = JSON.stringify(st.grid); // the grid as generated, before hand edits
 
   // --- DOM ---
   const errorBox = el('div', { className: 'nng-create-error', hidden: true });
@@ -176,10 +179,18 @@ export function mount(container) {
     className: 'nng-create-empty-note',
     text: 'Drop an image above, or start from a blank grid.',
   });
+  const undoBtn = el('button', { type: 'button', text: 'Undo', disabled: true });
+  undoBtn.title = 'Undo (Ctrl+Z)';
+  undoBtn.setAttribute('aria-keyshortcuts', 'Control+Z');
+  const redoBtn = el('button', { type: 'button', text: 'Redo', disabled: true });
+  redoBtn.title = 'Redo (Ctrl+Y)';
+  redoBtn.setAttribute('aria-keyshortcuts', 'Control+Y');
+  const editBar = el('div', { className: 'nng-create-edit-bar' }, undoBtn, redoBtn);
   const gridWrap = el(
     'div',
     { className: 'nng-create-grid-wrap' },
     el('h2', { text: 'Grid' }),
+    editBar,
     emptyNote,
     gridHost,
   );
@@ -294,7 +305,8 @@ export function mount(container) {
       onPointer: onGridPointer,
     });
     if (tiled()) markTileBoundaries(d);
-    emptyNote.hidden = image !== null || st.grid.some((row) => row.some((v) => v !== 0));
+    emptyNote.hidden = image !== null || hasFilledCell(st.grid);
+    syncHistoryButtons();
     scheduleReport();
   }
 
@@ -509,10 +521,47 @@ export function mount(container) {
     } else if (type === 'up') {
       const next = applyStroke(st.grid, strokeOf(stroke));
       stroke = null;
-      if (JSON.stringify(next) !== JSON.stringify(st.grid)) st.manualEdits = true;
+      if (JSON.stringify(next) !== JSON.stringify(st.grid)) {
+        history.push(next);
+        st.manualEdits = true;
+      }
       st.grid = next;
       renderGridNow();
     }
+  }
+
+  function syncHistoryButtons() {
+    undoBtn.disabled = !history.canUndo();
+    redoBtn.disabled = !history.canRedo();
+  }
+
+  /** A fresh history for the grid as it now stands (after a regenerate or a blank). */
+  function resetHistory() {
+    history = createEditHistory(st.grid);
+    baseline = JSON.stringify(st.grid);
+    syncHistoryButtons();
+  }
+
+  function stepHistory(back) {
+    if (stroke) return; // never swap the grid under a held stroke
+    if (back ? !history.canUndo() : !history.canRedo()) return;
+    st.grid = back ? history.undo() : history.redo();
+    // Back at the generated grid, there is nothing left to discard.
+    st.manualEdits = JSON.stringify(st.grid) !== baseline;
+    renderGridNow();
+  }
+
+  function onKeydown(e) {
+    if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+    const t = e.target;
+    if (t?.matches?.('textarea, input:not([type=checkbox]):not([type=range]):not([type=file])')) {
+      return; // leave text editing to the browser
+    }
+    const key = e.key.toLowerCase();
+    if (key === 'z' && !e.shiftKey) stepHistory(true);
+    else if (key === 'y' || (key === 'z' && e.shiftKey)) stepHistory(false);
+    else return;
+    e.preventDefault();
   }
 
   /** Ask before a regeneration throws away hand edits. */
@@ -546,6 +595,7 @@ export function mount(container) {
     );
     st.grid = full;
     st.manualEdits = false;
+    resetHistory();
     syncControls();
     drawPreview();
     renderGridNow();
@@ -627,6 +677,7 @@ export function mount(container) {
     const d = dims();
     st.grid = blankGrid(d.width, d.height);
     st.manualEdits = false;
+    resetHistory();
     fileInput.value = '';
     syncControls();
     drawPreview();
@@ -675,6 +726,9 @@ export function mount(container) {
   invertBox.addEventListener('change', onInvert);
   blankBtn.addEventListener('click', onBlank);
   saveBtn.addEventListener('click', onSave);
+  undoBtn.addEventListener('click', () => stepHistory(true));
+  redoBtn.addEventListener('click', () => stepHistory(false));
+  document.addEventListener('keydown', onKeydown);
   titleInput.addEventListener('input', () => {
     titleTouched = true;
   });
@@ -687,6 +741,7 @@ export function mount(container) {
   renderGridNow();
 
   teardown = () => {
+    document.removeEventListener('keydown', onKeydown);
     clearTimeout(reportTimer);
     reportRun++;
     solver.terminate();

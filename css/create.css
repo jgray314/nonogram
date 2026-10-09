@@ -46,7 +46,8 @@
   gap: 6px;
 }
 
-.nng-create-controls button {
+.nng-create-controls button,
+.nng-create-edit-bar button {
   font: inherit;
   font-size: 13px;
   font-weight: 700;
@@ -62,13 +63,26 @@
     box-shadow 0.12s ease;
 }
 
-.nng-create-controls button:hover {
+.nng-create-controls button:hover,
+.nng-create-edit-bar button:hover:not(:disabled) {
   background: var(--accent-soft);
 }
 
-.nng-create-controls button:active {
+.nng-create-controls button:active,
+.nng-create-edit-bar button:active:not(:disabled) {
   transform: translateY(3px);
   box-shadow: 0 0 0 var(--line-thick);
+}
+
+.nng-create-edit-bar button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.nng-create-edit-bar {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 8px;
 }
 
 .nng-create-threshold-value {

@@ -3,9 +3,12 @@
 // strokes itself (the play view wires play-state.js).
 // Cell encoding: 0 unknown, -1 crossed, k >= 1 filled.
 
-/** Gutter depth: the most clues in any column (top) and any row (left). */
+/**
+ * Gutter depth: the most clues in any column (top) and any row (left). An empty
+ * line shows a "0", so it counts as one.
+ */
 export function gutterSize(clues) {
-  const max = (lists) => lists.reduce((m, l) => Math.max(m, l.length), 0);
+  const max = (lists) => lists.reduce((m, l) => Math.max(m, l.length || 1), 0);
   return { top: max(clues.cols), left: max(clues.rows) };
 }
 
@@ -48,7 +51,13 @@ export function renderGrid(container, { width, height, clues, cells, onPointer =
   // Column clues are bottom-aligned, row clues right-aligned, against the cells.
   const rowClues = clues.rows.map(() => []);
   const colClues = clues.cols.map(() => []);
+  const zero = (row, col, slot, axis) => {
+    const node = div(`nng-clue nng-clue-${axis} nng-clue-zero nng-clue-done`, '0');
+    node.style.setProperty('--clue-i', String(slot));
+    place(node, row, col);
+  };
   clues.cols.forEach((list, c) => {
+    if (!list.length) zero(top, left + c + 1, top - 1, 'col'); // not in the progress flags
     list.forEach((clue, k) => {
       const node = div('nng-clue nng-clue-col', String(clue.n));
       colClues[c].push(node);
@@ -58,6 +67,7 @@ export function renderGrid(container, { width, height, clues, cells, onPointer =
     });
   });
   clues.rows.forEach((list, r) => {
+    if (!list.length) zero(top + r + 1, left, left - 1, 'row');
     list.forEach((clue, k) => {
       const node = div('nng-clue nng-clue-row', String(clue.n));
       rowClues[r].push(node);

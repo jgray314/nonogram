@@ -20,3 +20,15 @@ test('layout: gutter fits max clue count', () => {
 test('layout: empty clues give a gutter of zero', () => {
   assert.deepEqual(gutterSize({ rows: [], cols: [] }), { top: 0, left: 0 });
 });
+
+test('empty line gets a zero clue gutter', () => {
+  // Row 1 and column 1 are empty. A line with no clues still shows a "0", so it counts as depth 1.
+  const clues = puzzleClues([
+    [1, 0],
+    [0, 0],
+  ]);
+  assert.deepEqual(clues.rows[1], []);
+  assert.deepEqual(gutterSize(clues), { top: 1, left: 1 });
+  // A completely blank puzzle has a gutter of one for the "0"s, not zero.
+  assert.deepEqual(gutterSize(puzzleClues([[0, 0]])), { top: 1, left: 1 });
+});

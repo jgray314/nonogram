@@ -55,6 +55,12 @@
   top: calc(var(--clue-h) * var(--clue-i));
 }
 
+/* No hover crosshair once the grid is solved or locked: nothing can be played. */
+.nng-grid-holder.nng-celebrate .nng-cell.nng-hot:not(.nng-filled),
+.nng-grid-holder.nng-locked .nng-cell.nng-hot:not(.nng-filled) {
+  background: var(--cell-unknown);
+}
+
 .nng-timer {
   font-variant-numeric: tabular-nums;
   font-weight: 600;

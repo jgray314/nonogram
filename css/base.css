@@ -370,6 +370,14 @@ main button:disabled {
   }
 }
 
+/* While a theme is being applied nothing eases between palettes (no flash). */
+.nng-theme-switching,
+.nng-theme-switching *,
+.nng-theme-switching *::before,
+.nng-theme-switching *::after {
+  transition: none !important;
+}
+
 /* The hidden attribute must win over any display rule a component sets
    (the solved banner showed as an empty pill while hidden). */
 [hidden] {

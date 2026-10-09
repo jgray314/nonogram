@@ -98,7 +98,26 @@ export function applyTheme(name, root = document.documentElement) {
   root.dataset.theme = name;
 }
 
-const LABELS = { auto: 'Theme: auto', day: 'Theme: day', evening: 'Theme: evening' };
+/** The toggle's text; auto says which theme it resolved to. */
+export function themeLabel(pref, prefersDark) {
+  if (pref === 'auto') return `Theme: auto (${resolveTheme(pref, prefersDark)})`;
+  return `Theme: ${pref}`;
+}
+
+/**
+ * Switch themes without colors easing from one palette to the other (that
+ * showed as a half-second flash). css/base.css turns transitions off while
+ * `nng-theme-switching` is on the root; it comes off after the next paint.
+ */
+function applyWithoutFlash(name) {
+  const root = document.documentElement;
+  root.classList.add('nng-theme-switching');
+  applyTheme(name, root);
+  getComputedStyle(root).color; // flush styles while transitions are off
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => root.classList.remove('nng-theme-switching')),
+  );
+}
 
 /**
  * Wire the nav toggle: apply the stored pref now, cycle it on click (and
@@ -115,9 +134,9 @@ export function initTheme(
   };
   let pref = read();
   const paint = () => {
-    applyTheme(resolveTheme(pref, media.matches));
+    applyWithoutFlash(resolveTheme(pref, media.matches));
     if (button) {
-      button.textContent = LABELS[pref];
+      button.textContent = themeLabel(pref, media.matches);
       button.title = 'Cycle theme: auto, day, evening';
     }
   };

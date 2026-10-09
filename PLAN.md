@@ -295,6 +295,31 @@ Update the plan before W2 starts. One line to you with the result.
 
 ---
 
+## Backlog (post-v1, collected 2026-10-08 from lane reports and browser checks)
+
+Each item has a trigger. Items marked **kill** are recorded only so they aren't re-raised.
+
+**Color mode (all deferred to the trigger "color mode starts"):**
+- Left-clear removes any filled color, not just the start cell's color (`play-state.js`). Decide the rule when color lands.
+- `makeSet` shares one palette array across tiles, and `tileFlags` treats any non-zero cell as filled. Fine for monochrome.
+- `toWebpbn` throws when a palette needs more than about 60 distinct characters.
+
+**Solver:**
+- Search always guesses the first unresolved cell. Revisit if a real 25x25 puzzle you make hits `unknown`.
+- `solve` doesn't validate that clue counts match the dimensions. Callers always derive clues from a grid. Revisit if clues ever arrive from imports.
+
+**Creator and player feel (revisit after you've played about 5 puzzles):**
+- In the editor, clues update on stroke release, not during the drag.
+- There's no way back to the source image after pressing "Blank grid".
+- Opening an already-solved puzzle replays the solve glow once.
+- The grid scrolls rather than shrinking on a narrow window. Desktop is the target (D4).
+
+**Kill (harmless):**
+- With reduced motion on, a stray `nng-pop` class can stay on a cell. The animation is off, so nothing shows.
+
+**Unreproduced:**
+- One stray filled row appeared during a browser session after a viewport resize. It wasn't reproducible from a fresh load. Watch for it in real play, and if it recurs, capture the steps.
+
 ## Limits of plan-only review
 
 Five plan-review passes (2026-10-08) tightened the specs, contracts and dependency timing. Reviewing the plan can't settle the items below. Each one is named with the earliest point where real evidence shows up.

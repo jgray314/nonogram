@@ -92,7 +92,7 @@ test('badge shown for non-unique verdict', () => {
   );
 });
 
-test('difficulty label from verdict', () => {
+test('library row label comes from the verdict', () => {
   const label = (v) => rowModel(puzzle('a', { verdict: v }), null).label;
   assert.equal(label(verdict('unique-line-solvable', 1)), 'Easy');
   assert.equal(label(verdict('unique-line-solvable', 99)), 'Medium');

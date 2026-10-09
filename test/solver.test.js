@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { puzzleClues } from '../src/clues.js';
-import { propagate, solve, solveLine } from '../src/solver.js';
+import { propagate, solve, solveLine, DEFAULT_BUDGET } from '../src/solver.js';
 import { lineClues } from '../src/clues.js';
 
 /** Parse a picture ('X' filled, anything else empty) into a solution grid. */
@@ -288,26 +288,33 @@ test('brute line oracle agrees on all 4x4 (sample)', () => {
   }
 });
 
-test('25x25 completes under 1s', () => {
+test('25x25 line-solvable rings solve in under 1s', () => {
   // Concentric rings: hand-made rule, line-solvable.
   const rings = Array.from({ length: 25 }, (_, r) =>
     Array.from({ length: 25 }, (_, c) => (Math.min(r, c, 24 - r, 24 - c) % 2 === 0 ? 1 : 0)),
   );
-  let t0 = performance.now();
+  const t0 = performance.now();
   const easy = solve(problemFrom(rings));
   assert.ok(performance.now() - t0 < 1000);
   assert.equal(easy.status, 'unique-line-solvable');
   assert.deepEqual(easy.grid, rings);
+});
 
-  // Seeded noise: must resolve or hit the budget within 1s.
+// Timing guard at the budget the app actually uses (the old version ran at
+// budget 50 and accepted any status, so it guarded only the clock). Noise
+// grids are the realistic worst case for the creator's live report.
+test('25x25 noise at the default budget finishes under 1s per grid', () => {
   const rand = mulberry32(2025);
-  const noise = Array.from({ length: 25 }, () =>
-    Array.from({ length: 25 }, () => (rand() < 0.5 ? 1 : 0)),
-  );
-  t0 = performance.now();
-  const hard = solve(problemFrom(noise), { budget: 50 });
-  assert.ok(performance.now() - t0 < 1000);
-  assert.ok(
-    ['unknown', 'multiple', 'unique-needs-guessing', 'unique-line-solvable'].includes(hard.status),
-  );
+  for (const density of [0.5, 0.6, 0.7]) {
+    for (let k = 0; k < 3; k++) {
+      const noise = Array.from({ length: 25 }, () =>
+        Array.from({ length: 25 }, () => (rand() < density ? 1 : 0)),
+      );
+      const t0 = performance.now();
+      const result = solve(problemFrom(noise), { budget: DEFAULT_BUDGET });
+      const ms = performance.now() - t0;
+      assert.ok(ms < 1000, `density ${density} grid ${k} took ${Math.round(ms)}ms`);
+      assert.notEqual(result.status, 'none', 'a grid built from real cells always has a solution');
+    }
+  }
 });

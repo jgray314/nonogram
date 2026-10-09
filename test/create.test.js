@@ -110,7 +110,7 @@ test('regenerateNeedsConfirm only when manual edits exist', () => {
   assert.equal(regenerateNeedsConfirm(false), false);
 });
 
-test('report updates after edit', () => {
+test('reportView maps solver results to text, label and highlight', () => {
   const multiple = {
     status: 'multiple',
     sweeps: 2,
@@ -173,7 +173,7 @@ test('saved puzzle carries verdict', async () => {
   assert.equal(validatePuzzle(rec).ok, true);
 });
 
-test('save waits for a fresh report', () => {
+test('canSave refuses pending or stale reports', () => {
   const result = { status: 'unique-line-solvable', sweeps: 1 };
   assert.equal(canSave({ phase: 'pending', result: null }), false);
   assert.equal(canSave({ phase: 'pending', result }), false); // stale result

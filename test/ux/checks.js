@@ -44,8 +44,12 @@ export async function seed(storage) {
 const HEART = 'Heart (5x5)';
 const SPIDER = 'Spider (20x20)';
 const fullHearts = (app) => app.$$('.nng-heart-full').length;
+// Runs before every check. Play defaults are cleared too: since D16 a Zen click
+// becomes the default, and it would open every later check in Zen.
 const clearSaves = (storage) => {
-  for (const key of Object.keys(storage)) if (key.startsWith('nng:save:')) storage.removeItem(key);
+  for (const key of Object.keys(storage)) {
+    if (key.startsWith('nng:save:') || key.startsWith('nng:pref:play.')) storage.removeItem(key);
+  }
 };
 
 /** Fill Heart's whole solution, row by row. */
@@ -188,50 +192,125 @@ export const CHECKS = [
     },
   },
   {
-    id: 'play-solved-next-step',
-    known: 'UX5',
-    name: 'After solving, a next step (back to the library) is offered next to "Solved"',
+    id: 'play-solved-strip',
+    name: 'After solving, a strip says how long it took and links back to the library (UX5, D14)',
     async run(app, ids) {
       await app.open(`#/play/${ids[HEART]}`);
       solveHeart(app);
-      const near = app.$('.nng-solved')?.parentElement;
-      assert(near?.querySelector('a[href="#/library"]'), 'no library link near Solved');
+      // Heart has no saved art, so the strip shows at once (no fade to wait for).
+      const strip = await waitFor(() => !app.$('.nng-solved-strip').hidden, 'the solved strip');
+      assert(strip, 'no solved strip');
+      assert(/^Solved in \d\d:\d\d$/.test(app.$('.nng-solved-text').textContent), 'no solve time');
+      assert(app.$('.nng-solved-strip a[href="#/library"]'), 'no library link in the strip');
     },
   },
   {
     id: 'play-undo-visible',
-    known: 'UX3',
-    name: 'Undo is a visible control, not only Ctrl+Z',
+    name: 'Undo is a visible control, enabled once there is a move to undo (UX3)',
     async run(app, ids) {
       await app.open(`#/play/${ids[HEART]}`);
-      assert(app.buttonByText('Undo'), 'no Undo button');
+      const undo = app.buttonByText('Undo');
+      assert(undo && undo.disabled, 'no Undo button, or it is enabled before any move');
+      app.stroke([[1, 0]]);
+      assert(!undo.disabled, 'Undo still disabled after a move');
+      undo.click();
+      assert(!app.cell(1, 0).classList.contains('nng-filled'), 'Undo did not undo');
     },
   },
   {
     id: 'play-controls-legend',
-    known: 'UX3',
-    name: 'The play screen says how to fill and cross',
+    name: 'The play screen says how to fill and cross (UX3)',
     async run(app, ids) {
       await app.open(`#/play/${ids[HEART]}`);
-      assert(/right/i.test(app.$('.nng-play').textContent), 'no mention of right-drag to cross');
+      assert(/right-drag to cross/i.test(app.$('.nng-legend')?.textContent), 'no controls legend');
     },
   },
   {
     id: 'play-no-hint-gate',
-    known: 'UX10',
-    name: 'Reveal a cell works without first ticking a separate Hints switch',
+    name: 'Reveal a cell works with no Hints switch, and reveals a filled cell (UX10, D17)',
     async run(app, ids) {
       await app.open(`#/play/${ids[HEART]}`);
+      assert(!app.toggleByLabel('Hints'), 'a Hints switch is still there');
       const reveal = app.buttonByText('Reveal a cell');
       assert(reveal && !reveal.disabled, 'Reveal a cell is disabled');
+      reveal.click();
+      assert(app.$$('.nng-play .nng-filled').length === 1, 'reveal did not fill exactly one cell');
+    },
+  },
+  {
+    id: 'play-hint-counter',
+    name: 'Hints used counts each reveal, and Restart sets it back to 0 (D18)',
+    async run(app, ids) {
+      await app.open(`#/play/${ids[HEART]}`);
+      const label = () => app.$('.nng-hint-count').textContent;
+      assert(label() === 'Hints used: 0', `starts as "${label()}"`);
+      app.buttonByText('Reveal a cell').click();
+      app.buttonByText('Reveal a cell').click();
+      assert(label() === 'Hints used: 2', `after two reveals: "${label()}"`);
+      app.buttonByText('Undo').click();
+      assert(label() === 'Hints used: 2', 'undo refunded a hint');
+      await app.withConfirm(true, async () => app.buttonByText('Restart', '.nng-rules').click());
+      assert(label() === 'Hints used: 0', `after restart: "${label()}"`);
+    },
+  },
+  {
+    id: 'play-continue-in-zen',
+    name: 'Out of hearts offers Continue in Zen mode, which keeps the grid (UX4)',
+    async run(app, ids) {
+      await app.open(`#/play/${ids[HEART]}`);
+      app.stroke([[1, 0]]);
+      for (const c of [0, 2, 4]) app.stroke([[0, c]]);
+      assert(!app.$('.nng-out').hidden, 'no out-of-hearts panel');
+      const restarts = app
+        .$$('button')
+        .filter((b) => b.textContent === 'Restart' && b.offsetParent);
+      assert(restarts.length === 1, `${restarts.length} Restart buttons showing`);
+      app.buttonByText('Continue in Zen mode').click();
+      assert(app.$('.nng-out').hidden, 'panel still showing');
+      assert(app.toggleByLabel('Zen mode').checked, 'Zen not on');
+      assert(app.cell(1, 0).classList.contains('nng-filled'), 'the earlier fill was lost');
+      app.stroke([[1, 1]]);
+      assert(app.cell(1, 1).classList.contains('nng-filled'), 'grid still locked');
+    },
+  },
+  {
+    id: 'play-rule-defaults',
+    name: 'Turning Zen on also makes it the default for an unstarted puzzle (D16)',
+    async run(app, ids, storage) {
+      try {
+        await app.open(`#/play/${ids[HEART]}`);
+        app.toggleByLabel('Zen mode').click();
+        await app.open(`#/play/${ids['Cat (10x10)']}`);
+        assert(app.toggleByLabel('Zen mode').checked, 'unstarted puzzle did not open in Zen');
+      } finally {
+        storage.removeItem('nng:pref:play.zen'); // later checks expect the hearts default
+      }
+    },
+  },
+  {
+    id: 'play-25x25-fits-desktop',
+    name: "Cat 25x25's last row is on screen at 1024x768 without scrolling (UX15)",
+    async run(app, ids) {
+      await app.open(`#/play/${ids['Cat (25x25)']}`);
+      await pause(100);
+      const bottom = app.cell(24, 24).getBoundingClientRect().bottom;
+      assert(bottom <= app.win().innerHeight, `last row ends at ${Math.round(bottom)}px of 768`);
+    },
+  },
+  {
+    id: 'play-zero-clue',
+    name: 'An empty line shows a 0 clue (Spider row 20)',
+    async run(app, ids) {
+      await app.open(`#/play/${ids[SPIDER]}`);
+      const rowClues = app.$$('.nng-play .nng-clue-row').map((n) => n.textContent);
+      assert(rowClues.includes('0'), 'no 0 clue on the empty row');
     },
   },
 
   // ---- Create (reviewer tasks 7 to 9) ----
   {
     id: 'create-blank-grid-usable',
-    known: 'UX1',
-    name: 'Blank grid shows cells big enough to draw on (at least 12px)',
+    name: 'Blank grid shows cells big enough to draw on, at least 12px (UX1)',
     async run(app) {
       await app.open('#/create');
       app.buttonByText('Blank grid').click();
@@ -242,31 +321,63 @@ export const CHECKS = [
   },
   {
     id: 'create-no-save-when-empty',
-    known: 'UX12',
-    name: 'Save is disabled while the grid has nothing filled (as first opened)',
+    name: 'Save is disabled while the grid has nothing filled, and the report says why (UX12)',
     async run(app) {
       await app.open('#/create');
-      // The reviewer saw Save enabled once the solver report arrived, so wait for it.
+      // The reviewer saw Save enabled once the solver report arrived; an empty grid
+      // now never runs the solver, so wait for the empty-grid status instead.
       await waitFor(
-        () => /solution/.test(app.$('.nng-create-report-status')?.textContent ?? ''),
-        'the solver verdict',
+        () => /Fill in some cells/.test(app.$('.nng-create-report-status')?.textContent ?? ''),
+        'the empty-grid status',
         4000,
       );
       await pause(200);
       assert(app.buttonByText('Save to library')?.disabled, 'Save is enabled on an empty grid');
+      app.buttonByText('Blank grid').click();
+      await waitFor(() => app.$('.nng-create-grid-wrap .nng-cell'), 'a grid cell');
+      app.stroke([[0, 0]], 0, '.nng-create-grid-wrap');
+      await waitFor(
+        () => !app.buttonByText('Save to library')?.disabled,
+        'Save enabled after a fill',
+        4000,
+      );
     },
   },
   {
-    id: 'create-leave-warns',
-    known: 'UX2',
-    name: 'Leaving Create with unsaved edits asks first',
+    id: 'create-undo',
+    name: 'Create has Undo and Redo for hand edits (UX13)',
+    async run(app) {
+      await app.open('#/create');
+      app.buttonByText('Blank grid').click();
+      await waitFor(() => app.$('.nng-create-grid-wrap .nng-cell'), 'a grid cell');
+      const filled = () => app.$$('.nng-create-grid-wrap .nng-filled').length;
+      app.stroke(
+        [
+          [0, 0],
+          [0, 1],
+        ],
+        0,
+        '.nng-create-grid-wrap',
+      );
+      assert(filled() === 2, `stroke filled ${filled()}`);
+      app.buttonByText('Undo').click();
+      assert(filled() === 0, `after Undo: ${filled()}`);
+      app.buttonByText('Redo').click();
+      assert(filled() === 2, `after Redo: ${filled()}`);
+    },
+  },
+  {
+    id: 'create-draft-survives-navigation',
+    name: 'Going to the library and back keeps unsaved Create edits (UX2)',
     async run(app) {
       await app.open('#/create');
       app.buttonByText('Blank grid').click();
       await waitFor(() => app.$('.nng-create-grid-wrap .nng-cell'), 'a grid cell');
       app.stroke([[0, 0]], 0, '.nng-create-grid-wrap');
-      const asked = await app.withConfirm(false, () => app.go('#/library'));
-      assert(asked >= 1, 'left Create without asking');
+      await app.go('#/library');
+      await app.go('#/create');
+      const cell = await waitFor(() => app.cell(0, 0, '.nng-create-grid-wrap'), 'the grid again');
+      assert(cell.classList.contains('nng-filled'), 'the edit was lost');
     },
   },
 
@@ -282,9 +393,53 @@ export const CHECKS = [
     },
   },
   {
-    id: 'library-restart-reads-new',
-    known: 'UX14',
-    name: 'A restarted puzzle with only automatic crosses does not read "in progress"',
+    id: 'library-delete-is-tucked-away',
+    name: 'Play is the one primary action; Delete sits in a More menu and names the puzzle (UX8)',
+    async run(app) {
+      await app.open('#/library');
+      const row = await waitFor(
+        () => app.$$('.nng-lib-row').find((r) => r.textContent.includes('Heart')),
+        'the Heart row',
+      );
+      const primary = row.querySelectorAll('.nng-btn-primary');
+      assert(
+        primary.length === 1 && primary[0].textContent === 'Play',
+        'Play is not the one primary',
+      );
+      const more = row.querySelector('details.nng-more');
+      assert(more && !more.open, 'no closed More menu');
+      const del = [...more.querySelectorAll('button')].find((b) => b.textContent === 'Delete');
+      // offsetParent stays set inside a closed <details>; checkVisibility sees it hidden.
+      assert(del && !del.checkVisibility(), 'Delete missing, or visible while the menu is closed');
+      more.open = true;
+      let message = '';
+      const real = app.win().confirm;
+      app.win().confirm = (m) => ((message = m), false); // answer no: nothing is deleted
+      try {
+        del.click();
+      } finally {
+        app.win().confirm = real;
+      }
+      assert(/Heart/.test(message), `confirm does not name the puzzle: "${message}"`);
+      assert(row.isConnected, 'the row went away after answering no');
+    },
+  },
+  {
+    id: 'library-sample-badge',
+    name: 'Samples show their name plus an "AI test sample" badge (D15)',
+    async run(app) {
+      await app.open('#/library');
+      const row = await waitFor(
+        () => app.$$('.nng-lib-row').find((r) => r.textContent.includes('Heart')),
+        'the Heart row',
+      );
+      assert(row.querySelector('.nng-lib-title').textContent === 'Heart (5x5)', 'title not split');
+      assert(row.querySelector('.nng-badge-ai'), 'no AI badge');
+    },
+  },
+  {
+    id: 'library-restart-reads-not-started',
+    name: 'A restarted puzzle with only automatic crosses reads "not started" (UX14)',
     async run(app, ids) {
       await app.open(`#/play/${ids[SPIDER]}`);
       app.stroke([[0, 9]]);
@@ -295,6 +450,7 @@ export const CHECKS = [
         'the Spider row',
       );
       assert(!row.textContent.includes('in progress'), 'reads "in progress"');
+      assert(row.textContent.includes('not started'), 'does not read "not started"');
     },
   },
 
@@ -313,9 +469,18 @@ export const CHECKS = [
 
   // ---- Layout and accessibility basics ----
   {
+    id: 'theme-auto-label',
+    name: 'Theme: auto says which theme it picked (UX16)',
+    async run(app, ids, storage) {
+      storage.removeItem('nng:pref:theme');
+      await app.open('#/library');
+      const text = app.$('#theme-toggle').textContent;
+      assert(/^Theme: auto \((day|evening)\)$/.test(text), `reads "${text}"`);
+    },
+  },
+  {
     id: 'narrow-nav-fits',
-    known: 'UX6',
-    name: 'At 375px every nav control is on screen',
+    name: 'At 375px every nav control is on screen (UX6)',
     async run(app) {
       await app.open('#/library', 375);
       const right = Math.max(...app.$$('.nng-nav > *').map((n) => n.getBoundingClientRect().right));
@@ -337,8 +502,7 @@ export const CHECKS = [
   },
   {
     id: 'a11y-create-inputs-labelled',
-    known: 'UX a11y',
-    name: 'Every Create input and dropdown has its own label',
+    name: 'Every Create input and dropdown has its own label (UX a11y)',
     async run(app) {
       await app.open('#/create');
       const controls = app

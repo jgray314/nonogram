@@ -3,11 +3,16 @@ import { renderGrid } from './grid.js';
 import { puzzleClues } from '../clues.js';
 import { applyStroke, strokeCells } from '../play-state.js';
 import {
+  MAX_HEARTS,
   autoCross,
   createHistory,
+  crossEmptyLines,
+  heartsAvailable,
+  heartsStroke,
   helpersAvailability,
   hintCell,
   isSolved,
+  restartCells,
   satisfiedLines,
   wrongFills,
 } from '../game.js';
@@ -81,7 +86,17 @@ export function mount(container, params = {}) {
   solvedMsg.hidden = true;
   const count = el('span', 'nng-count');
   const timerEl = el('span', 'nng-timer');
-  status.append(timerEl, solvedMsg, count);
+  const heartsEl = el('span', 'nng-hearts');
+  heartsEl.setAttribute('role', 'img');
+  const heartNodes = Array.from({ length: MAX_HEARTS }, () => el('span', 'nng-heart'));
+  heartsEl.append(...heartNodes);
+  status.append(timerEl, heartsEl, solvedMsg, count);
+  // Shown while out of hearts; Restart is the only way out.
+  const outPanel = el('div', 'nng-out');
+  outPanel.hidden = true;
+  const outRestartBtn = el('button', undefined, 'Restart');
+  outRestartBtn.type = 'button';
+  outPanel.append(el('strong', undefined, 'Out of hearts'), outRestartBtn);
   const holder = el('div', 'nng-grid-holder');
   const toolbar = el('div', 'nng-toolbar');
   const exportBtn = el('button', undefined, 'Export save');
@@ -97,6 +112,7 @@ export function mount(container, params = {}) {
   const rulesBar = el('div', 'nng-rules');
   const toggles = {};
   for (const [key, label] of [
+    ['zen', 'Zen mode'],
     ['check', 'Check mistakes'],
     ['hint', 'Hints'],
     ['autoCross', 'Auto-cross'],
@@ -110,16 +126,20 @@ export function mount(container, params = {}) {
   }
   const hintBtn = el('button', undefined, 'Reveal a cell');
   hintBtn.type = 'button';
+  const restartBtn = el('button', undefined, 'Restart');
+  restartBtn.type = 'button';
   const ruleNote = el('span', 'nng-note');
-  rulesBar.append(hintBtn, ruleNote);
-  root.append(title, status, rulesBar, toolbar, holder);
+  rulesBar.append(hintBtn, restartBtn, ruleNote);
+  root.append(title, status, outPanel, rulesBar, toolbar, holder);
   container.append(root);
 
   const clues = puzzleClues(puzzle.solution);
-  const rules = { check: false, hint: false, autoCross: false };
+  const rules = { zen: false, check: false, hint: false, autoCross: false };
   let cells = blank(puzzle);
   let elapsedMs = 0;
   let solvedAt = null;
+  let hearts = MAX_HEARTS;
+  let wrongMark = null; // [r, c] of the last wrong fill; memory only, cleared on the next move
   let dirty = false;
   const existing = store ? store.get('save', puzzle.id) : null;
   const loaded = existing && validateSave(existing, puzzle).ok ? existing : null;
@@ -127,9 +147,13 @@ export function mount(container, params = {}) {
     cells = loaded.cells.map((row) => row.slice());
     elapsedMs = loaded.elapsedMs;
     solvedAt = loaded.solvedAt;
+    hearts = loaded.hearts ?? MAX_HEARTS;
     for (const key of Object.keys(rules)) rules[key] = loaded.rules[key] === true;
   }
-  const history = createHistory(cells);
+  // Empty lines start crossed, before the history, so they are not an undo step.
+  // This covers v1 saves too, and does not mark the save dirty on its own.
+  cells = crossEmptyLines(cells, clues);
+  let history = createHistory(cells);
   // A puzzle can be satisfied before any move: an all-blank tile has only empty
   // clues. Filling anything would break it, so count it solved on open.
   if (solvedAt === null && isSolved(cells, clues)) {
@@ -137,7 +161,14 @@ export function mount(container, params = {}) {
     dirty = true;
   }
 
-  const snapshot = () => ({ puzzleId: puzzle.id, cells, elapsedMs, rules: { ...rules }, solvedAt });
+  const snapshot = () => ({
+    puzzleId: puzzle.id,
+    cells,
+    elapsedMs,
+    rules: { ...rules },
+    solvedAt,
+    hearts,
+  });
   function persist() {
     if (!store || !(dirty || loaded)) return;
     try {
@@ -156,6 +187,10 @@ export function mount(container, params = {}) {
   };
 
   const helpers = helpersAvailability(puzzle.verdict);
+  // Hearts need a unique solution, so a puzzle that isn't fair is forced into Zen mode.
+  const heartsOk = heartsAvailable(puzzle.verdict);
+  const zen = () => rules.zen || !heartsOk;
+  const outOfHearts = () => !zen() && hearts === 0 && solvedAt === null;
   const formatTime = (ms) => {
     const total = Math.floor(ms / 1000);
     const pad = (n) => String(n).padStart(2, '0');
@@ -163,14 +198,29 @@ export function mount(container, params = {}) {
   };
 
   function refresh() {
-    const checkOn = rules.check && helpers.enabled && solvedAt === null;
-    grid.setWrong(checkOn ? wrongFills(cells, puzzle.solution) : []);
+    const out = outOfHearts();
+    const checkOn = rules.check && helpers.enabled && solvedAt === null && zen();
+    if (checkOn) grid.setWrong(wrongFills(cells, puzzle.solution));
+    else grid.setWrong(wrongMark && solvedAt === null ? [wrongMark] : []);
     for (const key of Object.keys(toggles)) {
-      toggles[key].checked = rules[key];
-      toggles[key].disabled = key !== 'autoCross' && !helpers.enabled;
+      toggles[key].checked = key === 'zen' ? zen() : rules[key];
+      toggles[key].disabled = out || (key !== 'autoCross' && !helpers.enabled);
     }
-    hintBtn.disabled = !(rules.hint && helpers.enabled) || solvedAt !== null;
-    ruleNote.textContent = helpers.note;
+    // Mistakes are corrected as they happen with hearts on, so Check has nothing to add.
+    toggles.check.parentElement.hidden = !zen();
+    heartsEl.hidden = zen();
+    heartsEl.setAttribute('aria-label', `${hearts} of ${MAX_HEARTS} hearts`);
+    heartNodes.forEach((node, i) => {
+      const full = i < hearts;
+      node.textContent = full ? '♥' : '♡';
+      node.classList.toggle('nng-heart-full', full);
+    });
+    outPanel.hidden = !out;
+    holder.classList.toggle('nng-locked', out);
+    hintBtn.disabled = !(rules.hint && helpers.enabled) || solvedAt !== null || out;
+    ruleNote.textContent = heartsOk
+      ? helpers.note
+      : `Hearts need a puzzle with a unique solution. ${helpers.note}`;
     timerEl.textContent = formatTime(elapsedMs);
     grid.update(solvedAt === null ? cells : reveal(cells));
     grid.setSatisfied(satisfiedLines(cells, clues));
@@ -181,12 +231,17 @@ export function mount(container, params = {}) {
   }
 
   /** One committed move (a stroke, or later a hint) is one undo step. */
-  function commit(next) {
+  function commit(next, wrong = null) {
     if (sameGrid(cells, next)) return;
     // Auto-cross rides in the same undo step as the move that completed a line.
     if (rules.autoCross) next = autoCross(next, clues, cells);
     cells = next;
     history.push(cells);
+    wrongMark = wrong;
+    if (wrong) {
+      if (hearts === 1) tick(); // bank the time up to the losing move, before the timer locks
+      hearts -= 1;
+    }
     if (isSolved(cells, clues)) {
       tick(); // bank the time up to the solving move
       solvedAt = Date.now();
@@ -197,7 +252,7 @@ export function mount(container, params = {}) {
   }
 
   function onPointer({ type, r, c, button }) {
-    if (solvedAt !== null) return;
+    if (solvedAt !== null || outOfHearts()) return;
     if (type === 'down') {
       drag = { button, path: [[r, c]] };
       preview();
@@ -208,7 +263,12 @@ export function mount(container, params = {}) {
       if (r !== null) drag.path.push([r, c]);
       const finished = drag;
       drag = null;
-      commit(applyStroke(cells, finished));
+      if (zen()) {
+        commit(applyStroke(cells, finished));
+      } else {
+        const result = heartsStroke(cells, finished, puzzle.solution);
+        commit(result.next, result.wrong);
+      }
     }
   }
 
@@ -230,7 +290,7 @@ export function mount(container, params = {}) {
     });
   }
   hintBtn.addEventListener('click', () => {
-    if (solvedAt !== null || drag || !rules.hint || !helpers.enabled) return;
+    if (solvedAt !== null || drag || outOfHearts() || !rules.hint || !helpers.enabled) return;
     const hint = hintCell(cells, puzzle.solution);
     if (!hint) return;
     const next = cells.map((row) => row.slice());
@@ -242,7 +302,7 @@ export function mount(container, params = {}) {
   let lastTick = Date.now();
   const tick = () => {
     const now = Date.now();
-    if (!document.hidden && solvedAt === null) elapsedMs += now - lastTick;
+    if (!document.hidden && solvedAt === null && !outOfHearts()) elapsedMs += now - lastTick;
     lastTick = now;
     timerEl.textContent = formatTime(elapsedMs);
   };
@@ -256,12 +316,34 @@ export function mount(container, params = {}) {
   });
 
   function step(fn) {
-    if (solvedAt !== null || drag) return;
+    if (solvedAt !== null || drag || outOfHearts()) return;
+    wrongMark = null;
     cells = fn();
     dirty = true;
     refresh();
     persist();
   }
+
+  function restart() {
+    cells = restartCells(clues, puzzle.width, puzzle.height);
+    history = createHistory(cells);
+    elapsedMs = 0;
+    hearts = MAX_HEARTS;
+    wrongMark = null;
+    drag = null;
+    lastTick = Date.now();
+    solvedAt = isSolved(cells, clues) ? Date.now() : null; // an all-blank tile starts solved
+    dirty = true;
+    refresh();
+    persist();
+  }
+  restartBtn.addEventListener('click', () => {
+    if (confirm('Restart this puzzle? Progress and hearts reset, and this cannot be undone.')) {
+      restart();
+    }
+  });
+  // Out of hearts there is nothing left to lose, so this one skips the confirm.
+  outRestartBtn.addEventListener('click', restart);
 
   exportBtn.addEventListener('click', () => {
     const blob = new Blob([serializeSaveFile(puzzle, snapshot())], { type: 'application/json' });

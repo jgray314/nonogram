@@ -9,6 +9,11 @@ import {
   hintCell,
   autoCross,
   helpersAvailability,
+  MAX_HEARTS,
+  crossEmptyLines,
+  heartsStroke,
+  heartsAvailable,
+  restartCells,
 } from '../src/game.js';
 import { puzzleClues } from '../src/clues.js';
 
@@ -165,4 +170,148 @@ test('auto-cross fills satisfied line', () => {
     [0, 0, 0],
   ];
   assert.deepEqual(autoCross(cells, clues, before)[0], [1, 1, -1]);
+});
+
+// Hearts (v1.1). HS has an empty row 1 and an empty column 1.
+const HS = [
+  [1, 0, 1],
+  [0, 0, 0],
+  [1, 0, 1],
+];
+const left = (path) => ({ button: 'left', path });
+const right = (path) => ({ button: 'right', path });
+const blank3 = () => [
+  [0, 0, 0],
+  [0, 0, 0],
+  [0, 0, 0],
+];
+
+test('crossEmptyLines crosses only empty-clue lines', () => {
+  const clues = puzzleClues(HS);
+  assert.deepEqual(crossEmptyLines(blank3(), clues), [
+    [0, -1, 0],
+    [-1, -1, -1],
+    [0, -1, 0],
+  ]);
+  // A puzzle with no empty line is returned unchanged.
+  const full = puzzleClues(SOL);
+  assert.deepEqual(crossEmptyLines(blank3(), full), blank3());
+});
+
+test('crossEmptyLines keeps marked cells', () => {
+  const clues = puzzleClues(HS);
+  const cells = [
+    [1, 0, 0],
+    [0, 0, 0],
+    [0, 0, 0],
+  ];
+  const input = JSON.stringify(cells);
+  const out = crossEmptyLines(cells, clues);
+  assert.equal(out[0][0], 1);
+  assert.equal(out[1][1], -1);
+  assert.equal(JSON.stringify(cells), input, 'input is not mutated');
+  // An existing fill in an empty-clue line stays (it is a mistake, not ours to erase).
+  const odd = blank3();
+  odd[1][1] = 1;
+  assert.equal(crossEmptyLines(odd, clues)[1][1], 1);
+});
+
+test('heartsStroke stops at the first wrong fill', () => {
+  // Row 0 solution is [1,0,1]; a stroke over the whole row fills (0,0), then hits the empty (0,1).
+  const { next, wrong } = heartsStroke(
+    blank3(),
+    left([
+      [0, 0],
+      [0, 2],
+    ]),
+    HS,
+  );
+  assert.deepEqual(wrong, [0, 1]);
+  assert.equal(next[0][1], -1, 'the wrong cell becomes a cross');
+  assert.equal(next[0][2], 0, 'the walk stopped before the next cell');
+});
+
+test('heartsStroke keeps cells applied before the mistake', () => {
+  const { next } = heartsStroke(
+    blank3(),
+    left([
+      [0, 0],
+      [0, 2],
+    ]),
+    HS,
+  );
+  assert.equal(next[0][0], 1);
+});
+
+test('heartsStroke ignores wrong crosses', () => {
+  // (0,0) belongs to the solution, but crossing it is a note, not a claim.
+  const out = heartsStroke(
+    blank3(),
+    right([
+      [0, 0],
+      [0, 2],
+    ]),
+    HS,
+  );
+  assert.equal(out.wrong, null);
+  assert.deepEqual(out.next[0], [-1, -1, -1]);
+});
+
+test('heartsStroke clear stroke costs nothing', () => {
+  const cells = blank3();
+  cells[0][1] = 1; // a wrong fill already on the board
+  cells[0][2] = 1;
+  const out = heartsStroke(
+    cells,
+    left([
+      [0, 1],
+      [0, 2],
+    ]),
+    HS,
+  );
+  assert.equal(out.wrong, null);
+  assert.deepEqual(out.next[0], [0, 0, 0]);
+});
+
+test('heartsAvailable needs a unique verdict', () => {
+  assert.equal(heartsAvailable({ status: 'unique-line-solvable', sweeps: 3 }), true);
+  assert.equal(heartsAvailable({ status: 'unique-needs-guessing', sweeps: 3 }), true);
+  assert.equal(heartsAvailable({ status: 'multiple', sweeps: 0 }), false);
+  assert.equal(heartsAvailable({ status: 'unknown', sweeps: 0 }), false);
+  assert.equal(heartsAvailable(null), false);
+});
+
+test('heartsStroke follows the v1 stroke mode', () => {
+  // Starting on a filled cell, a left stroke clears; it must not refill or charge.
+  const cells = blank3();
+  cells[0][0] = 1;
+  const out = heartsStroke(
+    cells,
+    left([
+      [0, 0],
+      [0, 1],
+      [0, 2],
+    ]),
+    HS,
+  );
+  assert.equal(out.wrong, null);
+  assert.deepEqual(out.next[0], [0, 0, 0]);
+  // Starting on an unknown cell, only unknown cells fill: the filled (0,0) is skipped.
+  const start = blank3();
+  start[0][0] = 1;
+  const fill = heartsStroke(
+    start,
+    left([
+      [0, 1],
+      [0, 2],
+    ]),
+    HS,
+  );
+  assert.deepEqual(fill.wrong, [0, 1]);
+});
+
+test('restartCells is blank plus empty-line crosses', () => {
+  const clues = puzzleClues(HS);
+  assert.deepEqual(restartCells(clues, 3, 3), crossEmptyLines(blank3(), clues));
+  assert.equal(MAX_HEARTS, 3);
 });

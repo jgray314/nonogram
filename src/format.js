@@ -1,5 +1,7 @@
 // Record formats: puzzle, save, set. See PLAN.md D2, step 5, step 12b.
 
+import { MAX_HEARTS } from './game.js';
+
 const STATUSES = ['unique-line-solvable', 'unique-needs-guessing', 'multiple', 'none', 'unknown'];
 const HEX = /^#[0-9a-fA-F]{6}$/;
 // Largest tile set the creator makes (4x4). Bounding it keeps a hostile record
@@ -132,6 +134,13 @@ export function validateSave(x, puzzle) {
       return fail('elapsedMs must be a non-negative number');
     }
     if (!isObj(x.rules)) return fail('rules must be a plain object');
+    if (x.rules.zen !== undefined && typeof x.rules.zen !== 'boolean') {
+      return fail('rules.zen must be a boolean');
+    }
+    // A missing hearts value means a full set, so every v1 save stays valid.
+    if (x.hearts !== undefined && (!isInt(x.hearts) || x.hearts < 0 || x.hearts > MAX_HEARTS)) {
+      return fail(`hearts must be an integer from 0 to ${MAX_HEARTS}`);
+    }
     if (x.solvedAt !== null && (typeof x.solvedAt !== 'number' || !Number.isFinite(x.solvedAt))) {
       return fail('solvedAt must be null or a number');
     }

@@ -58,3 +58,37 @@
 .nng-msg {
   color: var(--muted);
 }
+
+.nng-hearts {
+  display: inline-flex;
+  gap: 2px;
+  font-size: 1.25em;
+  line-height: 1;
+  color: var(--muted);
+}
+
+.nng-heart-full {
+  color: var(--cell-wrong);
+}
+
+.nng-out {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 8px;
+  padding: 8px 14px;
+  color: var(--danger);
+  background: var(--danger-bg);
+  border: 2px solid var(--danger);
+  border-radius: 12px;
+}
+
+.nng-grid-holder.nng-locked {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+/* The red cross on a wrong fill: the cell is crossed, outlined, and drawn in red. */
+.nng-cell.nng-wrong.nng-crossed {
+  --cell-cross: var(--cell-wrong);
+}

@@ -7,6 +7,8 @@ import {
   rowModel,
   progressOf,
   safeFilename,
+  groupSets,
+  setProgress,
   PUZZLE_KEYS,
 } from '../src/library-logic.js';
 import { samplePuzzles, loadSamples } from '../src/samples.js';
@@ -56,6 +58,7 @@ test('library lists saved puzzles', () => {
   assert.deepEqual(model.rows.map((r) => r.id).sort(), ['a', 'b']);
   assert.equal(model.rows[0].size, '2 x 2');
   assert.equal(model.skipped, 0);
+  assert.equal(model.sets.length, 1);
 });
 
 test('library reports skipped corrupt records', () => {
@@ -137,6 +140,37 @@ test('safeFilename strips unsafe characters', () => {
   assert.equal(safeFilename('   '), 'puzzle');
   assert.equal(safeFilename('../..'), 'puzzle');
   assert.ok(safeFilename('x'.repeat(500)).length <= 80);
+});
+
+test('set progress counts solved tiles', () => {
+  const set = { tileIds: ['a', 'b', 'c', 'd'] };
+  const saves = {
+    a: save('a', [[1]], 10),
+    b: save('b', [[1]], null),
+    c: save('c', [[1]], 20),
+  };
+  assert.deepEqual(setProgress(set, saves), { solved: 2, total: 4 });
+  assert.deepEqual(setProgress(set, {}), { solved: 0, total: 4 });
+});
+
+test('groupSets pairs tiles with set records and tolerates missing parts', () => {
+  const tiles = [
+    puzzle('t0', { set: { id: 's', row: 0, col: 0 } }),
+    puzzle('t3', { set: { id: 's', row: 1, col: 1 } }),
+    puzzle('o0', { set: { id: 'orphan', row: 0, col: 1 } }),
+  ];
+  const records = [
+    { v: 1, setId: 's', title: 'Sky', rows: 2, cols: 2, tileIds: ['t0', 't1', 't2', 't3'] },
+  ];
+  const groups = groupSets(tiles, records);
+  const s = groups.find((g) => g.setId === 's');
+  assert.equal(s.title, 'Sky');
+  assert.deepEqual(s.tileIds, ['t0', 't1', 't2', 't3']);
+  assert.equal(s.tiles.t1, undefined);
+  const o = groups.find((g) => g.setId === 'orphan');
+  assert.equal(o.rows, 1);
+  assert.equal(o.cols, 2);
+  assert.deepEqual(o.tileIds, [null, 'o0']);
 });
 
 test('samples are valid puzzles', async () => {

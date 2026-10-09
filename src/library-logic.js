@@ -1,5 +1,7 @@
 // Pure helpers for the library view.
 import { difficultyLabel, isFair } from './difficulty.js';
+import { restartCells } from './game.js';
+import { puzzleClues } from './clues.js';
 
 /** The keys a stored puzzle may have (PLAN.md D2, the tile `set` field, and D14's `art`). */
 export const PUZZLE_KEYS = [
@@ -15,11 +17,23 @@ export const PUZZLE_KEYS = [
   'art',
 ];
 
-/** 'solved' | 'in progress' | 'new', from a save record (or null). */
-export function progressOf(save) {
-  if (!save) return 'new';
+function sameGrid(a, b) {
+  return a.length === b.length && a.every((row, r) => row.every((v, c) => v === b[r][c]));
+}
+
+/**
+ * 'solved' | 'in progress' | 'not started', from a save record (or null).
+ * A save still at the starting grid (a restart's automatic crosses included)
+ * with under a second played counts as not started.
+ */
+export function progressOf(save, puzzle = null) {
+  if (!save) return 'not started';
   if (save.solvedAt !== null && save.solvedAt !== undefined) return 'solved';
-  return save.cells.some((row) => row.some((v) => v !== 0)) ? 'in progress' : 'new';
+  const start = puzzle
+    ? restartCells(puzzleClues(puzzle.solution), puzzle.width, puzzle.height)
+    : save.cells.map((row) => row.map(() => 0));
+  const atStart = sameGrid(save.cells, start) && (save.elapsedMs ?? 0) < 1000;
+  return atStart ? 'not started' : 'in progress';
 }
 
 export function rowModel(puzzle, save) {
@@ -29,10 +43,12 @@ export function rowModel(puzzle, save) {
   return {
     id: puzzle.id,
     title: puzzle.title,
+    name: sampleLabel(puzzle.title).name,
+    ai: sampleLabel(puzzle.title).ai,
     size: `${puzzle.width} x ${puzzle.height}`,
     label: difficultyLabel(puzzle.verdict),
     badge,
-    progress: progressOf(save),
+    progress: progressOf(save, puzzle),
   };
 }
 
@@ -47,11 +63,31 @@ export function safeFilename(title) {
   return cleaned === '' ? 'puzzle' : cleaned;
 }
 
+const PROGRESS_ORDER = { 'in progress': 0, 'not started': 1, solved: 2 };
+const AI_PREFIX = 'AI test sample: ';
+
+/** {name, ai}: the stored title with the AI-sample prefix split off (D15). The stored title keeps the prefix. */
+export function sampleLabel(title) {
+  const ai = String(title).startsWith(AI_PREFIX);
+  return { name: ai ? title.slice(AI_PREFIX.length) : title, ai };
+}
+
+/** In progress, then not started, then solved; titles A to Z (case-insensitive, AI prefix ignored). */
+function compareRows(a, b) {
+  const byProgress = PROGRESS_ORDER[a.progress] - PROGRESS_ORDER[b.progress];
+  if (byProgress !== 0) return byProgress;
+  const key = (row) => sampleLabel(row.title).name.toLowerCase();
+  return key(a).localeCompare(key(b)) || a.id.localeCompare(b.id);
+}
+
 /** What the library view shows: non-set puzzle rows plus the corrupt count. */
 export function libraryModel(store) {
   const { records: puzzles, skipped } = store.list('puzzle');
   const saves = new Map(store.list('save').records.map((s) => [s.puzzleId, s]));
-  const rows = puzzles.filter((p) => !p.set).map((p) => rowModel(p, saves.get(p.id) ?? null));
+  const rows = puzzles
+    .filter((p) => !p.set)
+    .map((p) => rowModel(p, saves.get(p.id) ?? null))
+    .sort(compareRows);
   const savesById = Object.fromEntries(saves);
   const sets = groupSets(puzzles, store.list('set').records).map((g) => ({
     ...g,

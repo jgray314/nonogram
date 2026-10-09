@@ -6,11 +6,14 @@ import {
   libraryModel,
   rowModel,
   progressOf,
+  sampleLabel,
   safeFilename,
   groupSets,
   setProgress,
   PUZZLE_KEYS,
 } from '../src/library-logic.js';
+import { restartCells } from '../src/game.js';
+import { puzzleClues } from '../src/clues.js';
 import { samplePuzzles, loadSamples } from '../src/samples.js';
 
 function memoryStorage() {
@@ -107,8 +110,8 @@ test('library row label comes from the verdict', () => {
   assert.equal(label(null), 'Unchecked');
 });
 
-test('progress from save', () => {
-  assert.equal(progressOf(null), 'new');
+test('progress label is not started, not new', () => {
+  assert.equal(progressOf(null), 'not started');
   assert.equal(
     progressOf(
       save('a', [
@@ -116,7 +119,7 @@ test('progress from save', () => {
         [0, 0],
       ]),
     ),
-    'new',
+    'not started',
   );
   assert.equal(
     progressOf(
@@ -140,6 +143,32 @@ test('progress from save', () => {
     ),
     'solved',
   );
+});
+
+test('restarted grid with only auto-crosses is not started', () => {
+  // Row 1 and column 0 of this solution are empty, so a restart crosses them.
+  const p = puzzle('x', {
+    width: 2,
+    height: 2,
+    solution: [
+      [0, 1],
+      [0, 0],
+    ],
+  });
+  const start = restartCells(puzzleClues(p.solution), 2, 2);
+  assert.ok(
+    start.some((row) => row.some((v) => v !== 0)),
+    'the start grid has crosses',
+  );
+  const fresh = { ...save('x', start), elapsedMs: 0 };
+  assert.equal(progressOf(fresh, p), 'not started');
+  assert.equal(progressOf({ ...fresh, elapsedMs: 999 }, p), 'not started');
+  assert.equal(progressOf({ ...fresh, elapsedMs: 1000 }, p), 'in progress');
+  assert.equal(progressOf({ ...fresh, solvedAt: 5 }, p), 'solved');
+  const touched = start.map((row) => [...row]);
+  touched[0][1] = 1;
+  assert.equal(progressOf({ ...fresh, cells: touched }, p), 'in progress');
+  assert.equal(rowModel(p, fresh).progress, 'not started');
 });
 
 test('safeFilename strips unsafe characters', () => {
@@ -241,4 +270,53 @@ test('samples carry a solver verdict and are fair', async () => {
     assert.ok(p.verdict, `${p.title} has no verdict`);
     assert.ok(isFair(p.verdict), `${p.title} is ${p.verdict.status}`);
   }
+});
+
+test('library orders in progress, not started, solved, then by title', () => {
+  const store = createStore(memoryStorage());
+  const rowsOf = (...specs) => {
+    for (const [id, title, saveRecord] of specs) {
+      store.put('puzzle', puzzle(id, { title }));
+      if (saveRecord) store.put('save', saveRecord);
+    }
+    return libraryModel(store).rows.map((r) => r.id);
+  };
+  const played = (id) =>
+    save(id, [
+      [1, 0],
+      [0, 0],
+    ]);
+  const done = (id) =>
+    save(
+      id,
+      [
+        [1, 0],
+        [0, 1],
+      ],
+      9,
+    );
+  const order = rowsOf(
+    ['a', 'Zebra', played('a')],
+    ['b', 'apple', done('b')],
+    ['c', 'AI test sample: Cat (10x10)', null],
+    ['d', 'Moth', null],
+    ['e', 'Bee', played('e')],
+    ['f', 'Ant', done('f')],
+  );
+  // in progress (Bee, Zebra), not started (Cat ignoring the prefix, Moth), solved (Ant, apple)
+  assert.deepEqual(order, ['e', 'a', 'c', 'd', 'f', 'b']);
+});
+
+test('sampleLabel splits the AI prefix', () => {
+  assert.deepEqual(sampleLabel('AI test sample: Cat (10x10)'), { name: 'Cat (10x10)', ai: true });
+  assert.deepEqual(sampleLabel('My cat'), { name: 'My cat', ai: false });
+  // Only a leading prefix counts, and the stored title is never changed.
+  assert.deepEqual(sampleLabel('Not an AI test sample: x'), {
+    name: 'Not an AI test sample: x',
+    ai: false,
+  });
+  const row = rowModel(puzzle('a', { title: 'AI test sample: Cat' }), null);
+  assert.equal(row.title, 'AI test sample: Cat');
+  assert.equal(row.name, 'Cat');
+  assert.equal(row.ai, true);
 });

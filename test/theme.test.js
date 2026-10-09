@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { THEMES, contrastRatio, resolveTheme, nextPref } from '../src/theme.js';
+import { THEMES, contrastRatio, resolveTheme, nextPref, themeLabel } from '../src/theme.js';
 
 const NAMES = ['day', 'evening'];
 
@@ -78,4 +78,11 @@ test('base.css day fallback matches theme.js', () => {
   for (const k of Object.keys(props)) {
     assert.ok(k in THEMES.day || layout.includes(k), `${k} in base.css is not a theme token`);
   }
+});
+
+test('auto theme label names the resolved theme', () => {
+  assert.equal(themeLabel('auto', true), 'Theme: auto (evening)');
+  assert.equal(themeLabel('auto', false), 'Theme: auto (day)');
+  assert.equal(themeLabel('day', true), 'Theme: day');
+  assert.equal(themeLabel('evening', false), 'Theme: evening');
 });

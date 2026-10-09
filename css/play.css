@@ -40,19 +40,64 @@
   padding: 8px;
 }
 
-/* When the grid is bigger than the holder, the clues stay in view while the cells scroll. */
-.nng-play .nng-clue {
+/* When the grid is bigger than the holder, the clues stay in view while the cells scroll.
+   A sticky offset is measured from the scroll box's edge, so each one adds the space
+   before the grid's first gutter slot (holder padding 8px + grid padding 6px). Without
+   it, a pinned clue sits 14px left of or above its own slot. */
+.nng-grid-holder {
+  --stick: 14px;
+}
+
+.nng-play .nng-clue,
+.nng-play .nng-gutter,
+.nng-play .nng-grid-corner {
   position: sticky;
-  z-index: 3;
   background: var(--panel);
 }
 
+/* Layers: cells, then the opaque gutter backing, then the clues, then the corner. */
+.nng-play .nng-gutter {
+  z-index: 3;
+}
+
+.nng-play .nng-clue {
+  z-index: 4;
+}
+
+.nng-play .nng-grid-corner {
+  z-index: 5;
+  top: var(--stick);
+  left: var(--stick);
+  box-shadow:
+    calc(var(--stick) * -1) 0 0 var(--panel),
+    0 calc(var(--stick) * -1) 0 var(--panel),
+    calc(var(--stick) * -1) calc(var(--stick) * -1) 0 var(--panel);
+}
+
+/* The shadows cover the strip between the scroll box's edge and the gutter. */
+.nng-play .nng-gutter-cols {
+  top: var(--stick);
+  box-shadow: 0 calc(var(--stick) * -1) 0 var(--panel);
+}
+
+.nng-play .nng-gutter-rows {
+  left: var(--stick);
+  box-shadow: calc(var(--stick) * -1) 0 0 var(--panel);
+}
+
 .nng-play .nng-clue-row {
-  left: calc(var(--clue-w) * var(--clue-i));
+  left: calc(var(--stick) + var(--clue-w) * var(--clue-i));
 }
 
 .nng-play .nng-clue-col {
-  top: calc(var(--clue-h) * var(--clue-i));
+  top: calc(var(--stick) + var(--clue-h) * var(--clue-i));
+}
+
+/* A finished number fades by colour, not opacity: a see-through sticky clue would
+   let the cells scrolled under it show through. */
+.nng-play .nng-clue.nng-clue-done {
+  opacity: 1;
+  color: color-mix(in srgb, var(--muted) 40%, var(--panel));
 }
 
 /* No hover crosshair once the grid is solved or locked: nothing can be played. */

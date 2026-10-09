@@ -55,6 +55,25 @@ export function renderGrid(
     root.append(node);
   };
 
+  // Opaque backing for the gutters, so cells scrolled under a sticky gutter (Play)
+  // never show through the gaps between clues; and one corner node over both
+  // gutters, which play.css pins above them (UX22). Plain, empty divs elsewhere.
+  if (top > 0 && width > 0) {
+    const band = div('nng-gutter nng-gutter-cols');
+    band.style.gridArea = `1 / ${left + 1} / span ${top} / span ${width}`;
+    root.append(band);
+  }
+  if (left > 0 && height > 0) {
+    const band = div('nng-gutter nng-gutter-rows');
+    band.style.gridArea = `${top + 1} / 1 / span ${height} / span ${left}`;
+    root.append(band);
+  }
+  if (top > 0 && left > 0) {
+    const corner = div('nng-grid-corner');
+    corner.style.gridArea = `1 / 1 / span ${top} / span ${left}`;
+    root.append(corner);
+  }
+
   // Column clues are bottom-aligned, row clues right-aligned, against the cells.
   const rowClues = clues.rows.map(() => []);
   const colClues = clues.cols.map(() => []);

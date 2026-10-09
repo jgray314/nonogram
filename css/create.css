@@ -88,6 +88,29 @@
   display: none;
 }
 
+/* The grid wrap sizes to its cells and never shrinks as a flex child. */
+.nng-create-grid-wrap {
+  flex: none;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* A grid with no clues has no gutter, so renderGrid's repeat(0, ...) template is
+   invalid and dropped. Fixed implicit tracks keep the cells at --cell either way. */
+.nng-create .nng-grid {
+  grid-auto-columns: var(--cell);
+  grid-auto-rows: var(--cell);
+}
+
+.nng-create-empty-note {
+  margin: 0 0 8px;
+  color: var(--muted);
+}
+
+.nng-create-empty-note[hidden] {
+  display: none;
+}
+
 .nng-create-preview-wrap h2,
 .nng-create-grid-wrap h2 {
   font-size: 14px;

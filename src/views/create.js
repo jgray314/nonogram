@@ -169,10 +169,15 @@ export function mount(container) {
     previewCanvas,
   );
   const gridHost = el('div');
+  const emptyNote = el('p', {
+    className: 'nng-create-empty-note',
+    text: 'Drop an image above, or start from a blank grid.',
+  });
   const gridWrap = el(
     'div',
     { className: 'nng-create-grid-wrap' },
     el('h2', { text: 'Grid' }),
+    emptyNote,
     gridHost,
   );
 
@@ -286,6 +291,7 @@ export function mount(container) {
       onPointer: onGridPointer,
     });
     if (tiled()) markTileBoundaries(d);
+    emptyNote.hidden = image !== null || st.grid.some((row) => row.some((v) => v !== 0));
     scheduleReport();
   }
 

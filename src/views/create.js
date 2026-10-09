@@ -1,5 +1,5 @@
-// Creator view: image -> grid (step 10), cell editor and blank grid (step 11a).
-// Steps 11b (solver report) and 11c (save) plug into the marked slots below.
+// Creator view: image -> grid (step 10), cell editor and blank grid (step 11a),
+// live solver report (11b). Step 11c (save) plugs into the save slot below.
 import { cellLuminance, otsu, binarize } from '../image.js';
 import { puzzleClues } from '../clues.js';
 import { renderGrid } from './grid.js';
@@ -12,9 +12,11 @@ import {
   blankGrid,
   newEditorState,
   regenerateNeedsConfirm,
+  reportView,
 } from '../create-logic.js';
 
 const PREVIEW_MAX = 320;
+const REPORT_DEBOUNCE_MS = 150;
 const CSS_ID = 'nng-create-css';
 
 let root = null;
@@ -36,6 +38,36 @@ function sizeSelect(value) {
   for (const s of SIZES) sel.append(el('option', { value: String(s), text: String(s) }));
   sel.value = String(value);
   return sel;
+}
+
+/** Thin promise wrapper over the solver Web Worker. */
+function createSolverClient() {
+  const worker = new Worker(new URL('../solver.worker.js', import.meta.url), { type: 'module' });
+  const waiting = new Map();
+  let nextId = 0;
+  worker.onmessage = (e) => {
+    const entry = waiting.get(e.data.id);
+    waiting.delete(e.data.id);
+    entry?.resolve(e.data.result);
+  };
+  worker.onerror = () => {
+    for (const entry of waiting.values()) entry.reject(new Error('solver failed'));
+    waiting.clear();
+  };
+  return {
+    solve(input) {
+      const id = ++nextId;
+      return new Promise((resolve, reject) => {
+        waiting.set(id, { resolve, reject });
+        worker.postMessage({ id, input, opts: {} });
+      });
+    },
+    terminate() {
+      worker.terminate();
+      for (const entry of waiting.values()) entry.reject(new Error('cancelled'));
+      waiting.clear();
+    },
+  };
 }
 
 /** Decode a File into a canvas capped at 1024px on the long side. */
@@ -82,6 +114,9 @@ export function mount(container) {
   let image = null; // { canvas, w, h, rgba } once decoded
   let gridView = null;
   let previewScale = 1;
+  const solver = createSolverClient();
+  let reportTimer = null;
+  let reportRun = 0; // id of the newest report request; older results are dropped
 
   // --- DOM ---
   const errorBox = el('div', { className: 'nng-create-error', hidden: true });
@@ -125,6 +160,13 @@ export function mount(container) {
   // 11b/11c hooks: the solver report and the Save button mount into these.
   const reportSlot = el('div', { className: 'nng-create-slot' });
   reportSlot.dataset.slot = 'report';
+  const reportStatus = el('p', { className: 'nng-create-report-status' });
+  const reportBadge = el('span', { className: 'nng-create-badge' });
+  reportSlot.append(
+    el('h2', { text: 'Solver report' }),
+    el('p', {}, 'Difficulty: ', reportBadge),
+    reportStatus,
+  );
   const saveSlot = el('div', { className: 'nng-create-slot' });
   saveSlot.dataset.slot = 'save';
 
@@ -200,6 +242,45 @@ export function mount(container) {
       cells: st.grid,
       onPointer: onGridPointer,
     });
+    scheduleReport();
+  }
+
+  // --- live solver report (step 11b) ---
+  // report.phase: 'pending' (checking or stale), 'fresh' (matches st.grid) or 'error'.
+  const report = { phase: 'pending', result: null };
+
+  function showReport() {
+    const view = reportView(report.phase === 'fresh' ? report.result : null);
+    if (report.phase === 'error') {
+      reportStatus.textContent = 'The solver could not run, so this grid is unchecked.';
+      reportBadge.textContent = 'Unchecked';
+    } else {
+      reportStatus.textContent = view.text;
+      reportBadge.textContent = view.label;
+    }
+    reportBadge.dataset.label = reportBadge.textContent;
+    gridView?.setHighlight(report.phase === 'fresh' ? view.highlight : []);
+  }
+
+  function scheduleReport() {
+    clearTimeout(reportTimer);
+    const run = ++reportRun;
+    report.phase = 'pending';
+    report.result = null;
+    showReport();
+    reportTimer = setTimeout(async () => {
+      const { rows, cols } = puzzleClues(st.grid);
+      try {
+        const result = await solver.solve({ width: st.width, height: st.height, rows, cols });
+        if (run !== reportRun) return; // a newer edit superseded this one
+        report.phase = 'fresh';
+        report.result = result;
+      } catch {
+        if (run !== reportRun) return;
+        report.phase = 'error';
+      }
+      showReport();
+    }, REPORT_DEBOUNCE_MS);
   }
 
   // Editor: left-drag paints/clears via applyStroke. The grid is only updated
@@ -370,6 +451,9 @@ export function mount(container) {
   renderGridNow();
 
   teardown = () => {
+    clearTimeout(reportTimer);
+    reportRun++;
+    solver.terminate();
     gridView?.destroy();
     gridView = null;
   };

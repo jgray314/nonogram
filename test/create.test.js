@@ -8,6 +8,7 @@ import {
   blankGrid,
   newEditorState,
   regenerateNeedsConfirm,
+  reportView,
 } from '../src/create-logic.js';
 
 test('defaultSize picks closest aspect', () => {
@@ -95,4 +96,47 @@ test('blank grid has chosen size', () => {
 test('regenerateNeedsConfirm only when manual edits exist', () => {
   assert.equal(regenerateNeedsConfirm(true), true);
   assert.equal(regenerateNeedsConfirm(false), false);
+});
+
+test('report updates after edit', () => {
+  const multiple = {
+    status: 'multiple',
+    sweeps: 2,
+    unresolved: [[0, 0]],
+    differing: [
+      [0, 1],
+      [1, 0],
+    ],
+  };
+  const unique = { status: 'unique-line-solvable', sweeps: 2, unresolved: [], differing: [] };
+  const guessing = {
+    status: 'unique-needs-guessing',
+    sweeps: 1,
+    unresolved: [[2, 2]],
+    differing: [],
+  };
+
+  const before = reportView(multiple);
+  assert.deepEqual(before.highlight, [
+    [0, 1],
+    [1, 0],
+  ]);
+  assert.equal(before.label, 'Not fair');
+  assert.match(before.text, /more than one/i);
+
+  // the user edits a cell; the next result replaces the report
+  const after = reportView(unique);
+  assert.deepEqual(after.highlight, []);
+  assert.equal(after.label, 'Easy');
+  assert.notEqual(after.text, before.text);
+
+  const hard = reportView(guessing);
+  assert.deepEqual(hard.highlight, [[2, 2]]);
+  assert.equal(hard.label, 'Hard');
+
+  // no result yet: nothing to highlight, nothing claimed
+  const pending = reportView(null);
+  assert.deepEqual(pending.highlight, []);
+  assert.equal(pending.label, 'Unchecked');
+  assert.match(pending.text, /checking/i);
 });

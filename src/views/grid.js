@@ -104,6 +104,12 @@ export function renderGrid(container, { width, height, clues, cells, onPointer =
     for (const [r, c] of list) nodes[r]?.[c]?.classList.add('nng-wrong');
   }
 
+  // Creator report: mark cells (amber), separate from the hover and wrong marks.
+  function setHighlight(list) {
+    for (const row of nodes) for (const node of row) node.classList.remove('nng-hl');
+    for (const [r, c] of list) nodes[r]?.[c]?.classList.add('nng-hl');
+  }
+
   // Hover highlight: the hovered cell's row and column.
   let hot = null;
   function highlight(pos) {
@@ -168,6 +174,7 @@ export function renderGrid(container, { width, height, clues, cells, onPointer =
     update,
     setSatisfied,
     setWrong,
+    setHighlight,
     destroy() {
       window.removeEventListener('pointerup', onUp);
       window.removeEventListener('pointercancel', onUp);

@@ -1,4 +1,5 @@
 // Pure helpers for the creator view. No DOM.
+import { difficultyLabel } from './difficulty.js';
 
 export const SIZES = [5, 10, 15, 20, 25];
 export const LONG_SIDE = 15;
@@ -81,4 +82,30 @@ export function newEditorState({ width = 15, height = 15 } = {}) {
 /** Regenerating from the image would discard hand edits: ask first. */
 export function regenerateNeedsConfirm(hasManualEdits) {
   return Boolean(hasManualEdits);
+}
+
+const STATUS_TEXT = {
+  'unique-line-solvable': 'One solution, solvable by line logic alone.',
+  'unique-needs-guessing': 'One solution, but solving needs guessing.',
+  multiple: 'More than one solution. Highlighted cells differ between two of them.',
+  none: 'No solution fits these clues.',
+  unknown: 'Could not decide: the search ran out of budget.',
+};
+
+/**
+ * Turn a solver result (or null while checking) into what the report shows:
+ * {text, label, highlight}. `highlight` is the cells to mark: the differing
+ * cells for `multiple`, the unresolved cells for `unique-needs-guessing`.
+ */
+export function reportView(result) {
+  if (!result) return { text: 'Checking...', label: 'Unchecked', highlight: [] };
+  const label = difficultyLabel({ status: result.status, sweeps: result.sweeps });
+  let highlight = [];
+  if (result.status === 'multiple') highlight = result.differing;
+  else if (result.status === 'unique-needs-guessing') highlight = result.unresolved;
+  return {
+    text: STATUS_TEXT[result.status] ?? result.status,
+    label,
+    highlight: highlight.map(([r, c]) => [r, c]),
+  };
 }

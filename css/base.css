@@ -11,6 +11,7 @@
   --cell-cross: #7a8493;
   --cell-hot: #e6edfb;
   --cell-wrong: #d23b3b;
+  --cell-hl: #e0a020;
   --clue-text: #2a313a;
 
   /* 25x25 plus a deep gutter fits a 1080p desktop: 25*24 + 13*18 is ~834px tall. */
@@ -161,4 +162,13 @@ h1 {
 
 .nng-cell.nng-wrong {
   box-shadow: inset 0 0 0 2px var(--cell-wrong);
+}
+
+.nng-cell.nng-hl {
+  box-shadow: inset 0 0 0 3px var(--cell-hl);
+  background-color: color-mix(in srgb, var(--cell-hl) 22%, var(--cell-unknown));
+}
+
+.nng-cell.nng-hl.nng-filled {
+  background-color: color-mix(in srgb, var(--cell-hl) 35%, var(--cell-filled));
 }

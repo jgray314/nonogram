@@ -92,3 +92,24 @@
 .nng-create-slot {
   margin-top: 16px;
 }
+
+.nng-create-slot h2 {
+  font-size: 14px;
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.nng-create-badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font-weight: 600;
+}
+
+.nng-create-badge[data-label='Not fair'] {
+  border-color: #c0392b;
+  color: #7a1f14;
+}

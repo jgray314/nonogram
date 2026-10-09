@@ -180,7 +180,7 @@ export function mount(container) {
   const tileColsSel = sizeSelect(st.tileCols, TILE_COUNTS);
   tileRowsSel.setAttribute('aria-label', 'Tile rows');
   tileColsSel.setAttribute('aria-label', 'Tile columns');
-  const blankBtn = el('button', { type: 'button', text: 'Blank grid' });
+  const blankBtn = el('button', { type: 'button', text: 'Clear to blank' });
   const startOverBtn = el('button', { type: 'button', text: 'Start over' });
 
   const controls = el(
@@ -208,7 +208,7 @@ export function mount(container) {
   const gridHost = el('div');
   const emptyNote = el('p', {
     className: 'nng-create-empty-note',
-    text: 'Drop an image above, or start from a blank grid.',
+    text: 'Choose an image above, or draw on the grid below.',
   });
   const undoBtn = el('button', { type: 'button', text: 'Undo', disabled: true });
   undoBtn.title = 'Undo (Ctrl+Z)';
@@ -287,6 +287,7 @@ export function mount(container) {
     slider.disabled = !imgControls;
     resetBtn.disabled = !imgControls;
     invertBox.disabled = !imgControls;
+    blankBtn.hidden = !imgControls; // clearing to blank only means something once an image is loaded
   }
 
   const dims = () => fullSize(st.width, st.height, st.tileRows, st.tileCols);
@@ -375,7 +376,7 @@ export function mount(container) {
     const multi = tiled();
     if (!hasFilledCell(st.grid)) {
       // Nothing to check: no verdict, and nothing worth saving.
-      badgeLine.hidden = multi;
+      badgeLine.hidden = true; // no difficulty until something is filled
       tileList.replaceChildren();
       reportStatus.textContent = 'Fill in some cells to see a report.';
       reportBadge.textContent = 'Unchecked';

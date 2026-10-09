@@ -41,6 +41,10 @@
   box-shadow: 0 3px 0 var(--shadow);
 }
 
+.nng-create-controls [hidden] {
+  display: none;
+}
+
 .nng-create-controls label {
   display: inline-flex;
   align-items: center;
@@ -185,17 +189,18 @@
   font-weight: 600;
 }
 
+/* A flat label, not a button: no border, no shadow, tinted background. */
 .nng-create-badge {
   display: inline-block;
   padding: 1px 8px;
-  border-radius: 999px;
-  border: 2px solid var(--line-thick);
-  background: var(--panel);
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  font-size: 13px;
   font-weight: 600;
 }
 
 .nng-create-badge[data-label='Not fair'] {
-  border-color: var(--danger);
+  background: var(--danger-bg);
   color: var(--danger);
 }
 

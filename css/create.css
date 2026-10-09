@@ -85,6 +85,32 @@
   margin: 0 0 8px;
 }
 
+/* The file input matches the theme's buttons, and its "No file chosen" text
+   follows the theme ink instead of the browser default (unreadable in evening). */
+.nng-create-controls input[type='file'] {
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.nng-create-controls input[type='file']::file-selector-button {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--panel);
+  border: 2px solid var(--line-thick);
+  border-radius: 999px;
+  box-shadow: 0 3px 0 var(--line-thick);
+  padding: 4px 14px;
+  margin-right: 10px;
+  cursor: pointer;
+}
+
+.nng-create-controls input[type='file']::file-selector-button:hover {
+  background: var(--accent-soft);
+}
+
 .nng-create-threshold-value {
   min-width: 3ch;
   text-align: right;

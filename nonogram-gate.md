@@ -258,7 +258,11 @@ Owner's calls: "H1: start timer with first click", "rest clean up per your recom
 
 **Close checks:** see the Retrospective's close line below once it is filled.
 
-## Retrospective (draft from the record; the owner's lessons still to come)
+## Retrospective (draft from the record, plus the owner's lessons as they come)
+
+**Owner, 2026-10-09:** "Needed to re-spec more than I expected". Asked whether that came mostly from the reviews or from hands-on use: "mostly hands-on". **Applied:** `/plan-review` check 10 (advisory): for a UI product, put a playable build in the owner's hands right after the core loop works, and size later rounds to one feedback cycle.
+
+**From the record:**
 
 1. **A check can pass because of where it runs, not what it tests.** The H1 proof first passed with the fix removed: a hidden pane makes `document.hidden` true, and a plain `http.server` lets the browser reuse old modules. Mutation-verifying the one High caught both. *Proposed: applied* (harness forces visible; note added to `/ux-gate-review`'s step 7 to run UX checks on a fresh, no-cache origin when proving a fix).
 2. **A shared module's change reached callers the plan said were unchanged (M1).** The lane owned `grid.js`, and nothing listed its other callers. *Proposed: applied* as a `/plan-review` check: a change to a shared module names every caller and says what each one sees.

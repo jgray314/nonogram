@@ -442,7 +442,7 @@ v1 lane rules apply.
 ### Lanes
 | Lane | Steps | Owns files |
 |---|---|---|
-| P, Play | 23a to 23e | `src/views/play.js`, `src/game.js`, `src/views/grid.js`, `css/play.css`, their tests |
+| P, Play | 23a to 23f | `src/views/play.js`, `src/game.js`, `src/views/grid.js`, `css/play.css`, their tests |
 | C, Create and library | 24a to 24e | `src/views/create.js`, `src/create-logic.js`, `css/create.css`, `src/views/library.js`, `src/library-logic.js`, `css/library.css`, their tests |
 | Orchestrator | 25 | `test/ux/checks.js`, docs |
 
@@ -452,6 +452,7 @@ v1 lane rules apply.
 23c. `[P]` D20 in Play: the size note. Test: none in Node (layout).
 23d. `[P]` D21. The Fill / Cross selector, touch strokes, the coarse-pointer legend. Test: none in Node (input wiring). **[manual]** mobile preset: fill, cross, drag a line of each.
 23e. `[P]` UX25 and UX27. "Solved" becomes a flat badge, not a button-like pill. The Play header shows `sampleLabel(title).name` plus the "AI test sample" badge styled as in the library.
+23f. `[P]` UX28 (owner, after the explanation: "move save buttons below the grid"). Export save and Import save, with their message line, move below the grid and the legend, styled lighter than Restart. Texts and behavior unchanged. The solved strip still lands on screen for Cat 25x25 at 1024x768.
 24a. `[C]` UX18 per the decision. Test: `existingPuzzle finds a stored grid by id`. **[manual]** save the banana image at 10x10 over the sample: the sample keeps its title.
 24b. `[C]` UX24. Create uses the same page padding as Library and Play, and below 600px wide its cell size fits the grid to the width (minimum 12px; larger grids scroll).
 24c. `[C]` UX25 and UX26. Create's "Difficulty: …" becomes a flat badge, and is hidden until something is filled. The empty line reads "Choose an image above, or draw on the grid below." "Blank grid" is shown only while an image is loaded, renamed "Clear to blank".

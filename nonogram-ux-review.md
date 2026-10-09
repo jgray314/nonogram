@@ -110,4 +110,16 @@ The native confirm dialogs themselves; a real print; export, import and webpbn d
 Gate pass 3 added `play-solve-reveal`, `play-auto-cross-sweep`, and stricter hint, not-started and 0-clue checks: 35 pass, 0 known. The reviewer suggested KNOWN checks for UX18 to UX22 and UX24; they are added once the owner decides those findings.
 
 ## Disposition
-*Pending the owner's calls on UX18 to UX28.*
+Owner's calls (2026-10-09): "do ux18, ux19 undo is fine, ux20 update message, ux21 do it, ux22 do it but add warning to puzzles unlikely to render well due to size, ux23 give cross and fill selectors for mobile, ux24 do it, do polish, explain ux28". Built as v1.3 (PLAN.md steps 23a to 25, decisions D20 and D21).
+
+| Finding | Disposition |
+|---|---|
+| UX18 | **Fixing** (24a), option 1. |
+| UX19 | **Accepted as is.** The owner is fine with undo removing the red cross while the heart stays lost. |
+| UX20 | **Fixing** (23a), option 2: the confirm says what resets in each mode. |
+| UX21 | **Fixing** (24d). |
+| UX22 | **Fixing** (23b), plus a size warning (D20, 23c and 24e). |
+| UX23 | **Fixing** (23d) with a Fill / Cross selector on touch screens (D21). |
+| UX24 | **Fixing** (24b). |
+| UX25 to UX27 | **Fixing** (23e, 24c). |
+| UX28 | **Fixing** (23f). After the explanation, the owner: "move save buttons below the grid". |

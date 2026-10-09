@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>UX checks</title>
+    <style>
+      :root {
+        --bg: #fbf6ea;
+        --ink: #3a2f28;
+        --muted: #7a6a5c;
+        --pass: #2f7a3e;
+        --fail: #b3261e;
+        --known: #9a6a00;
+      }
+      body {
+        margin: 0;
+        padding: 16px;
+        background: var(--bg);
+        color: var(--ink);
+        font:
+          15px/1.5 system-ui,
+          sans-serif;
+      }
+      h1 {
+        font-size: 20px;
+        margin: 0 0 4px;
+      }
+      .sub {
+        color: var(--muted);
+        margin: 0 0 12px;
+      }
+      ol {
+        padding-left: 20px;
+      }
+      li {
+        margin-bottom: 4px;
+      }
+      .pass {
+        color: var(--pass);
+      }
+      .fail {
+        color: var(--fail);
+      }
+      .known {
+        color: var(--known);
+      }
+      .why {
+        color: var(--muted);
+      }
+      iframe {
+        display: block;
+        height: 768px;
+        border: 1px solid var(--muted);
+        margin-top: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Nonogram Studio UX checks</h1>
+    <p class="sub" id="summary">Starting…</p>
+    <ol id="results"></ol>
+    <iframe id="app" title="App under test"></iframe>
+    <script type="module">
+      // Drives the real app in the frame below. It wipes and reseeds this
+      // origin's app data, so it only runs on 127.0.0.1, never on the localhost
+      // origin that holds the owner's library.
+      import { createApp } from './test/ux/harness.js';
+      import { CHECKS, seed, clearSaves } from './test/ux/checks.js';
+
+      const summary = document.getElementById('summary');
+      const list = document.getElementById('results');
+      const line = (cls, text, why) => {
+        const li = document.createElement('li');
+        const s = document.createElement('span');
+        s.className = cls;
+        s.textContent = text;
+        li.append(s);
+        if (why) {
+          const w = document.createElement('span');
+          w.className = 'why';
+          w.textContent = ` (${why})`;
+          li.append(w);
+        }
+        list.append(li);
+      };
+
+      if (location.hostname !== '127.0.0.1') {
+        summary.className = 'fail';
+        summary.textContent = `Open this page at http://127.0.0.1:${location.port}/ux-checks.html. It resets the app's data, so it refuses to run on ${location.hostname}, where your library lives.`;
+      } else {
+        const only = new URLSearchParams(location.search).get('only');
+        const app = createApp(document.getElementById('app'));
+        const ids = await seed(localStorage);
+        const tally = { pass: 0, fail: 0, known: 0, fixed: 0 };
+        for (const check of CHECKS.filter((c) => !only || c.id === only)) {
+          clearSaves(localStorage);
+          let error = null;
+          try {
+            await check.run(app, ids, localStorage);
+          } catch (e) {
+            error = e;
+          }
+          if (check.known && error) {
+            tally.known += 1;
+            line('known', `KNOWN ${check.known}: ${check.name}`, error.message);
+          } else if (check.known) {
+            tally.fixed += 1;
+            line('pass', `FIXED? ${check.known}: ${check.name}`, 'passes now; drop its known flag');
+          } else if (error) {
+            tally.fail += 1;
+            line('fail', `FAIL: ${check.name}`, error.message);
+          } else {
+            tally.pass += 1;
+            line('pass', `pass: ${check.name}`);
+          }
+        }
+        summary.className = tally.fail ? 'fail' : 'pass';
+        summary.textContent = `${tally.pass} pass, ${tally.fail} fail, ${tally.known} known issues, ${tally.fixed} now passing (drop their known flag).`;
+        document.title = `UX checks: ${tally.fail ? 'FAIL' : 'ok'}`;
+      }
+    </script>
+  </body>
+</html>

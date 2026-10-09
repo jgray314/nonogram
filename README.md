@@ -29,4 +29,6 @@ npm run lint
 npm run format:check
 ```
 
+**UX checks.** With the server running, open http://127.0.0.1:8123/ux-checks.html. It drives the real app in a frame and checks what a player should see: hearts, mistakes, restart, Zen, clue numbers, Create, print, narrow layout and basic labels. It resets the app's data, so it only runs on `127.0.0.1`, which keeps its own storage, and refuses to run on `localhost`, where your library lives. A check marked KNOWN is tied to an open finding in `nonogram-ux-review.md`. When one shows FIXED?, drop its `known` flag in `test/ux/checks.js`. Add `?only=<check id>` to run a single check.
+
 `PLAN.md` has the design decisions, the contracts between modules, the backlog, and how this was built. `nonogram-plan-review.md` is the pre-build review record.

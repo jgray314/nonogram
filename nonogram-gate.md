@@ -256,17 +256,18 @@ Owner's calls: "H1: start timer with first click", "rest clean up per your recom
 | W11 | **Deferred.** Trigger: before the repo is made public, move the review docs to `docs/reviews/` and update the links. |
 | D19 | **Done** (owner's request mid-pass). Auto-cross on by default, with crosses sweeping in along the line. New check `play-auto-cross-sweep`. |
 
-**Close checks:** see the Retrospective's close line below once it is filled.
+**Close checks (2026-10-09, after v1.3 merged):** 188 Node tests and 40 UX checks pass; lint and format clean. Claim grep: no "never stored", "Check mistakes", "Hints switch" or `createEditHistory` left as a current claim. Memory and the toolkit entry updated. **Pass closed.**
 
-## Retrospective (draft from the record, plus the owner's lessons as they come)
+## Retrospective
 
 **Owner, 2026-10-09:** "Needed to re-spec more than I expected". Asked whether that came mostly from the reviews or from hands-on use: "mostly hands-on". **Applied:** `/plan-review` check 10 (advisory): for a UI product, put a playable build in the owner's hands right after the core loop works, and size later rounds to one feedback cycle.
 
-**From the record:**
+**From the record** (owner: "retro ok" to the draft):
 
-1. **A check can pass because of where it runs, not what it tests.** The H1 proof first passed with the fix removed: a hidden pane makes `document.hidden` true, and a plain `http.server` lets the browser reuse old modules. Mutation-verifying the one High caught both. *Proposed: applied* (harness forces visible; note added to `/ux-gate-review`'s step 7 to run UX checks on a fresh, no-cache origin when proving a fix).
-2. **A shared module's change reached callers the plan said were unchanged (M1).** The lane owned `grid.js`, and nothing listed its other callers. *Proposed: applied* as a `/plan-review` check: a change to a shared module names every caller and says what each one sees.
-3. **Two lanes built the same helper (L7).** The contract gave `canUndo` to no one, so both Create and Play added it. *Proposed: noted*, folded into lesson 2's check (shared helpers get one owner).
-4. **A bound was added with a wrong reason (M2).** The orchestrator wrote check 9's bound and justified it with a claim the plan's own D18 contradicted. *Proposed: noted only.*
-5. **Every lane used shell text for test files again** (3 of 3, plus the orchestrator once), despite the rule in each prompt. Contents were checked and clean each time. *Proposed: noted only; ask the owner whether to keep the rule for lanes or accept it with a diff check.*
-6. **The one data-integrity bug of the release came from the UX pass, not the code lenses** (UX18: saving a grid that matches an existing puzzle silently renames it, because the id is a content hash). *Proposed: applied* as a Lens 1 prompt item in `/gate-review`: for content-addressed ids, check what happens when new content hashes to an existing record.
+1. **A check can pass because of where it runs, not what it tests.** The H1 proof first passed with the fix removed: a hidden pane makes `document.hidden` true, and a plain `http.server` lets the browser reuse old modules. Mutation-verifying the one High caught both. **Applied:** the harness reports the frame as visible (`19f4c00`), and `/ux-gate-review` step 7 now says to prove a fix on a fresh, no-cache origin with the fix removed first.
+2. **A shared module's change reached callers the plan said were unchanged (M1).** The lane owned `grid.js`, and nothing listed its other callers. **Applied:** `/plan-review` check 11: a change to shared code names every other caller and what it will see.
+3. **Two lanes built the same helper (L7).** The contract gave `canUndo` to no one, so both Create and Play added it. **Applied** in the same check 11: a shared helper gets one owning lane.
+4. **A bound was added with a wrong reason (M2).** The orchestrator wrote check 9's bound and justified it with a claim the plan's own D18 contradicted. **Noted only:** a one-off; the comment and D18 are corrected.
+5. **Every lane used shell text for test files again** (3 of 3, plus the orchestrator once), despite the rule in each prompt. Contents were checked and clean each time. **Noted only:** the v1.3 lane prompts put the rule in stronger words ("including test files … every lane broke this last round"), and the orchestrator keeps checking lane diffs before merging.
+6. **The one data-integrity bug of the release came from the UX pass, not the code lenses** (UX18). **Applied:** `/gate-review` Lens 1 now always asks what happens when new content produces an id that already exists.
+7. **Manual checks in a real browser still find what lanes can't** (v1.3, after this pass's fixes): the sticky-gutter offset and the first-layout measurement were both invisible to Node tests and to lanes without a browser. **Noted only:** step 25's manual check on the mobile preset and at 1024x768 is the practice that caught them; keep it in every UI round.

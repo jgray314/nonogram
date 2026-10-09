@@ -26,8 +26,11 @@ function div(className, text) {
  *     r and c are null when the pointer is outside the cells.
  *     button is 'left' | 'right' while a press that began on a cell is held
  *     (down, enter and up), else null. Presses with other buttons are ignored.
- * Returns {update(cells), setSatisfied({rows, cols}), setWrong([r, c][]), destroy()}.
- *   setSatisfied dims the clues of lines flagged true; setWrong outlines cells.
+ * Returns {update(cells), setSatisfied({rows, cols}), setClueDone({rows, cols}),
+ *   setWrong([r, c][]), setHighlight([r, c][]), destroy()}.
+ *   setSatisfied dims every clue of lines flagged true; setClueDone dims single
+ *   numbers from per-number flags (rows[r][k], cols[c][k], as from clueProgress);
+ *   setWrong outlines cells.
  */
 export function renderGrid(container, { width, height, clues, cells, onPointer = () => {} }) {
   const { top, left } = gutterSize(clues);
@@ -107,6 +110,15 @@ export function renderGrid(container, { width, height, clues, cells, onPointer =
     );
   }
 
+  function setClueDone({ rows = [], cols = [] }) {
+    rowClues.forEach((list, r) =>
+      list.forEach((n, k) => n.classList.toggle('nng-clue-done', !!rows[r]?.[k])),
+    );
+    colClues.forEach((list, c) =>
+      list.forEach((n, k) => n.classList.toggle('nng-clue-done', !!cols[c]?.[k])),
+    );
+  }
+
   function setWrong(list) {
     for (const row of nodes) for (const node of row) node.classList.remove('nng-wrong');
     for (const [r, c] of list) nodes[r]?.[c]?.classList.add('nng-wrong');
@@ -181,6 +193,7 @@ export function renderGrid(container, { width, height, clues, cells, onPointer =
   return {
     update,
     setSatisfied,
+    setClueDone,
     setWrong,
     setHighlight,
     destroy() {

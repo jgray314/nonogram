@@ -1,5 +1,7 @@
 // Pure helpers for the creator view. No DOM.
 import { difficultyLabel } from './difficulty.js';
+import { createHistory } from './game.js';
+import { ART_PREFIX, MAX_ART_CHARS } from './format.js';
 
 export const SIZES = [5, 10, 15, 20, 25];
 export const LONG_SIDE = 15;
@@ -16,12 +18,76 @@ function nearestSize(target) {
   return best;
 }
 
-/** Long side 15; short side the SIZES value closest to 15 * short / long (min 5). */
+/**
+ * A source whose own size is a preset on both sides (pixel art) keeps it.
+ * Otherwise: long side 15; short side the SIZES value closest to 15 * short / long (min 5).
+ */
 export function defaultSize(imgW, imgH) {
+  if (SIZES.includes(imgW) && SIZES.includes(imgH)) return { width: imgW, height: imgH };
   const long = Math.max(imgW, imgH);
   const short = Math.min(imgW, imgH);
   const s = Math.max(5, nearestSize((LONG_SIDE * short) / long));
   return imgW >= imgH ? { width: LONG_SIDE, height: s } : { width: s, height: LONG_SIDE };
+}
+
+/**
+ * Undo/redo for hand edits: game.js's createHistory plus what the Undo and Redo
+ * buttons need to know. A regenerate (threshold, size, invert) makes a new one.
+ */
+export function createEditHistory(grid) {
+  const inner = createHistory(grid);
+  let at = 0;
+  let last = 0;
+  return {
+    push(next) {
+      inner.push(next);
+      at += 1;
+      last = at;
+    },
+    undo() {
+      if (at > 0) at -= 1;
+      return inner.undo();
+    },
+    redo() {
+      if (at < last) at += 1;
+      return inner.redo();
+    },
+    current: () => inner.current(),
+    canUndo: () => at > 0,
+    canRedo: () => at < last,
+  };
+}
+
+/** A string that changes whenever the saved-or-not content of the editor changes. */
+export function gridSig(st) {
+  return JSON.stringify([st.tileRows, st.tileCols, st.grid]);
+}
+
+/**
+ * True while the editor holds work that was not saved: a loaded image or filled
+ * cells, and not exactly what the last successful save wrote (`savedSig`).
+ */
+export function hasUnsavedWork(st, savedSig) {
+  return (st.hasImage || hasFilledCell(st.grid)) && gridSig(st) !== savedSig;
+}
+
+const MAX_TITLE = 60;
+
+/** A puzzle title from a file name: extension dropped, `-` and `_` become spaces. */
+export function titleFromFile(name) {
+  const base = String(name ?? '')
+    .trim()
+    .replace(/\.[^./\\]*$/, '')
+    .replace(/[-_\s]+/g, ' ')
+    .trim()
+    .slice(0, MAX_TITLE)
+    .trim();
+  return base || 'Untitled';
+}
+
+/** True when at least one cell of the grid is filled. */
+export function hasFilledCell(grid) {
+  return grid.some((row) => row.some((v) => v !== 0));
 }
 
 /**
@@ -116,12 +182,60 @@ export function reportView(result) {
 
 export const DEFAULT_PALETTE = [{ name: 'black', hex: '#000000' }];
 
+// --- source-crop art for the solve reveal (D14) ---
+
+export const ART_MAX_SIDE = 320;
+/** [long side, JPEG quality] to try in order until the data URL fits MAX_ART_CHARS. */
+export const ART_ATTEMPTS = [
+  [ART_MAX_SIDE, 0.8],
+  [ART_MAX_SIDE, 0.6],
+  [240, 0.6],
+  [160, 0.5],
+];
+
+/** Size of a w x h source scaled to at most `maxSide` on the long side, never upscaled. */
+export function artSize(w, h, maxSide = ART_MAX_SIDE) {
+  const scale = Math.min(1, maxSide / Math.max(w, h));
+  return { width: Math.max(1, Math.round(w * scale)), height: Math.max(1, Math.round(h * scale)) };
+}
+
+/** The part of the `crop` rect {x, y, w, h} that one tile of a rows x cols set covers. */
+export function tileCropRect(crop, rows, cols, row, col) {
+  const edge = (start, len, n, i) => start + Math.round((len * i) / n);
+  const x0 = edge(crop.x, crop.w, cols, col);
+  const x1 = edge(crop.x, crop.w, cols, col + 1);
+  const y0 = edge(crop.y, crop.h, rows, row);
+  const y1 = edge(crop.y, crop.h, rows, row + 1);
+  return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+}
+
+/**
+ * First JPEG data URL from `encode(longSide, quality)` that fits the art
+ * contract, trying smaller and lower quality each time. undefined when none
+ * fits: the puzzle is then saved without art.
+ */
+export function pickArt(encode) {
+  for (const [side, quality] of ART_ATTEMPTS) {
+    const url = encode(side, quality);
+    if (typeof url === 'string' && url.startsWith(ART_PREFIX) && url.length <= MAX_ART_CHARS) {
+      return url;
+    }
+  }
+  return undefined;
+}
+
+/** Copies of `puzzles` with `arts[i]` set as each one's art, where there is one. */
+export function withArts(puzzles, arts) {
+  return puzzles.map((p, i) => (arts[i] ? { ...p, art: arts[i] } : { ...p }));
+}
+
 /**
  * Puzzle record for a grid and the solver result it was checked with. `id` is
- * left empty: the caller fills it with `await puzzleId(record)`.
+ * left empty: the caller fills it with `await puzzleId(record)`. `art`, when
+ * given, is the optional source-crop JPEG data URL.
  */
-export function buildPuzzleRecord(grid, title, report) {
-  return {
+export function buildPuzzleRecord(grid, title, report, art) {
+  const record = {
     v: 1,
     id: '',
     title: title.trim() || 'Untitled',
@@ -131,6 +245,8 @@ export function buildPuzzleRecord(grid, title, report) {
     solution: grid.map((row) => row.slice()),
     verdict: { status: report.status, sweeps: report.sweeps },
   };
+  if (art) record.art = art;
+  return record;
 }
 
 /**

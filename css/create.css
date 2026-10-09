@@ -46,7 +46,8 @@
   gap: 6px;
 }
 
-.nng-create-controls button {
+.nng-create-controls button,
+.nng-create-edit-bar button {
   font: inherit;
   font-size: 13px;
   font-weight: 700;
@@ -62,13 +63,52 @@
     box-shadow 0.12s ease;
 }
 
-.nng-create-controls button:hover {
+.nng-create-controls button:hover,
+.nng-create-edit-bar button:hover:not(:disabled) {
   background: var(--accent-soft);
 }
 
-.nng-create-controls button:active {
+.nng-create-controls button:active,
+.nng-create-edit-bar button:active:not(:disabled) {
   transform: translateY(3px);
   box-shadow: 0 0 0 var(--line-thick);
+}
+
+.nng-create-edit-bar button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.nng-create-edit-bar {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 8px;
+}
+
+/* The file input matches the theme's buttons, and its "No file chosen" text
+   follows the theme ink instead of the browser default (unreadable in evening). */
+.nng-create-controls input[type='file'] {
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.nng-create-controls input[type='file']::file-selector-button {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--panel);
+  border: 2px solid var(--line-thick);
+  border-radius: 999px;
+  box-shadow: 0 3px 0 var(--line-thick);
+  padding: 4px 14px;
+  margin-right: 10px;
+  cursor: pointer;
+}
+
+.nng-create-controls input[type='file']::file-selector-button:hover {
+  background: var(--accent-soft);
 }
 
 .nng-create-threshold-value {
@@ -85,6 +125,29 @@
 }
 
 .nng-create-body [hidden] {
+  display: none;
+}
+
+/* The grid wrap sizes to its cells and never shrinks as a flex child. */
+.nng-create-grid-wrap {
+  flex: none;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* A grid with no clues has no gutter, so renderGrid's repeat(0, ...) template is
+   invalid and dropped. Fixed implicit tracks keep the cells at --cell either way. */
+.nng-create .nng-grid {
+  grid-auto-columns: var(--cell);
+  grid-auto-rows: var(--cell);
+}
+
+.nng-create-empty-note {
+  margin: 0 0 8px;
+  color: var(--muted);
+}
+
+.nng-create-empty-note[hidden] {
   display: none;
 }
 

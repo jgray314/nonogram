@@ -11,6 +11,15 @@ import { isFair } from '../difficulty.js';
 import {
   SIZES,
   defaultSize,
+  titleFromFile,
+  hasFilledCell,
+  createEditHistory,
+  hasUnsavedWork,
+  gridSig,
+  artSize,
+  tileCropRect,
+  pickArt,
+  withArts,
   centerCrop,
   loadScale,
   blankGrid,
@@ -36,6 +45,21 @@ const CSS_ID = 'nng-create-css';
 
 let root = null;
 let teardown = null;
+
+// The unsaved draft (image, crop, settings, cells, history) outlives the view,
+// in memory only: it is restored on the next mount, cleared by a save or by
+// "Start over", and lost on a reload, which is why leaving the page warns.
+let draft = null;
+let liveUnsaved = null; // while mounted: () => whether the editor holds unsaved work
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', (e) => {
+    if (liveUnsaved ? liveUnsaved() : draft !== null) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
+}
 
 function el(tag, props = {}, ...children) {
   const node = document.createElement(tag);
@@ -125,13 +149,20 @@ export function mount(container) {
     document.head.append(link);
   }
 
-  const st = newEditorState({ width: 15, height: 15 });
-  let image = null; // { canvas, w, h, rgba } once decoded
+  // Come back to the draft left by the last visit, if there is one (D: UX2).
+  const restored = draft;
+  draft = null;
+  const st = restored?.st ?? newEditorState({ width: 15, height: 15 });
+  let image = restored?.image ?? null; // { canvas, w, h, rgba } once decoded
   let gridView = null;
   let previewScale = 1;
   const solver = createSolverClient();
   let reportTimer = null;
   let reportRun = 0; // id of the newest report request; older results are dropped
+  let titleTouched = restored?.titleTouched ?? false; // true once the title was typed by hand
+  let history = restored?.history ?? createEditHistory(st.grid); // hand edits since the last regenerate
+  let baseline = restored?.baseline ?? JSON.stringify(st.grid); // the grid as generated, before hand edits
+  let savedSig = restored?.savedSig ?? null; // gridSig of the last successful save
 
   // --- DOM ---
   const errorBox = el('div', { className: 'nng-create-error', hidden: true });
@@ -145,7 +176,10 @@ export function mount(container) {
   const invertBox = el('input', { type: 'checkbox' });
   const tileRowsSel = sizeSelect(st.tileRows, TILE_COUNTS);
   const tileColsSel = sizeSelect(st.tileCols, TILE_COUNTS);
+  tileRowsSel.setAttribute('aria-label', 'Tile rows');
+  tileColsSel.setAttribute('aria-label', 'Tile columns');
   const blankBtn = el('button', { type: 'button', text: 'Blank grid' });
+  const startOverBtn = el('button', { type: 'button', text: 'Start over' });
 
   const controls = el(
     'div',
@@ -159,6 +193,7 @@ export function mount(container) {
     resetBtn,
     el('label', {}, invertBox, 'Invert'),
     blankBtn,
+    startOverBtn,
   );
 
   const previewCanvas = el('canvas', { className: 'nng-create-preview' });
@@ -169,10 +204,23 @@ export function mount(container) {
     previewCanvas,
   );
   const gridHost = el('div');
+  const emptyNote = el('p', {
+    className: 'nng-create-empty-note',
+    text: 'Drop an image above, or start from a blank grid.',
+  });
+  const undoBtn = el('button', { type: 'button', text: 'Undo', disabled: true });
+  undoBtn.title = 'Undo (Ctrl+Z)';
+  undoBtn.setAttribute('aria-keyshortcuts', 'Control+Z');
+  const redoBtn = el('button', { type: 'button', text: 'Redo', disabled: true });
+  redoBtn.title = 'Redo (Ctrl+Y)';
+  redoBtn.setAttribute('aria-keyshortcuts', 'Control+Y');
+  const editBar = el('div', { className: 'nng-create-edit-bar' }, undoBtn, redoBtn);
   const gridWrap = el(
     'div',
     { className: 'nng-create-grid-wrap' },
     el('h2', { text: 'Grid' }),
+    editBar,
+    emptyNote,
     gridHost,
   );
 
@@ -186,7 +234,11 @@ export function mount(container) {
   reportSlot.append(el('h2', { text: 'Solver report' }), badgeLine, reportStatus, tileList);
   const saveSlot = el('div', { className: 'nng-create-slot' });
   saveSlot.dataset.slot = 'save';
-  const titleInput = el('input', { type: 'text', value: 'Untitled', maxLength: 80 });
+  const titleInput = el('input', {
+    type: 'text',
+    value: restored?.title ?? 'Untitled',
+    maxLength: 80,
+  });
   const saveBtn = el('button', { type: 'button', text: 'Save to library', disabled: true });
   const saveNote = el('p', { className: 'nng-create-save-note' });
   const saveMsg = el('p', { className: 'nng-create-save-msg' });
@@ -286,6 +338,8 @@ export function mount(container) {
       onPointer: onGridPointer,
     });
     if (tiled()) markTileBoundaries(d);
+    emptyNote.hidden = image !== null || hasFilledCell(st.grid);
+    syncHistoryButtons();
     scheduleReport();
   }
 
@@ -306,6 +360,19 @@ export function mount(container) {
 
   function showReport() {
     const multi = tiled();
+    if (!hasFilledCell(st.grid)) {
+      // Nothing to check: no verdict, and nothing worth saving.
+      badgeLine.hidden = multi;
+      tileList.replaceChildren();
+      reportStatus.textContent = 'Fill in some cells to see a report.';
+      reportBadge.textContent = 'Unchecked';
+      reportBadge.dataset.label = 'Unchecked';
+      gridView?.setHighlight([]);
+      saveBtn.textContent = multi ? 'Save set' : 'Save to library';
+      saveBtn.disabled = true;
+      saveNote.textContent = '';
+      return;
+    }
     badgeLine.hidden = multi;
     tileList.replaceChildren();
     const highlight = [];
@@ -366,6 +433,24 @@ export function mount(container) {
     });
   }
 
+  /**
+   * The source crop for tile (row, col) as a small JPEG data URL (D14), or
+   * undefined for a blank-grid puzzle or when no attempt fits the size limit.
+   */
+  function artFor(row, col) {
+    if (!image) return undefined;
+    const rect = tileCropRect(currentCrop(), st.tileRows, st.tileCols, row, col);
+    return pickArt((side, quality) => {
+      const size = artSize(rect.w, rect.h, side);
+      const canvas = el('canvas', { width: size.width, height: size.height });
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff'; // JPEG has no alpha: transparent pixels would turn black
+      ctx.fillRect(0, 0, size.width, size.height);
+      ctx.drawImage(image.canvas, rect.x, rect.y, rect.w, rect.h, 0, 0, size.width, size.height);
+      return canvas.toDataURL('image/jpeg', quality);
+    });
+  }
+
   function onSave() {
     return tiled() ? saveSet() : saveSingle();
   }
@@ -373,7 +458,7 @@ export function mount(container) {
   async function saveSingle() {
     const run = reportRun;
     if (!canSave(reports[0])) return;
-    const puzzle = buildPuzzleRecord(st.grid, titleInput.value, reports[0].result);
+    const puzzle = buildPuzzleRecord(st.grid, titleInput.value, reports[0].result, artFor(0, 0));
     puzzle.id = await puzzleId(puzzle);
     // The grid may have changed while the id was computed: never save a verdict
     // that does not match the current grid.
@@ -389,6 +474,7 @@ export function mount(container) {
       showSaveMessage('Could not save: browser storage is full or unavailable.');
       return;
     }
+    savedSig = gridSig(st);
     showSaveMessage('Saved.', [
       ['Play it', '#/play/' + encodeURIComponent(puzzle.id)],
       ['Library', '#/library'],
@@ -403,7 +489,8 @@ export function mount(container) {
     const tiles = sliceTiles(st.grid, st.tileRows, st.tileCols);
     const made = await makeSet({ title, tiles, palette: DEFAULT_PALETTE.map((p) => ({ ...p })) });
     if (run !== reportRun || !canSaveSet(reports)) return;
-    const puzzles = withVerdicts(made.puzzles, reports);
+    const arts = made.puzzles.map((_, i) => artFor(Math.floor(i / st.tileCols), i % st.tileCols));
+    const puzzles = withArts(withVerdicts(made.puzzles, reports), arts);
     const bad = puzzles.map(validatePuzzle).find((v) => !v.ok) ?? validateSet(made.set);
     if (!bad.ok) {
       showSaveMessage('Could not save: ' + bad.error);
@@ -434,6 +521,7 @@ export function mount(container) {
       showSaveMessage('Could not save: browser storage is full or unavailable.');
       return;
     }
+    savedSig = gridSig(st);
     showSaveMessage('Saved set.', [['Library', '#/library']]);
   }
 
@@ -444,6 +532,7 @@ export function mount(container) {
     reports = tiles.map(() => ({ phase: 'pending', result: null }));
     saveMsg.replaceChildren();
     showReport();
+    if (!hasFilledCell(st.grid)) return; // nothing to solve yet
     reportTimer = setTimeout(async () => {
       // One tile at a time through the worker.
       for (let i = 0; i < tiles.length; i++) {
@@ -486,10 +575,47 @@ export function mount(container) {
     } else if (type === 'up') {
       const next = applyStroke(st.grid, strokeOf(stroke));
       stroke = null;
-      if (JSON.stringify(next) !== JSON.stringify(st.grid)) st.manualEdits = true;
+      if (JSON.stringify(next) !== JSON.stringify(st.grid)) {
+        history.push(next);
+        st.manualEdits = true;
+      }
       st.grid = next;
       renderGridNow();
     }
+  }
+
+  function syncHistoryButtons() {
+    undoBtn.disabled = !history.canUndo();
+    redoBtn.disabled = !history.canRedo();
+  }
+
+  /** A fresh history for the grid as it now stands (after a regenerate or a blank). */
+  function resetHistory() {
+    history = createEditHistory(st.grid);
+    baseline = JSON.stringify(st.grid);
+    syncHistoryButtons();
+  }
+
+  function stepHistory(back) {
+    if (stroke) return; // never swap the grid under a held stroke
+    if (back ? !history.canUndo() : !history.canRedo()) return;
+    st.grid = back ? history.undo() : history.redo();
+    // Back at the generated grid, there is nothing left to discard.
+    st.manualEdits = JSON.stringify(st.grid) !== baseline;
+    renderGridNow();
+  }
+
+  function onKeydown(e) {
+    if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+    const t = e.target;
+    if (t?.matches?.('textarea, input:not([type=checkbox]):not([type=range]):not([type=file])')) {
+      return; // leave text editing to the browser
+    }
+    const key = e.key.toLowerCase();
+    if (key === 'z' && !e.shiftKey) stepHistory(true);
+    else if (key === 'y' || (key === 'z' && e.shiftKey)) stepHistory(false);
+    else return;
+    e.preventDefault();
   }
 
   /** Ask before a regeneration throws away hand edits. */
@@ -523,6 +649,7 @@ export function mount(container) {
     );
     st.grid = full;
     st.manualEdits = false;
+    resetHistory();
     syncControls();
     drawPreview();
     renderGridNow();
@@ -545,6 +672,7 @@ export function mount(container) {
       return;
     }
     image = decoded;
+    if (!titleTouched) titleInput.value = titleFromFile(file.name);
     st.hasImage = true;
     st.offset = { dx: 0, dy: 0 };
     st.autoThreshold = true;
@@ -603,6 +731,7 @@ export function mount(container) {
     const d = dims();
     st.grid = blankGrid(d.width, d.height);
     st.manualEdits = false;
+    resetHistory();
     fileInput.value = '';
     syncControls();
     drawPreview();
@@ -612,6 +741,27 @@ export function mount(container) {
   function onBlank() {
     if (!okToDiscard()) return;
     newBlank();
+  }
+
+  /** Throw the draft away and return to the editor as first opened. */
+  function onStartOver() {
+    if (
+      hasUnsavedWork(st, savedSig) &&
+      !confirm('Start over? This discards the image and everything you have drawn.')
+    ) {
+      return;
+    }
+    Object.assign(st, newEditorState({ width: 15, height: 15 }));
+    image = null;
+    titleInput.value = 'Untitled';
+    titleTouched = false;
+    savedSig = null;
+    showError(null);
+    fileInput.value = '';
+    resetHistory();
+    syncControls();
+    drawPreview();
+    renderGridNow();
   }
 
   // Crop drag: pointer movement shifts the crop in image pixels.
@@ -650,16 +800,31 @@ export function mount(container) {
   resetBtn.addEventListener('click', onReset);
   invertBox.addEventListener('change', onInvert);
   blankBtn.addEventListener('click', onBlank);
+  startOverBtn.addEventListener('click', onStartOver);
   saveBtn.addEventListener('click', onSave);
+  undoBtn.addEventListener('click', () => stepHistory(true));
+  redoBtn.addEventListener('click', () => stepHistory(false));
+  document.addEventListener('keydown', onKeydown);
+  titleInput.addEventListener('input', () => {
+    titleTouched = true;
+  });
   previewCanvas.addEventListener('pointerdown', onPreviewDown);
   previewCanvas.addEventListener('pointermove', onPreviewMove);
   previewCanvas.addEventListener('pointerup', onPreviewUp);
   previewCanvas.addEventListener('pointercancel', onPreviewUp);
 
+  liveUnsaved = () => hasUnsavedWork(st, savedSig);
   syncControls();
+  drawPreview();
   renderGridNow();
 
   teardown = () => {
+    // Keep unsaved work for the next visit; a saved or empty editor leaves nothing.
+    draft = hasUnsavedWork(st, savedSig)
+      ? { st, image, history, baseline, titleTouched, title: titleInput.value, savedSig }
+      : null;
+    liveUnsaved = null;
+    document.removeEventListener('keydown', onKeydown);
     clearTimeout(reportTimer);
     reportRun++;
     solver.terminate();

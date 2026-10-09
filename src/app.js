@@ -4,6 +4,8 @@ import * as library from './views/library.js';
 import * as create from './views/create.js';
 import * as play from './views/play.js';
 import * as print from './views/print.js';
+import { createStore } from './store.js';
+import { initTheme } from './theme.js';
 
 const ROUTES = {
   library: { view: library, nav: 'library' },
@@ -39,5 +41,6 @@ function render() {
   }
 }
 
+initTheme(createStore(), document.getElementById('theme-toggle'));
 window.addEventListener('hashchange', render);
 render();

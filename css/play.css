@@ -11,8 +11,23 @@
 }
 
 .nng-solved {
-  font-weight: 600;
-  color: var(--accent);
+  display: inline-block;
+  font-weight: 800;
+  color: var(--ink);
+  background: var(--accent-soft);
+  border: 3px solid var(--accent);
+  border-radius: 999px;
+  padding: 2px 16px;
+  box-shadow: 0 3px 0 var(--accent);
+  animation: nng-banner 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.nng-solved::after {
+  content: '!';
+}
+
+.nng-grid-holder.nng-celebrate .nng-grid {
+  animation: nng-celebrate 0.9s ease-out;
 }
 
 .nng-count {
@@ -22,6 +37,7 @@
 
 .nng-grid-holder {
   overflow: auto;
+  padding: 8px;
 }
 
 .nng-timer {

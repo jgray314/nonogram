@@ -1,23 +1,41 @@
+/* Day values only: the first-paint fallback. src/theme.js owns the colors. */
 :root {
-  --bg: #f6f7f9;
-  --surface: #ffffff;
-  --text: #1c2026;
-  --muted: #5d6673;
-  --accent: #2f5fd0;
-  --line: #d3d8df;
-  --line-thick: #3a4350;
-  --cell-unknown: #ffffff;
-  --cell-filled: #20252c;
-  --cell-cross: #7a8493;
-  --cell-hot: #e6edfb;
-  --cell-wrong: #d23b3b;
-  --cell-hl: #e0a020;
-  --clue-text: #2a313a;
+  --bg: #f3e8d0;
+  --panel: #fffaf0;
+  --ink: #3b2a1e;
+  --muted: #6b5645;
+  --accent: #3b7444;
+  --accent-soft: #dcebd2;
+  --accent-2: #b5532f;
+  --wood: #8a5a34;
+  --wood-dark: #5e3b20;
+  --on-wood: #fff4de;
+  --line: #dccaa6;
+  --line-thick: #6b4a30;
+  --cell-unknown: #fffdf6;
+  --cell-filled: #4a2f1c;
+  --cell-cross: #8c6a4f;
+  --cell-hot: #cfe3c0;
+  --cell-wrong: #c0392b;
+  --cell-hl: #d9930d;
+  --clue-text: #3b2a1e;
+  --danger: #a4372a;
+  --danger-bg: #fdeae4;
+  --ok: #2c7a3f;
+  --warn: #8a6a12;
+  --shadow: rgba(94, 59, 32, 0.22);
+  --paper-dot: rgba(138, 90, 52, 0.07);
 
   /* 25x25 plus a deep gutter fits a 1080p desktop: 25*24 + 13*18 is ~834px tall. */
   --cell: 24px;
   --clue-w: 22px;
   --clue-h: 18px;
+  --font-ui:
+    ui-rounded, 'SF Pro Rounded', 'Arial Rounded MT Bold', 'Varela Round', 'Segoe UI', system-ui,
+    sans-serif;
+  --font-clue: 'Segoe UI', system-ui, -apple-system, Roboto, 'Helvetica Neue', sans-serif;
+  --radius: 14px;
+  --radius-sm: 10px;
 }
 
 * {
@@ -26,44 +44,91 @@
 
 body {
   margin: 0;
-  background: var(--bg);
-  color: var(--text);
+  color: var(--ink);
   font:
-    15px/1.4 system-ui,
-    -apple-system,
-    'Segoe UI',
+    15px/1.45 var(--font-ui),
     sans-serif;
+  /* Soft paper speckle drawn with gradients, no image files. */
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(var(--paper-dot) 1px, transparent 1.5px),
+    radial-gradient(var(--paper-dot) 1px, transparent 1.5px);
+  background-size: 22px 22px;
+  background-position:
+    0 0,
+    11px 11px;
 }
 
+/* Nav: a wooden sign board with plank grain. */
 .nng-nav {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 14px;
   padding: 0 24px;
-  height: 48px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--line);
+  height: 56px;
+  color: var(--on-wood);
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 46px,
+      rgba(0, 0, 0, 0.08) 46px 48px,
+      transparent 48px 120px
+    ),
+    linear-gradient(var(--wood), var(--wood-dark));
+  border-bottom: 4px solid var(--wood-dark);
+  box-shadow: 0 4px 0 var(--shadow);
 }
 
 .nng-nav a {
-  color: var(--muted);
+  color: var(--on-wood);
   text-decoration: none;
-  padding: 4px 2px;
-  border-bottom: 2px solid transparent;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  transition:
+    background-color 0.15s ease,
+    transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .nng-nav a:hover {
-  color: var(--text);
+  background: rgba(255, 255, 255, 0.16);
+  transform: translateY(-1px);
 }
 
 .nng-nav a.active {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
+  background: var(--panel);
+  color: var(--ink);
+  border-color: var(--wood-dark);
 }
 
 .nng-brand {
-  font-weight: 600;
+  font-weight: 800;
+  font-size: 1.1rem;
+  letter-spacing: 0.02em;
   margin-right: 12px;
+}
+
+.nng-theme-toggle {
+  margin-left: auto;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--on-wood);
+  background: rgba(0, 0, 0, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  padding: 4px 14px;
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+
+.nng-theme-toggle:hover {
+  background: rgba(0, 0, 0, 0.32);
+}
+
+.nng-theme-toggle:active {
+  transform: scale(0.94);
 }
 
 main {
@@ -71,8 +136,58 @@ main {
 }
 
 h1 {
-  font-size: 1.4rem;
+  font-size: 1.5rem;
   margin: 0 0 8px;
+  color: var(--ink);
+}
+
+a {
+  color: var(--accent);
+}
+
+:focus-visible {
+  outline: 3px solid var(--cell-hl);
+  outline-offset: 2px;
+}
+
+/* Buttons (shared by every view and the print page). Chunky, with a
+   bottom lip that squashes on press. */
+.nng-btn {
+  display: inline-block;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--panel);
+  border: 2px solid var(--line-thick);
+  border-radius: 999px;
+  padding: 5px 14px;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 3px 0 var(--line-thick);
+  transition:
+    transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.12s ease,
+    background-color 0.15s ease;
+}
+
+.nng-btn:hover {
+  background: var(--accent-soft);
+  color: var(--ink);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 0 var(--line-thick);
+}
+
+.nng-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 var(--line-thick);
+}
+
+.nng-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+  transform: none;
+  box-shadow: 0 3px 0 var(--line-thick);
 }
 
 /* Grid */
@@ -81,15 +196,26 @@ h1 {
   user-select: none;
   touch-action: none;
   -webkit-user-select: none;
+  padding: 6px;
+  background: var(--panel);
+  border-radius: var(--radius);
+  box-shadow:
+    0 0 0 3px var(--line-thick),
+    0 6px 0 3px var(--shadow);
 }
 
 .nng-clue {
   display: flex;
   align-items: center;
   justify-content: center;
+  font-family: var(--font-clue);
   font-size: 12px;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--clue-text);
+  transition:
+    opacity 0.4s ease,
+    color 0.4s ease;
 }
 
 .nng-clue.nng-clue-done {
@@ -171,4 +297,59 @@ h1 {
 
 .nng-cell.nng-hl.nng-filled {
   background-color: color-mix(in srgb, var(--cell-hl) 35%, var(--cell-filled));
+}
+
+/* Motion. All of it is off under prefers-reduced-motion. */
+@keyframes nng-pop {
+  0% {
+    transform: scale(0.55);
+  }
+  60% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes nng-celebrate {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.025);
+    filter: drop-shadow(0 0 14px var(--cell-hl));
+  }
+  100% {
+    transform: scale(1);
+    filter: none;
+  }
+}
+
+@keyframes nng-banner {
+  0% {
+    transform: scale(0.6) rotate(-3deg);
+    opacity: 0;
+  }
+  65% {
+    transform: scale(1.08) rotate(1deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(0);
+  }
+}
+
+.nng-cell.nng-pop {
+  animation: nng-pop 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
 }

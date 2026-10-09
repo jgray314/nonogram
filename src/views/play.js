@@ -15,7 +15,7 @@ import {
   restartCells,
   wrongFills,
 } from '../game.js';
-import { clueProgress } from '../clue-progress.js';
+import { clueProgress, solutionProgress } from '../clue-progress.js';
 import { createStore } from '../store.js';
 import { validatePuzzle, validateSave, idMatches } from '../format.js';
 import { serializeSaveFile, parseSaveFile, importWrites } from '../save.js';
@@ -220,7 +220,9 @@ export function mount(container, params = {}) {
     ruleNote.textContent = helpers.note;
     timerEl.textContent = formatTime(elapsedMs);
     grid.update(solvedAt === null ? cells : reveal(cells));
-    grid.setClueDone(clueProgress(cells, clues));
+    // Hearts mode already reveals right and wrong, so numbers can follow the
+    // solution; Zen keeps the logic-only rule so it gives nothing away (D11).
+    grid.setClueDone(zen() ? clueProgress(cells, clues) : solutionProgress(cells, puzzle.solution));
     holder.classList.toggle('nng-celebrate', solvedAt !== null); // styling hook for the solve glow
     solvedMsg.hidden = solvedAt === null;
     solvedMsg.textContent = solvedAt === null ? '' : 'Solved';
@@ -280,6 +282,18 @@ export function mount(container, params = {}) {
 
   for (const [key, box] of Object.entries(toggles)) {
     box.addEventListener('change', () => {
+      // Zen can be switched on any time, but hearts come back only with a
+      // fresh start, so Zen can't be used to dodge a heart and switch back (D12).
+      if (key === 'zen' && !box.checked) {
+        const fresh = sameGrid(cells, restartCells(clues, puzzle.width, puzzle.height));
+        if (!fresh && !confirm('Playing with hearts starts this puzzle over. Restart now?')) {
+          box.checked = true;
+          return;
+        }
+        rules.zen = false;
+        restart();
+        return;
+      }
       rules[key] = box.checked;
       dirty = true;
       refresh();

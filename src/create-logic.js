@@ -109,3 +109,30 @@ export function reportView(result) {
     highlight: highlight.map(([r, c]) => [r, c]),
   };
 }
+
+export const DEFAULT_PALETTE = [{ name: 'black', hex: '#000000' }];
+
+/**
+ * Puzzle record for a grid and the solver result it was checked with. `id` is
+ * left empty: the caller fills it with `await puzzleId(record)`.
+ */
+export function buildPuzzleRecord(grid, title, report) {
+  return {
+    v: 1,
+    id: '',
+    title: title.trim() || 'Untitled',
+    width: grid[0].length,
+    height: grid.length,
+    palette: DEFAULT_PALETTE.map((p) => ({ ...p })),
+    solution: grid.map((row) => row.slice()),
+    verdict: { status: report.status, sweeps: report.sweeps },
+  };
+}
+
+/**
+ * Saving is allowed only when a result for the current grid has arrived:
+ * `{phase, result}` with phase 'fresh'. Never a pending, stale or failed one.
+ */
+export function canSave({ phase, result }) {
+  return phase === 'fresh' && Boolean(result);
+}

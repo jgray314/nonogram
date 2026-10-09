@@ -1,9 +1,12 @@
 // Creator view: image -> grid (step 10), cell editor and blank grid (step 11a),
-// live solver report (11b). Step 11c (save) plugs into the save slot below.
+// live solver report (11b), save to library (11c).
 import { cellLuminance, otsu, binarize } from '../image.js';
 import { puzzleClues } from '../clues.js';
 import { renderGrid } from './grid.js';
 import { applyStroke } from '../play-state.js';
+import { puzzleId, validatePuzzle } from '../format.js';
+import { createStore } from '../store.js';
+import { isFair } from '../difficulty.js';
 import {
   SIZES,
   defaultSize,
@@ -13,6 +16,8 @@ import {
   newEditorState,
   regenerateNeedsConfirm,
   reportView,
+  buildPuzzleRecord,
+  canSave,
 } from '../create-logic.js';
 
 const PREVIEW_MAX = 320;
@@ -169,6 +174,18 @@ export function mount(container) {
   );
   const saveSlot = el('div', { className: 'nng-create-slot' });
   saveSlot.dataset.slot = 'save';
+  const titleInput = el('input', { type: 'text', value: 'Untitled', maxLength: 80 });
+  const saveBtn = el('button', { type: 'button', text: 'Save to library', disabled: true });
+  const saveNote = el('p', { className: 'nng-create-save-note' });
+  const saveMsg = el('p', { className: 'nng-create-save-msg' });
+  saveSlot.append(
+    el('h2', { text: 'Save' }),
+    el('label', {}, 'Title ', titleInput),
+    ' ',
+    saveBtn,
+    saveNote,
+    saveMsg,
+  );
 
   root = el(
     'section',
@@ -260,6 +277,42 @@ export function mount(container) {
     }
     reportBadge.dataset.label = reportBadge.textContent;
     gridView?.setHighlight(report.phase === 'fresh' ? view.highlight : []);
+    saveBtn.disabled = !canSave(report);
+    const unfair = report.phase === 'fresh' && !isFair(report.result);
+    saveNote.textContent = unfair
+      ? 'This puzzle is not fair. You can still save it; it will carry a "Not fair" badge.'
+      : '';
+  }
+
+  function showSaveMessage(text, id) {
+    saveMsg.replaceChildren(text);
+    if (id) {
+      const play = el('a', { href: '#/play/' + encodeURIComponent(id), text: 'Play it' });
+      const lib = el('a', { href: '#/library', text: 'Library' });
+      saveMsg.append(' ', play, ' · ', lib);
+    }
+  }
+
+  async function onSave() {
+    const run = reportRun;
+    if (!canSave(report)) return;
+    const puzzle = buildPuzzleRecord(st.grid, titleInput.value, report.result);
+    puzzle.id = await puzzleId(puzzle);
+    // The grid may have changed while the id was computed: never save a verdict
+    // that does not match the current grid.
+    if (run !== reportRun || !canSave(report)) return;
+    const check = validatePuzzle(puzzle);
+    if (!check.ok) {
+      showSaveMessage('Could not save: ' + check.error);
+      return;
+    }
+    try {
+      createStore().put('puzzle', puzzle);
+    } catch {
+      showSaveMessage('Could not save: browser storage is full or unavailable.');
+      return;
+    }
+    showSaveMessage('Saved.', puzzle.id);
   }
 
   function scheduleReport() {
@@ -267,6 +320,7 @@ export function mount(container) {
     const run = ++reportRun;
     report.phase = 'pending';
     report.result = null;
+    saveMsg.replaceChildren();
     showReport();
     reportTimer = setTimeout(async () => {
       const { rows, cols } = puzzleClues(st.grid);
@@ -442,6 +496,7 @@ export function mount(container) {
   resetBtn.addEventListener('click', onReset);
   invertBox.addEventListener('change', onInvert);
   blankBtn.addEventListener('click', onBlank);
+  saveBtn.addEventListener('click', onSave);
   previewCanvas.addEventListener('pointerdown', onPreviewDown);
   previewCanvas.addEventListener('pointermove', onPreviewMove);
   previewCanvas.addEventListener('pointerup', onPreviewUp);

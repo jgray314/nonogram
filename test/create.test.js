@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { puzzleId, validatePuzzle } from '../src/format.js';
 import {
   SIZES,
   defaultSize,
@@ -9,6 +10,8 @@ import {
   newEditorState,
   regenerateNeedsConfirm,
   reportView,
+  buildPuzzleRecord,
+  canSave,
 } from '../src/create-logic.js';
 
 test('defaultSize picks closest aspect', () => {
@@ -139,4 +142,33 @@ test('report updates after edit', () => {
   assert.deepEqual(pending.highlight, []);
   assert.equal(pending.label, 'Unchecked');
   assert.match(pending.text, /checking/i);
+});
+
+test('saved puzzle carries verdict', async () => {
+  const grid = [
+    [1, 0],
+    [0, 1],
+  ];
+  const result = { status: 'multiple', sweeps: 3, unresolved: [], differing: [[0, 0]] };
+  const rec = buildPuzzleRecord(grid, '  My cat ', result);
+  assert.deepEqual(rec.verdict, { status: 'multiple', sweeps: 3 });
+  assert.equal(rec.title, 'My cat');
+  assert.equal(rec.width, 2);
+  assert.equal(rec.height, 2);
+  assert.deepEqual(rec.palette, [{ name: 'black', hex: '#000000' }]);
+  assert.deepEqual(rec.solution, grid);
+  assert.notEqual(rec.solution, grid); // a copy, so later edits cannot change it
+  assert.equal(buildPuzzleRecord(grid, '   ', result).title, 'Untitled');
+
+  rec.id = await puzzleId(rec);
+  assert.equal(validatePuzzle(rec).ok, true);
+});
+
+test('save waits for a fresh report', () => {
+  const result = { status: 'unique-line-solvable', sweeps: 1 };
+  assert.equal(canSave({ phase: 'pending', result: null }), false);
+  assert.equal(canSave({ phase: 'pending', result }), false); // stale result
+  assert.equal(canSave({ phase: 'error', result: null }), false);
+  assert.equal(canSave({ phase: 'fresh', result: null }), false);
+  assert.equal(canSave({ phase: 'fresh', result }), true);
 });

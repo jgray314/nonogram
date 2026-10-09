@@ -113,3 +113,16 @@
   border-color: #c0392b;
   color: #7a1f14;
 }
+
+.nng-create-save-note {
+  margin: 8px 0 0;
+  color: #7a1f14;
+}
+
+.nng-create-save-msg {
+  margin: 8px 0 0;
+}
+
+.nng-create-save-msg a {
+  color: var(--accent);
+}

@@ -126,8 +126,17 @@ export function mount(container, params = {}) {
   const restartBtn = el('button', undefined, 'Restart');
   restartBtn.type = 'button';
   const ruleNote = el('span', 'nng-note');
-  rulesBar.append(hintBtn, restartBtn, ruleNote);
-  root.append(title, status, outPanel, rulesBar, toolbar, holder);
+  const undoBtn = el('button', undefined, 'Undo');
+  undoBtn.type = 'button';
+  undoBtn.title = 'Undo (Ctrl+Z)';
+  undoBtn.setAttribute('aria-keyshortcuts', 'Control+Z');
+  const redoBtn = el('button', undefined, 'Redo');
+  redoBtn.type = 'button';
+  redoBtn.title = 'Redo (Ctrl+Y)';
+  redoBtn.setAttribute('aria-keyshortcuts', 'Control+Y');
+  const legend = el('p', 'nng-legend', 'Left-drag to fill · Right-drag to cross · Ctrl+Z to undo');
+  rulesBar.append(undoBtn, redoBtn, hintBtn, restartBtn, ruleNote);
+  root.append(title, status, outPanel, rulesBar, toolbar, holder, legend);
   container.append(root);
 
   const clues = puzzleClues(puzzle.solution);
@@ -212,6 +221,8 @@ export function mount(container, params = {}) {
     outPanel.hidden = !out;
     holder.classList.toggle('nng-locked', out);
     hintBtn.disabled = !(rules.hint && helpers.enabled) || solvedAt !== null || out;
+    undoBtn.disabled = !history.canUndo() || solvedAt !== null || out;
+    redoBtn.disabled = !history.canRedo() || solvedAt !== null || out;
     ruleNote.textContent = helpers.note;
     timerEl.textContent = formatTime(elapsedMs);
     grid.update(solvedAt === null ? cells : reveal(cells));
@@ -416,6 +427,8 @@ export function mount(container, params = {}) {
     else return;
     e.preventDefault();
   };
+  undoBtn.addEventListener('click', () => step(history.undo));
+  redoBtn.addEventListener('click', () => step(history.redo));
   document.addEventListener('keydown', onKey);
   cleanup.push(() => document.removeEventListener('keydown', onKey));
 }

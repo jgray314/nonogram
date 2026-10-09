@@ -59,6 +59,12 @@
   color: var(--muted);
 }
 
+.nng-legend {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.9em;
+}
+
 .nng-hearts {
   display: inline-flex;
   gap: 2px;

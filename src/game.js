@@ -54,6 +54,12 @@ export function createHistory(cells) {
     current() {
       return copy(stack[at]);
     },
+    canUndo() {
+      return at > 0;
+    },
+    canRedo() {
+      return at < stack.length - 1;
+    },
   };
 }
 

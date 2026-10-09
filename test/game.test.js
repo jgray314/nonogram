@@ -87,6 +87,18 @@ test('undo/redo restores', () => {
   assert.deepEqual(h.redo(), [[0, 1]], 'push drops the redo branch');
 });
 
+test('history reports whether undo and redo have anything to do', () => {
+  const h = createHistory([[0, 0]]);
+  assert.equal(h.canUndo(), false);
+  assert.equal(h.canRedo(), false);
+  h.push([[1, 0]]);
+  assert.equal(h.canUndo(), true);
+  assert.equal(h.canRedo(), false);
+  h.undo();
+  assert.equal(h.canUndo(), false);
+  assert.equal(h.canRedo(), true);
+});
+
 test('history does not alias caller arrays', () => {
   const g = [[0, 0]];
   const h = createHistory(g);

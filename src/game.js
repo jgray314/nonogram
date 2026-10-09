@@ -54,21 +54,35 @@ export function createHistory(cells) {
     current() {
       return copy(stack[at]);
     },
+    canUndo() {
+      return at > 0;
+    },
+    canRedo() {
+      return at < stack.length - 1;
+    },
   };
 }
 
 /**
- * The first row-major cell whose state disagrees with the solution, with the
- * value that fixes it: the filled color, or -1 (crossed) for an empty cell.
+ * A cell to reveal (D17): always one the solution fills, never an empty cell.
+ * It comes from the row or column with the fewest unknown cells that still has
+ * an unfilled solution cell (ties: rows before columns, then the first line).
+ * Returns {r, c, value: the solution color}, or null when every fill is done.
  */
 export function hintCell(cells, solution) {
-  for (let r = 0; r < cells.length; r++) {
-    for (let c = 0; c < cells[r].length; c++) {
-      const want = solution[r][c] === 0 ? -1 : solution[r][c];
-      if (cells[r][c] !== want) return { r, c, value: want };
-    }
-  }
-  return null;
+  const h = cells.length;
+  const w = h ? cells[0].length : 0;
+  const open = (r, c) => solution[r][c] >= 1 && cells[r][c] !== solution[r][c];
+  let best = null;
+  const consider = (positions) => {
+    const first = positions.find(([r, c]) => open(r, c));
+    if (!first) return;
+    const unknown = positions.filter(([r, c]) => cells[r][c] === 0).length;
+    if (!best || unknown < best.unknown) best = { unknown, r: first[0], c: first[1] };
+  };
+  for (let r = 0; r < h; r++) consider(Array.from({ length: w }, (_, c) => [r, c]));
+  for (let c = 0; c < w; c++) consider(Array.from({ length: h }, (_, r) => [r, c]));
+  return best && { r: best.r, c: best.c, value: solution[best.r][best.c] };
 }
 
 /**
@@ -142,4 +156,17 @@ export function heartsAvailable(verdict) {
 export function restartCells(clues, width, height) {
   const blank = Array.from({ length: height }, () => new Array(width).fill(0));
   return crossEmptyLines(blank, clues);
+}
+
+/** mm:ss for a play time in milliseconds. */
+export function formatTime(ms) {
+  const total = Math.floor(ms / 1000);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${pad(Math.floor(total / 60))}:${pad(total % 60)}`;
+}
+
+/** The solved line: the time, plus the hints used when there were any (D18). */
+export function solvedSummary(elapsedMs, hints) {
+  const base = `Solved in ${formatTime(elapsedMs)}`;
+  return hints > 0 ? `${base} · ${hints} ${hints === 1 ? 'hint' : 'hints'}` : base;
 }

@@ -3,9 +3,12 @@
 // strokes itself (the play view wires play-state.js).
 // Cell encoding: 0 unknown, -1 crossed, k >= 1 filled.
 
-/** Gutter depth: the most clues in any column (top) and any row (left). */
+/**
+ * Gutter depth: the most clues in any column (top) and any row (left). An empty
+ * line shows a "0", so it counts as one.
+ */
 export function gutterSize(clues) {
-  const max = (lists) => lists.reduce((m, l) => Math.max(m, l.length), 0);
+  const max = (lists) => lists.reduce((m, l) => Math.max(m, l.length || 1), 0);
   return { top: max(clues.cols), left: max(clues.rows) };
 }
 
@@ -26,11 +29,12 @@ function div(className, text) {
  *     r and c are null when the pointer is outside the cells.
  *     button is 'left' | 'right' while a press that began on a cell is held
  *     (down, enter and up), else null. Presses with other buttons are ignored.
- * Returns {update(cells), setClueDone({rows, cols}), setWrong([r, c][]),
- *   setHighlight([r, c][]), destroy()}.
+ * Returns {update(cells), setClueDone({rows, cols}), setOverlay(node | null),
+ *   setWrong([r, c][]), setHighlight([r, c][]), destroy()}.
  *   setClueDone dims single numbers from per-number flags (rows[r][k],
  *   cols[c][k], as from clueProgress); setWrong outlines cells (play.css also
- *   draws a crossed wrong cell's cross in red).
+ *   draws a crossed wrong cell's cross in red); setOverlay lays one node over the
+ *   cell area, above the cells, or removes it.
  */
 export function renderGrid(container, { width, height, clues, cells, onPointer = () => {} }) {
   const { top, left } = gutterSize(clues);
@@ -47,19 +51,28 @@ export function renderGrid(container, { width, height, clues, cells, onPointer =
   // Column clues are bottom-aligned, row clues right-aligned, against the cells.
   const rowClues = clues.rows.map(() => []);
   const colClues = clues.cols.map(() => []);
+  const zero = (row, col, slot, axis) => {
+    const node = div(`nng-clue nng-clue-${axis} nng-clue-zero nng-clue-done`, '0');
+    node.style.setProperty('--clue-i', String(slot));
+    place(node, row, col);
+  };
   clues.cols.forEach((list, c) => {
+    if (!list.length) zero(top, left + c + 1, top - 1, 'col'); // not in the progress flags
     list.forEach((clue, k) => {
       const node = div('nng-clue nng-clue-col', String(clue.n));
       colClues[c].push(node);
       node.dataset.color = String(clue.c);
+      node.style.setProperty('--clue-i', String(top - list.length + k)); // slot in the gutter, for sticky clues
       place(node, top - list.length + k + 1, left + c + 1);
     });
   });
   clues.rows.forEach((list, r) => {
+    if (!list.length) zero(top + r + 1, left, left - 1, 'row');
     list.forEach((clue, k) => {
       const node = div('nng-clue nng-clue-row', String(clue.n));
       rowClues[r].push(node);
       node.dataset.color = String(clue.c);
+      node.style.setProperty('--clue-i', String(left - list.length + k));
       place(node, top + r + 1, left - list.length + k + 1);
     });
   });
@@ -108,6 +121,19 @@ export function renderGrid(container, { width, height, clues, cells, onPointer =
     colClues.forEach((list, c) =>
       list.forEach((n, k) => n.classList.toggle('nng-clue-done', !!cols[c]?.[k])),
     );
+  }
+
+  // One node laid over exactly the cell area (above the cells, clues untouched).
+  // Pass null to remove it. The caller owns the node's look and pointer events.
+  let overlay = null;
+  function setOverlay(node) {
+    overlay?.remove();
+    overlay = node ?? null;
+    if (!overlay) return;
+    overlay.style.gridRow = `${top + 1} / span ${height}`;
+    overlay.style.gridColumn = `${left + 1} / span ${width}`;
+    overlay.style.zIndex = '2';
+    root.append(overlay);
   }
 
   function setWrong(list) {
@@ -184,6 +210,7 @@ export function renderGrid(container, { width, height, clues, cells, onPointer =
   return {
     update,
     setClueDone,
+    setOverlay,
     setWrong,
     setHighlight,
     destroy() {

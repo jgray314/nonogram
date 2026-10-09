@@ -12,6 +12,7 @@ import {
   heartsStroke,
   heartsAvailable,
   restartCells,
+  solvedSummary,
 } from '../src/game.js';
 import { puzzleClues } from '../src/clues.js';
 
@@ -87,6 +88,18 @@ test('undo/redo restores', () => {
   assert.deepEqual(h.redo(), [[0, 1]], 'push drops the redo branch');
 });
 
+test('history reports whether undo and redo have anything to do', () => {
+  const h = createHistory([[0, 0]]);
+  assert.equal(h.canUndo(), false);
+  assert.equal(h.canRedo(), false);
+  h.push([[1, 0]]);
+  assert.equal(h.canUndo(), true);
+  assert.equal(h.canRedo(), false);
+  h.undo();
+  assert.equal(h.canUndo(), false);
+  assert.equal(h.canRedo(), true);
+});
+
 test('history does not alias caller arrays', () => {
   const g = [[0, 0]];
   const h = createHistory(g);
@@ -94,32 +107,44 @@ test('history does not alias caller arrays', () => {
   assert.deepEqual(h.current(), [[0, 0]]);
 });
 
-test('hint reveals an unsolved cell', () => {
+test('hintCell reveals a filled cell', () => {
   const blank = SOL.map((row) => row.map(() => 0));
-  // First row-major cell is solution 1: filled.
+  // Every line ties at 3 unknowns, so the first row wins, and its first fill is (0,0).
   assert.deepEqual(hintCell(blank, SOL), { r: 0, c: 0, value: 1 });
-  // Unknown cell whose solution is empty gets a cross.
-  const a = [
-    [1, 1, 0],
+  // Never an empty cell: with (0,0) done, the next reveal is a fill too.
+  const next = blank.map((row) => row.slice());
+  next[0][0] = 1;
+  const hint = hintCell(next, SOL);
+  assert.equal(SOL[hint.r][hint.c], 1);
+  assert.equal(hint.value, 1);
+  // A wrong cross on a solution cell is an unfilled cell and gets revealed.
+  const crossed = SOL.map((row) => row.map(() => -1));
+  assert.equal(hintCell(crossed, SOL).value, 1);
+});
+
+test('hintCell picks the line with fewest unknowns', () => {
+  const cells = [
+    [0, 0, 0],
+    [0, 0, 0],
+    [1, -1, 0],
+  ];
+  // Row 2 has one unknown left; every other line has two or three.
+  assert.deepEqual(hintCell(cells, SOL), { r: 2, c: 2, value: 1 });
+  // A line with nothing left to fill is skipped even though it has the fewest unknowns.
+  const done = [
+    [1, 1, -1],
     [0, 0, 0],
     [0, 0, 0],
   ];
-  assert.deepEqual(hintCell(a, SOL), { r: 0, c: 2, value: -1 });
-  // A wrong fill is corrected to a cross; a wrong cross to a fill.
-  const b = SOL.map((row) => row.map((v) => (v === 0 ? -1 : v)));
-  b[1][1] = -1;
-  assert.deepEqual(hintCell(b, SOL), { r: 1, c: 1, value: 1 });
-  b[1][1] = 1;
-  b[0][2] = 1;
-  assert.deepEqual(hintCell(b, SOL), { r: 0, c: 2, value: -1 });
-  // Nothing to reveal when every cell agrees.
-  assert.equal(
-    hintCell(
-      b.map((row, r) => row.map((_, c) => (SOL[r][c] === 0 ? -1 : 1))),
-      SOL,
-    ),
-    null,
-  );
+  // Column 0 (two unknowns, first in order) is next.
+  assert.deepEqual(hintCell(done, SOL), { r: 2, c: 0, value: 1 });
+});
+
+test('hintCell returns null when all fills are done', () => {
+  const cells = SOL.map((row) => row.map((v) => (v === 0 ? 0 : v)));
+  assert.equal(hintCell(cells, SOL), null);
+  const crossed = SOL.map((row) => row.map((v) => (v === 0 ? -1 : v)));
+  assert.equal(hintCell(crossed, SOL), null);
 });
 
 test('check disabled when not unique', () => {
@@ -306,4 +331,16 @@ test('restartCells is blank plus empty-line crosses', () => {
     [-1, -1, -1],
     [0, -1, 0],
   ]);
+});
+
+test('solvedSummary formats time', () => {
+  assert.equal(solvedSummary(192000, 0), 'Solved in 03:12');
+  assert.equal(solvedSummary(0, 0), 'Solved in 00:00');
+  assert.equal(solvedSummary(59999, 0), 'Solved in 00:59');
+});
+
+test('solvedSummary adds the hint count', () => {
+  assert.equal(solvedSummary(192000, 0), 'Solved in 03:12');
+  assert.equal(solvedSummary(192000, 1), 'Solved in 03:12 · 1 hint');
+  assert.equal(solvedSummary(192000, 2), 'Solved in 03:12 · 2 hints');
 });

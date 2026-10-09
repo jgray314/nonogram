@@ -1,5 +1,5 @@
 // Play view: load a puzzle, wire strokes, undo/redo, solve detection.
-import { renderGrid } from './grid.js';
+import { renderGrid, gutterSize } from './grid.js';
 import { puzzleClues } from '../clues.js';
 import { applyStroke, strokeCells } from '../play-state.js';
 import {
@@ -7,12 +7,14 @@ import {
   autoCross,
   createHistory,
   crossEmptyLines,
+  formatTime,
   heartsAvailable,
   heartsStroke,
   helpersAvailability,
   hintCell,
   isSolved,
   restartCells,
+  solvedSummary,
 } from '../game.js';
 import { clueProgress, solutionProgress } from '../clue-progress.js';
 import { createStore } from '../store.js';
@@ -20,6 +22,7 @@ import { validatePuzzle, validateSave, idMatches } from '../format.js';
 import { serializeSaveFile, parseSaveFile, importWrites } from '../save.js';
 
 const CSS_HREF = 'css/play.css';
+const PREF_KEYS = { zen: 'play.zen', autoCross: 'play.autoCross' };
 
 function ensureCss() {
   if (document.querySelector(`link[data-nng="play"]`)) return;
@@ -94,7 +97,14 @@ export function mount(container, params = {}) {
   outPanel.hidden = true;
   const outRestartBtn = el('button', undefined, 'Restart');
   outRestartBtn.type = 'button';
-  outPanel.append(el('strong', undefined, 'Out of hearts'), outRestartBtn);
+  const outZenBtn = el('button', undefined, 'Continue in Zen mode');
+  outZenBtn.type = 'button';
+  outPanel.append(
+    el('strong', undefined, 'Out of hearts'),
+    el('span', 'nng-out-note', 'Restart clears the grid, timer and hearts.'),
+    outRestartBtn,
+    outZenBtn,
+  );
   const holder = el('div', 'nng-grid-holder');
   const toolbar = el('div', 'nng-toolbar');
   const exportBtn = el('button', undefined, 'Export save');
@@ -111,7 +121,6 @@ export function mount(container, params = {}) {
   const toggles = {};
   for (const [key, label] of [
     ['zen', 'Zen mode'],
-    ['hint', 'Hints'],
     ['autoCross', 'Auto-cross'],
   ]) {
     const wrap = el('label', 'nng-toggle');
@@ -123,29 +132,59 @@ export function mount(container, params = {}) {
   }
   const hintBtn = el('button', undefined, 'Reveal a cell');
   hintBtn.type = 'button';
+  const hintCount = el('span', 'nng-hint-count');
   const restartBtn = el('button', undefined, 'Restart');
   restartBtn.type = 'button';
   const ruleNote = el('span', 'nng-note');
-  rulesBar.append(hintBtn, restartBtn, ruleNote);
-  root.append(title, status, outPanel, rulesBar, toolbar, holder);
+  const undoBtn = el('button', undefined, 'Undo');
+  undoBtn.type = 'button';
+  undoBtn.title = 'Undo (Ctrl+Z)';
+  undoBtn.setAttribute('aria-keyshortcuts', 'Control+Z');
+  const redoBtn = el('button', undefined, 'Redo');
+  redoBtn.type = 'button';
+  redoBtn.title = 'Redo (Ctrl+Y)';
+  redoBtn.setAttribute('aria-keyshortcuts', 'Control+Y');
+  const legend = el('p', 'nng-legend', 'Left-drag to fill · Right-drag to cross · Ctrl+Z to undo');
+  rulesBar.append(undoBtn, redoBtn, hintBtn, hintCount, restartBtn, ruleNote);
+  // Shown once a solve is final (after the art fade, if any): the time and a way back.
+  const strip = el('div', 'nng-solved-strip');
+  strip.hidden = true;
+  const stripText = el('span', 'nng-solved-text');
+  const stripLink = el('a', undefined, 'Back to library');
+  stripLink.href = '#/library';
+  strip.append(stripText, stripLink);
+  const ruleDefault = el(
+    'p',
+    'nng-rule-default',
+    "Zen and Auto-cross also apply to puzzles you haven't started yet.",
+  );
+  root.append(title, status, outPanel, rulesBar, ruleDefault, toolbar, holder, strip, legend);
   container.append(root);
 
   const clues = puzzleClues(puzzle.solution);
   // v1's `check` rule is gone (D13): every wrong fill is now flagged on the spot.
-  const rules = { zen: false, hint: false, autoCross: false };
+  const rules = { zen: false, autoCross: false };
   let cells = restartCells(clues, puzzle.width, puzzle.height); // a fresh game starts where Restart does
   let elapsedMs = 0;
   let solvedAt = null;
   let hearts = MAX_HEARTS;
+  let hints = 0; // reveals used on this play-through; undo doesn't refund them (D18)
   let wrongMark = null; // [r, c] of the last wrong fill; memory only, cleared on the next move
   let dirty = false;
   const existing = store ? store.get('save', puzzle.id) : null;
   const loaded = existing && validateSave(existing, puzzle).ok ? existing : null;
+  // No save yet: the rule switches start from what the player last chose (D16).
+  // Anything but a literal true counts as off, so a hand-edited pref can't break play.
+  if (!loaded && store) {
+    rules.zen = store.getPref(PREF_KEYS.zen, false) === true;
+    rules.autoCross = store.getPref(PREF_KEYS.autoCross, false) === true;
+  }
   if (loaded) {
     cells = loaded.cells.map((row) => row.slice());
     elapsedMs = loaded.elapsedMs;
     solvedAt = loaded.solvedAt;
     hearts = loaded.hearts ?? MAX_HEARTS;
+    hints = loaded.hints ?? 0;
     for (const key of Object.keys(rules)) rules[key] = loaded.rules[key] === true;
   }
   // A loaded save gets empty lines crossed too (v1 saves had none), before the
@@ -166,6 +205,7 @@ export function mount(container, params = {}) {
     rules: { ...rules },
     solvedAt,
     hearts,
+    hints,
   });
   function persist() {
     if (!store || !(dirty || loaded)) return;
@@ -189,11 +229,6 @@ export function mount(container, params = {}) {
   const heartsOk = heartsAvailable(puzzle.verdict);
   const zen = () => rules.zen || !heartsOk;
   const outOfHearts = () => !zen() && hearts === 0 && solvedAt === null;
-  const formatTime = (ms) => {
-    const total = Math.floor(ms / 1000);
-    const pad = (n) => String(n).padStart(2, '0');
-    return `${pad(Math.floor(total / 60))}:${pad(total % 60)}`;
-  };
 
   function refresh() {
     const out = outOfHearts();
@@ -210,8 +245,12 @@ export function mount(container, params = {}) {
       node.classList.toggle('nng-heart-full', full);
     });
     outPanel.hidden = !out;
+    restartBtn.hidden = out; // the panel has its own Restart; show only one
     holder.classList.toggle('nng-locked', out);
-    hintBtn.disabled = !(rules.hint && helpers.enabled) || solvedAt !== null || out;
+    hintBtn.disabled = !helpers.enabled || solvedAt !== null || out;
+    undoBtn.disabled = !history.canUndo() || solvedAt !== null || out;
+    redoBtn.disabled = !history.canRedo() || solvedAt !== null || out;
+    hintCount.textContent = `Hints used: ${hints}`;
     ruleNote.textContent = helpers.note;
     timerEl.textContent = formatTime(elapsedMs);
     grid.update(solvedAt === null ? cells : reveal(cells));
@@ -225,6 +264,61 @@ export function mount(container, params = {}) {
     solvedMsg.hidden = solvedAt === null;
     solvedMsg.textContent = solvedAt === null ? '' : 'Solved';
     count.textContent = '';
+    syncReveal();
+  }
+
+  // Solve reveal (D14): the original crop fades in over the cells. A puzzle with
+  // no art, a reopened solved puzzle and reduced motion skip the fade.
+  let revealed = false;
+  let animateReveal = false; // set by the move that solves the puzzle
+  let revealTimer = null;
+  const reduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  function showStrip() {
+    clearTimeout(revealTimer);
+    stripText.textContent = solvedSummary(elapsedMs, hints);
+    strip.hidden = false;
+  }
+  function clearReveal() {
+    clearTimeout(revealTimer);
+    revealed = false;
+    grid.setOverlay(null);
+    holder.classList.remove('nng-revealed', 'nng-reveal-anim');
+    strip.hidden = true;
+  }
+  function syncReveal() {
+    if (solvedAt === null) {
+      if (revealed || !strip.hidden) clearReveal();
+      return;
+    }
+    if (revealed) return;
+    revealed = true;
+    const animate = animateReveal && !reduceMotion();
+    animateReveal = false;
+    if (!puzzle.art) {
+      showStrip();
+      return;
+    }
+    const img = el('img', 'nng-art');
+    img.alt = 'The finished picture';
+    img.src = puzzle.art;
+    img.addEventListener('error', () => {
+      grid.setOverlay(null);
+      holder.classList.remove('nng-revealed', 'nng-reveal-anim');
+      showStrip();
+    });
+    grid.setOverlay(img);
+    if (!animate) {
+      img.classList.add('nng-art-in', 'nng-art-instant');
+      holder.classList.add('nng-revealed');
+      showStrip();
+      return;
+    }
+    holder.classList.add('nng-reveal-anim');
+    img.getBoundingClientRect(); // commit the start state so the fade runs
+    img.classList.add('nng-art-in');
+    holder.classList.add('nng-revealed');
+    img.addEventListener('transitionend', showStrip, { once: true });
+    revealTimer = setTimeout(showStrip, 1600); // in case transitionend never fires
   }
 
   /** One committed move (a stroke, or later a hint) is one undo step. */
@@ -243,6 +337,7 @@ export function mount(container, params = {}) {
     if (isSolved(cells, clues)) {
       tick(); // bank the time up to the solving move
       solvedAt = Date.now();
+      animateReveal = true;
     }
     dirty = true;
     refresh();
@@ -280,6 +375,37 @@ export function mount(container, params = {}) {
   });
   refresh();
 
+  // Cell size (UX15): the largest of 16..32px that fits the grid and its clue
+  // gutters in the window below the header, and in the main column's width.
+  // Smaller windows scroll inside the holder, where the clues stay put.
+  function sizeGrid() {
+    const gutter = gutterSize(clues);
+    const px = (name, fallback) =>
+      parseFloat(getComputedStyle(holder).getPropertyValue(name)) || fallback;
+    const clueW = px('--clue-w', 22);
+    const clueH = px('--clue-h', 18);
+    const chrome = 28; // holder padding (16) and the grid's own padding (12)
+    const lost = outPanel.hidden ? 0 : outPanel.offsetHeight + 8; // not part of the steady layout
+    const avail =
+      window.innerHeight - (holder.getBoundingClientRect().top + window.scrollY - lost) - 16;
+    const byHeight = (avail - chrome - gutter.top * clueH) / puzzle.height;
+    const byWidth = (holder.clientWidth - chrome - gutter.left * clueW) / puzzle.width;
+    const size = Math.max(16, Math.min(32, Math.floor(Math.min(byHeight, byWidth))));
+    holder.style.setProperty('--cell', `${size}px`);
+    holder.style.maxHeight = `${Math.max(200, Math.floor(avail))}px`;
+  }
+  sizeGrid();
+  window.addEventListener('resize', sizeGrid);
+  cleanup.push(() => window.removeEventListener('resize', sizeGrid));
+
+  function rememberRule(key, value) {
+    if (!store || !(key in PREF_KEYS)) return;
+    try {
+      store.setPref(PREF_KEYS[key], value);
+    } catch {
+      // Storage unavailable: the switch still works for this puzzle.
+    }
+  }
   for (const [key, box] of Object.entries(toggles)) {
     box.addEventListener('change', () => {
       // Zen can be switched on any time, but hearts come back only with a
@@ -291,21 +417,25 @@ export function mount(container, params = {}) {
           return;
         }
         rules.zen = false;
+        rememberRule('zen', false);
         restart();
         return;
       }
       rules[key] = box.checked;
+      rememberRule(key, box.checked);
       dirty = true;
       refresh();
       persist();
     });
   }
   hintBtn.addEventListener('click', () => {
-    if (solvedAt !== null || drag || outOfHearts() || !rules.hint || !helpers.enabled) return;
+    if (solvedAt !== null || drag || outOfHearts() || !helpers.enabled) return;
     const hint = hintCell(cells, puzzle.solution);
     if (!hint) return;
     const next = cells.map((row) => row.slice());
     next[hint.r][hint.c] = hint.value;
+    // Undo doesn't refund, so repeats are possible; the save format caps the count at the cell count.
+    hints = Math.min(hints + 1, puzzle.width * puzzle.height);
     commit(next);
   });
 
@@ -323,6 +453,7 @@ export function mount(container, params = {}) {
   cleanup.push(() => {
     tick();
     clearInterval(timer);
+    clearTimeout(revealTimer);
     document.removeEventListener('visibilitychange', onVisibility);
   });
 
@@ -340,6 +471,7 @@ export function mount(container, params = {}) {
     history = createHistory(cells);
     elapsedMs = 0;
     hearts = MAX_HEARTS;
+    hints = 0;
     wrongMark = null;
     drag = null;
     lastTick = Date.now();
@@ -355,6 +487,14 @@ export function mount(container, params = {}) {
   });
   // Out of hearts there is nothing left to lose, so this one skips the confirm.
   outRestartBtn.addEventListener('click', restart);
+  // Keep the cells and play on without hearts; the lost hearts stay lost until a restart.
+  outZenBtn.addEventListener('click', () => {
+    rules.zen = true;
+    lastTick = Date.now();
+    dirty = true;
+    refresh();
+    persist();
+  });
 
   exportBtn.addEventListener('click', () => {
     const blob = new Blob([serializeSaveFile(puzzle, snapshot())], { type: 'application/json' });
@@ -416,6 +556,8 @@ export function mount(container, params = {}) {
     else return;
     e.preventDefault();
   };
+  undoBtn.addEventListener('click', () => step(history.undo));
+  redoBtn.addEventListener('click', () => step(history.redo));
   document.addEventListener('keydown', onKey);
   cleanup.push(() => document.removeEventListener('keydown', onKey));
 }

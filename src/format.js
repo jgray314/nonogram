@@ -17,6 +17,12 @@ export const MAX_PALETTE = 30;
 // most 320px on the long side. Not part of the id hash.
 export const ART_PREFIX = 'data:image/jpeg;base64,';
 export const MAX_ART_CHARS = 200000;
+// Generous caps on imported text and counts (gate pass 3, L2). Far above
+// anything the app writes, so no saved puzzle can fall outside them.
+export const MAX_TITLE_CHARS = 500;
+export const MAX_NAME_CHARS = 100;
+export const MAX_SET_ID_CHARS = 200;
+export const MAX_SWEEPS = 1000000;
 
 const isObj = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
 const isInt = (x) => Number.isInteger(x);
@@ -76,7 +82,9 @@ export function validatePuzzle(x) {
     if (!isObj(x)) return fail('puzzle must be an object');
     if (x.v !== 1) return fail('unsupported puzzle version');
     if (typeof x.id !== 'string' || x.id === '') return fail('id must be a non-empty string');
-    if (typeof x.title !== 'string') return fail('title must be a string');
+    if (typeof x.title !== 'string' || x.title.length > MAX_TITLE_CHARS) {
+      return fail(`title must be a string of at most ${MAX_TITLE_CHARS} characters`);
+    }
     if (!isInt(x.width) || x.width < 1 || x.width > MAX_GRID_SIDE)
       return fail(`width must be 1 to ${MAX_GRID_SIDE}`);
     if (!isInt(x.height) || x.height < 1 || x.height > MAX_GRID_SIDE)
@@ -88,6 +96,7 @@ export function validatePuzzle(x) {
       if (
         !isObj(p) ||
         typeof p.name !== 'string' ||
+        p.name.length > MAX_NAME_CHARS ||
         typeof p.hex !== 'string' ||
         !HEX.test(p.hex)
       ) {
@@ -99,13 +108,16 @@ export function validatePuzzle(x) {
     if (x.verdict !== null) {
       if (!isObj(x.verdict)) return fail('verdict must be an object or null');
       if (!STATUSES.includes(x.verdict.status)) return fail('invalid verdict status');
-      if (!isInt(x.verdict.sweeps) || x.verdict.sweeps < 0) return fail('invalid verdict sweeps');
+      if (!isInt(x.verdict.sweeps) || x.verdict.sweeps < 0 || x.verdict.sweeps > MAX_SWEEPS) {
+        return fail('invalid verdict sweeps');
+      }
     }
     if (x.set !== undefined) {
       const s = x.set;
       if (
         !isObj(s) ||
         typeof s.id !== 'string' ||
+        s.id.length > MAX_SET_ID_CHARS ||
         !isInt(s.row) ||
         s.row < 0 ||
         s.row >= MAX_SET_SIDE ||
@@ -156,8 +168,9 @@ export function validateSave(x, puzzle) {
     if (x.hearts !== undefined && (!isInt(x.hearts) || x.hearts < 0 || x.hearts > MAX_HEARTS)) {
       return fail(`hearts must be an integer from 0 to ${MAX_HEARTS}`);
     }
-    // Hints used (D18). Missing means 0. Each hint reveals a different cell, so
-    // the grid size bounds it.
+    // Hints used (D18). Missing means 0. The cell count is a sanity bound, not
+    // a true maximum: undo doesn't refund, so reveal, undo, reveal counts twice,
+    // and play.js stops counting at the bound.
     const maxHints = puzzle.width * puzzle.height;
     if (x.hints !== undefined && (!isInt(x.hints) || x.hints < 0 || x.hints > maxHints)) {
       return fail(`hints must be an integer from 0 to ${maxHints}`);
@@ -177,7 +190,10 @@ export function validateSet(x) {
     if (x.v !== 1) return fail('unsupported set version');
     if (typeof x.setId !== 'string' || x.setId === '')
       return fail('setId must be a non-empty string');
-    if (typeof x.title !== 'string') return fail('title must be a string');
+    if (x.setId.length > MAX_SET_ID_CHARS) return fail('setId is too long');
+    if (typeof x.title !== 'string' || x.title.length > MAX_TITLE_CHARS) {
+      return fail(`title must be a string of at most ${MAX_TITLE_CHARS} characters`);
+    }
     if (!isInt(x.rows) || x.rows < 1 || x.rows > MAX_SET_SIDE)
       return fail(`rows must be 1 to ${MAX_SET_SIDE}`);
     if (!isInt(x.cols) || x.cols < 1 || x.cols > MAX_SET_SIDE)

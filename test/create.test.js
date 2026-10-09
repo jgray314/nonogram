@@ -7,7 +7,6 @@ import {
   defaultSize,
   titleFromFile,
   hasFilledCell,
-  createEditHistory,
   hasUnsavedWork,
   gridSig,
   artSize,
@@ -312,28 +311,6 @@ test('titleFromFile falls back to Untitled', () => {
   assert.equal(titleFromFile(''), 'Untitled');
 });
 
-test('edit history undoes and redoes, and a new edit drops the redo branch', () => {
-  const a = blankGrid(2, 2);
-  const h = createEditHistory(a);
-  assert.equal(h.canUndo(), false);
-  assert.equal(h.canRedo(), false);
-  const b = blankGrid(2, 2);
-  b[0][0] = 1;
-  h.push(b);
-  assert.equal(h.canUndo(), true);
-  assert.deepEqual(h.undo(), a);
-  assert.equal(h.canUndo(), false);
-  assert.equal(h.canRedo(), true);
-  assert.deepEqual(h.redo(), b);
-  assert.equal(h.canRedo(), false);
-  h.undo();
-  const c = blankGrid(2, 2);
-  c[1][1] = 1;
-  h.push(c);
-  assert.equal(h.canRedo(), false);
-  assert.deepEqual(h.undo(), a);
-});
-
 test('hasUnsavedWork is true until the current grid is saved', () => {
   const st = newEditorState({ width: 5, height: 5 });
   assert.equal(hasUnsavedWork(st, null), false);
@@ -348,12 +325,18 @@ test('hasUnsavedWork is true until the current grid is saved', () => {
   assert.equal(hasUnsavedWork(blankWithImage, null), true);
 });
 
-test('artSize caps the long side at 320 and never upscales', () => {
+test('artSize caps the long side at 320, and upscales only tiny sources', () => {
   assert.deepEqual(artSize(640, 320), { width: 320, height: 160 });
   assert.deepEqual(artSize(100, 400), { width: 80, height: 320 });
   assert.deepEqual(artSize(200, 100), { width: 200, height: 100 });
   assert.deepEqual(artSize(640, 320, 160), { width: 160, height: 80 });
   assert.deepEqual(artSize(1000, 1), { width: 320, height: 1 });
+});
+
+test('artSize scales pixel art up in whole steps to about 160px', () => {
+  assert.deepEqual(artSize(5, 5), { width: 160, height: 160 });
+  assert.deepEqual(artSize(25, 20), { width: 150, height: 120 });
+  assert.deepEqual(artSize(10, 10, 80), { width: 80, height: 80 });
 });
 
 test('tileCropRect gives each tile its own slice of the crop', () => {

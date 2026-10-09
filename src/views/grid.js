@@ -4,11 +4,12 @@
 // Cell encoding: 0 unknown, -1 crossed, k >= 1 filled.
 
 /**
- * Gutter depth: the most clues in any column (top) and any row (left). An empty
- * line shows a "0", so it counts as one.
+ * Gutter depth: the most clues in any column (top) and any row (left). With
+ * `zeroClues` (Play only) an empty line shows a "0", so it counts as one.
  */
-export function gutterSize(clues) {
-  const max = (lists) => lists.reduce((m, l) => Math.max(m, l.length || 1), 0);
+export function gutterSize(clues, { zeroClues = false } = {}) {
+  const depth = (l) => (zeroClues ? l.length || 1 : l.length);
+  const max = (lists) => lists.reduce((m, l) => Math.max(m, depth(l)), 0);
   return { top: max(clues.cols), left: max(clues.rows) };
 }
 
@@ -22,7 +23,9 @@ function div(className, text) {
 }
 
 /**
- * renderGrid(container, {width, height, clues, cells, onPointer})
+ * renderGrid(container, {width, height, clues, cells, onPointer, zeroClues})
+ *   zeroClues: show "0" for an empty line (Play only; Create passes empty
+ *     lists on purpose for tile sets, and Print keeps empty lines blank)
  *   clues: {rows: Clue[][], cols: Clue[][]} as from puzzleClues
  *   cells: height x width array in the cell encoding above
  *   onPointer({type: 'down' | 'enter' | 'up', r, c, button}):
@@ -30,14 +33,18 @@ function div(className, text) {
  *     button is 'left' | 'right' while a press that began on a cell is held
  *     (down, enter and up), else null. Presses with other buttons are ignored.
  * Returns {update(cells), setClueDone({rows, cols}), setOverlay(node | null),
- *   setWrong([r, c][]), setHighlight([r, c][]), destroy()}.
+ *   setWrong([r, c][]), setHighlight([r, c][]), sweep([r, c][]), destroy()}.
+ *   sweep pops the given (auto-crossed) cells in one after another.
  *   setClueDone dims single numbers from per-number flags (rows[r][k],
  *   cols[c][k], as from clueProgress); setWrong outlines cells (play.css also
  *   draws a crossed wrong cell's cross in red); setOverlay lays one node over the
  *   cell area, above the cells, or removes it.
  */
-export function renderGrid(container, { width, height, clues, cells, onPointer = () => {} }) {
-  const { top, left } = gutterSize(clues);
+export function renderGrid(
+  container,
+  { width, height, clues, cells, onPointer = () => {}, zeroClues = false },
+) {
+  const { top, left } = gutterSize(clues, { zeroClues });
   const root = div('nng-grid');
   root.style.gridTemplateColumns = `repeat(${left}, var(--clue-w)) repeat(${width}, var(--cell))`;
   root.style.gridTemplateRows = `repeat(${top}, var(--clue-h)) repeat(${height}, var(--cell))`;
@@ -57,7 +64,7 @@ export function renderGrid(container, { width, height, clues, cells, onPointer =
     place(node, row, col);
   };
   clues.cols.forEach((list, c) => {
-    if (!list.length) zero(top, left + c + 1, top - 1, 'col'); // not in the progress flags
+    if (zeroClues && !list.length) zero(top, left + c + 1, top - 1, 'col'); // not in the progress flags
     list.forEach((clue, k) => {
       const node = div('nng-clue nng-clue-col', String(clue.n));
       colClues[c].push(node);
@@ -67,7 +74,7 @@ export function renderGrid(container, { width, height, clues, cells, onPointer =
     });
   });
   clues.rows.forEach((list, r) => {
-    if (!list.length) zero(top + r + 1, left, left - 1, 'row');
+    if (zeroClues && !list.length) zero(top + r + 1, left, left - 1, 'row');
     list.forEach((clue, k) => {
       const node = div('nng-clue nng-clue-row', String(clue.n));
       rowClues[r].push(node);
@@ -147,6 +154,21 @@ export function renderGrid(container, { width, height, clues, cells, onPointer =
     for (const [r, c] of list) nodes[r]?.[c]?.classList.add('nng-hl');
   }
 
+  // Auto-cross sweep (D19): the given crosses pop in one after another, fast.
+  function sweep(list) {
+    list.forEach(([r, c], i) => {
+      const node = nodes[r]?.[c];
+      if (!node) return;
+      node.style.setProperty('--sweep-i', String(i));
+      node.classList.remove('nng-sweep');
+      node.getBoundingClientRect(); // restart the animation if it was mid-run
+      node.classList.add('nng-sweep');
+      node.addEventListener('animationend', () => node.classList.remove('nng-sweep'), {
+        once: true,
+      });
+    });
+  }
+
   // Hover highlight: the hovered cell's row and column.
   let hot = null;
   function highlight(pos) {
@@ -213,6 +235,7 @@ export function renderGrid(container, { width, height, clues, cells, onPointer =
     setOverlay,
     setWrong,
     setHighlight,
+    sweep,
     destroy() {
       window.removeEventListener('pointerup', onUp);
       window.removeEventListener('pointercancel', onUp);

@@ -5,6 +5,7 @@ import { applyStroke, strokeCells } from '../play-state.js';
 import {
   MAX_HEARTS,
   autoCross,
+  changedCells,
   createHistory,
   crossEmptyLines,
   formatTime,
@@ -163,7 +164,7 @@ export function mount(container, params = {}) {
 
   const clues = puzzleClues(puzzle.solution);
   // v1's `check` rule is gone (D13): every wrong fill is now flagged on the spot.
-  const rules = { zen: false, autoCross: false };
+  const rules = { zen: false, autoCross: true };
   let cells = restartCells(clues, puzzle.width, puzzle.height); // a fresh game starts where Restart does
   let elapsedMs = 0;
   let solvedAt = null;
@@ -174,10 +175,12 @@ export function mount(container, params = {}) {
   const existing = store ? store.get('save', puzzle.id) : null;
   const loaded = existing && validateSave(existing, puzzle).ok ? existing : null;
   // No save yet: the rule switches start from what the player last chose (D16).
-  // Anything but a literal true counts as off, so a hand-edited pref can't break play.
+  // A hand-edited pref can't break play: Zen needs a literal true, and Auto-cross
+  // a literal false to turn off.
   if (!loaded && store) {
     rules.zen = store.getPref(PREF_KEYS.zen, false) === true;
-    rules.autoCross = store.getPref(PREF_KEYS.autoCross, false) === true;
+    // Auto-cross is on unless the player turned it off (D19).
+    rules.autoCross = store.getPref(PREF_KEYS.autoCross, true) !== false;
   }
   if (loaded) {
     cells = loaded.cells.map((row) => row.slice());
@@ -190,6 +193,9 @@ export function mount(container, params = {}) {
   // A loaded save gets empty lines crossed too (v1 saves had none), before the
   // history, so they are not an undo step. It does not mark the save dirty.
   cells = crossEmptyLines(cells, clues);
+  // The clock starts with the first move, so opening or restarting a puzzle and
+  // looking at it leaves it "not started" in the library (gate pass 3, H1).
+  let started = elapsedMs > 0 || !sameGrid(cells, restartCells(clues, puzzle.width, puzzle.height));
   let history = createHistory(cells);
   // A puzzle can be satisfied before any move: an all-blank tile has only empty
   // clues. Filling anything would break it, so count it solved on open.
@@ -321,11 +327,24 @@ export function mount(container, params = {}) {
     revealTimer = setTimeout(showStrip, 1600); // in case transitionend never fires
   }
 
-  /** One committed move (a stroke, or later a hint) is one undo step. */
+  function startClock() {
+    if (started) return;
+    started = true;
+    lastTick = Date.now();
+  }
+
+  /** One committed move (a stroke or a hint) is one undo step. */
   function commit(next, wrong = null) {
     if (sameGrid(cells, next)) return;
-    // Auto-cross rides in the same undo step as the move that completed a line.
-    if (rules.autoCross) next = autoCross(next, clues, cells);
+    startClock(); // a hint can be the first move
+    // Auto-cross rides in the same undo step as the move that completed a line,
+    // and its crosses sweep in along the line (D19).
+    let swept = [];
+    if (rules.autoCross) {
+      const moved = next;
+      next = autoCross(next, clues, cells);
+      swept = changedCells(moved, next);
+    }
     cells = next;
     history.push(cells);
     wrongMark = wrong;
@@ -341,12 +360,14 @@ export function mount(container, params = {}) {
     }
     dirty = true;
     refresh();
+    grid.sweep(swept);
     persist();
   }
 
   function onPointer({ type, r, c, button }) {
     if (solvedAt !== null || outOfHearts()) return;
     if (type === 'down') {
+      startClock(); // the first click on the grid starts the timer (owner, gate pass 3)
       drag = { button, path: [[r, c]] };
       preview();
     } else if (drag && type === 'enter' && r !== null) {
@@ -372,6 +393,7 @@ export function mount(container, params = {}) {
     clues,
     cells,
     onPointer,
+    zeroClues: true,
   });
   refresh();
 
@@ -379,15 +401,21 @@ export function mount(container, params = {}) {
   // gutters in the window below the header, and in the main column's width.
   // Smaller windows scroll inside the holder, where the clues stay put.
   function sizeGrid() {
-    const gutter = gutterSize(clues);
+    const gutter = gutterSize(clues, { zeroClues: true });
     const px = (name, fallback) =>
       parseFloat(getComputedStyle(holder).getPropertyValue(name)) || fallback;
     const clueW = px('--clue-w', 22);
     const clueH = px('--clue-h', 18);
     const chrome = 28; // holder padding (16) and the grid's own padding (12)
     const lost = outPanel.hidden ? 0 : outPanel.offsetHeight + 8; // not part of the steady layout
+    // Room under the grid for the legend and the solved strip, so "Back to
+    // library" lands on screen after a solve (gate pass 3, M3).
+    const below = legend.offsetHeight + 44;
     const avail =
-      window.innerHeight - (holder.getBoundingClientRect().top + window.scrollY - lost) - 16;
+      window.innerHeight -
+      (holder.getBoundingClientRect().top + window.scrollY - lost) -
+      below -
+      16;
     const byHeight = (avail - chrome - gutter.top * clueH) / puzzle.height;
     const byWidth = (holder.clientWidth - chrome - gutter.left * clueW) / puzzle.width;
     const size = Math.max(16, Math.min(32, Math.floor(Math.min(byHeight, byWidth))));
@@ -431,10 +459,15 @@ export function mount(container, params = {}) {
   hintBtn.addEventListener('click', () => {
     if (solvedAt !== null || drag || outOfHearts() || !helpers.enabled) return;
     const hint = hintCell(cells, puzzle.solution);
-    if (!hint) return;
+    if (!hint) {
+      // Only an imported save can get here: every fill is in, so a filled square is wrong.
+      message.textContent = 'Nothing left to reveal: a filled square is wrong somewhere.';
+      return;
+    }
     const next = cells.map((row) => row.slice());
     next[hint.r][hint.c] = hint.value;
-    // Undo doesn't refund, so repeats are possible; the save format caps the count at the cell count.
+    // Undo doesn't refund (D18), so reveal, undo, reveal counts twice. The save
+    // format caps the count at the cell count as a sanity bound, so it stops there.
     hints = Math.min(hints + 1, puzzle.width * puzzle.height);
     commit(next);
   });
@@ -443,7 +476,9 @@ export function mount(container, params = {}) {
   let lastTick = Date.now();
   const tick = () => {
     const now = Date.now();
-    if (!document.hidden && solvedAt === null && !outOfHearts()) elapsedMs += now - lastTick;
+    if (started && !document.hidden && solvedAt === null && !outOfHearts()) {
+      elapsedMs += now - lastTick;
+    }
     lastTick = now;
     timerEl.textContent = formatTime(elapsedMs);
   };
@@ -470,6 +505,7 @@ export function mount(container, params = {}) {
     cells = restartCells(clues, puzzle.width, puzzle.height);
     history = createHistory(cells);
     elapsedMs = 0;
+    started = false;
     hearts = MAX_HEARTS;
     hints = 0;
     wrongMark = null;
@@ -488,6 +524,8 @@ export function mount(container, params = {}) {
   // Out of hearts there is nothing left to lose, so this one skips the confirm.
   outRestartBtn.addEventListener('click', restart);
   // Keep the cells and play on without hearts; the lost hearts stay lost until a restart.
+  // A rescue for this game, not a choice of default: unlike the Zen switch, it
+  // doesn't write the play.zen pref (D16).
   outZenBtn.addEventListener('click', () => {
     rules.zen = true;
     lastTick = Date.now();

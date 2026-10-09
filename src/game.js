@@ -104,6 +104,13 @@ export function autoCross(cells, clues, before = null) {
   return next;
 }
 
+/** The [r, c] cells that differ between two same-size grids, in reading order. */
+export function changedCells(a, b) {
+  const out = [];
+  a.forEach((row, r) => row.forEach((v, c) => v !== b[r][c] && out.push([r, c])));
+  return out;
+}
+
 /** Mistake marks, hearts and hints compare against the stored solution, so they need a unique puzzle. */
 export function helpersAvailability(verdict) {
   if (isFair(verdict)) return { enabled: true, note: '' };

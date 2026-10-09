@@ -162,3 +162,24 @@
 .nng-cell.nng-wrong.nng-crossed {
   --cell-cross: var(--cell-wrong);
 }
+
+/* Auto-cross sweep (D19): crosses pop in one after another along the line.
+   Off under reduced motion, like every animation (base.css). */
+@keyframes nng-sweep {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.nng-cell.nng-sweep::after {
+  animation: nng-sweep 0.16s ease-out backwards;
+  animation-delay: calc(var(--sweep-i, 0) * 25ms);
+}

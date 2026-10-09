@@ -192,3 +192,77 @@
 | W7 | **Noted only.** It's small, and `MAX_HEARTS` is a game rule. Revisit if a third module needs game constants. The commit body can't be changed without rewriting pushed history. |
 
 **Close checks:** 152 tests pass, lint and format are clean. Claim grep: no "answer key on page 2" left as a default claim, no `setSatisfied`, no "Check and hint need".
+
+# Pass 3: slim gate on v1.2, 2026-10-09
+
+**Run:** 2026-10-09. **Scope:** the v1.2 commits, `7284acd..e10193a` (prep, lanes C, P and L, step 22's UX checks). Fixes are on branch `gate3-fixes`.
+**Prior runs:** passes 1 and 2 above. Neither reviewer was shown them.
+**Reviewers:** two read-only Explore subagents, cold. UX pass 2 ran alongside (`nonogram-ux-review.md`); its findings are cross-referenced here where they touch code.
+**Step 0, backlog prune.** Two items were stale: the trust item still said "check" (gone since D13), and "the grid scrolls rather than shrinking" was partly fixed by 20f. Both reworded. "A solved puzzle replays the glow" was re-checked: the picture reveal doesn't replay. The color, solver and feel items keep their triggers.
+
+## Lens 1: Adversarial
+
+- **H1 (NEW, High). "Not started" depended on leaving within a second.** The timer ran from the moment of opening or restarting, and the library calls a save not started only under 1 second. Restart, look at the grid for 2 seconds, leave: "in progress", the exact UX14 complaint. The UX check passed only because it left within milliseconds. UX pass 2 saw it independently (UX14 "partly": 5,714ms after idling).
+- **M1 (NEW, Medium).** The "0" clue for empty lines lived in the shared `renderGrid`, so it reached Create (a tile set, which passes empty clue lists on purpose, got a "0" on every line) and Print (empty lines printed as a pale "0"). The plan said Create and Print were unchanged. No test covered a non-Play caller.
+- **M2 (NEW, Medium).** The save's `hints` bound said "each hint reveals a different cell". Reveal, undo, reveal reveals the same cell twice, and play.js silently capped the count. A wrong reason in a contract.
+- **M3 (NEW, Medium).** On a 25x25 the grid took all the height, so the solved strip landed below the fold.
+- **L1 (NEW, Low).** Continue in Zen doesn't write the Zen default, unlike the switch, and the code didn't say whether that was meant.
+- **L2 (REPEAT-OF-H1 pass 1, shape).** The new `art` field is bounded, but imported `title`, palette `name`, `set.id` and `verdict.sweeps` had no upper bound, and unknown keys pass through. Same unbounded-input shape as pass 1's H1. The art bound counts characters, not decoded pixels.
+- **L3 (NEW, Low).** Art from a pixel-art source is a few pixels and would reveal as a blur.
+- **L4 (NEW, Low).** A 4x4 tile set with art could store about 3.2M characters at worst.
+- **L5 (NEW, Low).** When every solution fill is in but a wrong fill remains (only from an imported save), Reveal silently did nothing.
+- **L6 (NEW, Low).** Tests weaker than their names: the art-bound loop never saw a record with art, no exact-boundary test, the hint reset was checked on one restart path of three, and the not-started check passed on timing.
+- **L7 (NEW, Low).** Create's `createEditHistory` duplicated `createHistory`, which gained `canUndo`/`canRedo` in the same release.
+
+**Verified clean:** D18 resets on all three restart paths; D12; `hintCell`; prefs read strictly; art on every import path, set as an `img` property only, excluded from the id; the Create draft lifecycle and listener cleanup; Play cleanup; library order and `sampleLabel`; the theme flash class; zero clues stay out of the progress flags.
+
+## Lens 2: Outside-reviewer walkthrough
+
+- **W1 (NEW, High).** README described v1.1: no Continue in Zen, Undo buttons, Reveal and hints, the reveal, the library changes, Create's draft. And nothing said a JPEG of the source crop is now stored and goes into backups, which matters for a repo that may go public.
+- **W2 (corroborates M2).** The hints-bound comment contradicts play.js's own comment.
+- **W3 (corroborates L7).** Two lanes built the same undo helper.
+- **W4 (NEW, Medium).** The solve reveal, v1.2's headline, had no automated check: no seeded puzzle had art, yet `play-solved-strip` cited D14.
+- **W5 (NEW, Medium).** PLAN status, the v1 "the source image is never stored" line not marked reversed, the lanes table rows, and two stale backlog items.
+- **W6 (NEW, Medium).** Test names: `check disabled when not unique` (check is gone), and two grid tests whose names read as contradicting each other.
+- **W7 (NEW, Low).** The art-bound test (same as L6), the 0-clue check didn't say which row or check the done style, and a duplicated `solvedSummary` assertion.
+- **W8 (NEW, Low).** Stale comments: "or later a hint", a malformed "(D: UX2)" tag, and a redundant pref cleanup in a UX check.
+- **W9 (same as L1).**
+- **W10 (NEW, Low).** Three commit subject styles across the lanes, and step 22 closed without its docs half.
+- **W11 (NEW, Low).** Three review docs and `ux-checks.html` sit at the project root.
+
+**Cross-lens and cross-review agreement:** H1 was found by the adversarial lens from the code and by UX pass 2 from the screen. M2/W2 and L7/W3 were each found by both lenses.
+
+## Disposition
+
+Owner's calls: "H1: start timer with first click", "rest clean up per your recommendation", and, mid-pass, the auto-cross request recorded as D19.
+
+| ID | Disposition |
+|---|---|
+| H1 | **Fixed** (`34911f0`). The timer starts with the first click on the grid, or a first hint. Restart and open leave it stopped. **Proof, mutation-verified:** with the guard removed, `library-restart-reads-not-started` (now idling 1.5s before leaving) fails with "reads in progress"; with it, it passes. The first attempt at this proof passed with the fix removed, for two reasons: the browser pane was hidden, so `document.hidden` stopped the timer whatever the code did, and the static server let the browser reuse cached modules. The harness now reports the frame as visible (`19f4c00`), and the proof ran on a fresh port with caching off. |
+| M1 | **Fixed** (`34911f0`). `renderGrid` and `gutterSize` take `zeroClues`, and only Play passes it. Test: `without zeroClues (Create, Print), empty lines add no gutter`. |
+| M2, W2 | **Fixed.** The format.js comment and D18 now call the bound a sanity cap. The cap stays. |
+| M3 | **Fixed.** The grid sizing keeps room under the grid for the legend and the strip. |
+| L1, W9 | **Fixed.** A comment says Continue in Zen is a rescue, not a default. |
+| L2 | **Fixed in part.** Upper bounds on `title` and set `title` (500), palette `name` (100), `set.id` and `setId` (200) and `sweeps` (1,000,000), all far above anything the app writes, with tests. Unknown keys and the art pixel size are **accepted residuals** in the PLAN backlog, trigger "sharing puzzles with other people". |
+| L3 | **Fixed** (`cd05a54`). Art from a tiny source is scaled up in whole steps to about 160px with smoothing off, so it stays crisp. Test: `artSize scales pixel art up in whole steps to about 160px`. |
+| L4 | **Accepted residual** in the backlog, trigger "a quota error on save". |
+| L5 | **Fixed.** Reveal says "Nothing left to reveal: a filled square is wrong somewhere." |
+| L6, W7 | **Fixed.** The art test stores a record with art and counts it; an exact-boundary test; `play-hint-counter` covers all three restart paths and Continue in Zen; `play-zero-clue` checks the last row and the done style; duplicate assertion removed. |
+| L7, W3 | **Fixed.** `createEditHistory` removed; Create uses `createHistory`. Its redo-branch case moved into the game test. |
+| W1 | **Fixed.** README rewritten for v1.2, with a "What is stored" paragraph. |
+| W4 | **Fixed** (`19f4c00`). The seed adds a puzzle with art; new check `play-solve-reveal` (fade on a fresh solve, strip after it, no fade on reopening). |
+| W5, W6, W8 | **Fixed.** PLAN status, the reversed v1 line, lanes table, backlog; test renames; comments. |
+| W10 | **Noted only.** Not worth rewriting history. Next lane prompts give one subject style: `v<version> <step> (<lane>): ...`. |
+| W11 | **Deferred.** Trigger: before the repo is made public, move the review docs to `docs/reviews/` and update the links. |
+| D19 | **Done** (owner's request mid-pass). Auto-cross on by default, with crosses sweeping in along the line. New check `play-auto-cross-sweep`. |
+
+**Close checks:** see the Retrospective's close line below once it is filled.
+
+## Retrospective (draft from the record; the owner's lessons still to come)
+
+1. **A check can pass because of where it runs, not what it tests.** The H1 proof first passed with the fix removed: a hidden pane makes `document.hidden` true, and a plain `http.server` lets the browser reuse old modules. Mutation-verifying the one High caught both. *Proposed: applied* (harness forces visible; note added to `/ux-gate-review`'s step 7 to run UX checks on a fresh, no-cache origin when proving a fix).
+2. **A shared module's change reached callers the plan said were unchanged (M1).** The lane owned `grid.js`, and nothing listed its other callers. *Proposed: applied* as a `/plan-review` check: a change to a shared module names every caller and says what each one sees.
+3. **Two lanes built the same helper (L7).** The contract gave `canUndo` to no one, so both Create and Play added it. *Proposed: noted*, folded into lesson 2's check (shared helpers get one owner).
+4. **A bound was added with a wrong reason (M2).** The orchestrator wrote check 9's bound and justified it with a claim the plan's own D18 contradicted. *Proposed: noted only.*
+5. **Every lane used shell text for test files again** (3 of 3, plus the orchestrator once), despite the rule in each prompt. Contents were checked and clean each time. *Proposed: noted only; ask the owner whether to keep the rule for lanes or accept it with a diff check.*
+6. **The one data-integrity bug of the release came from the UX pass, not the code lenses** (UX18: saving a grid that matches an existing puzzle silently renames it, because the id is a content hash). *Proposed: applied* as a Lens 1 prompt item in `/gate-review`: for content-addressed ids, check what happens when new content hashes to an existing record.

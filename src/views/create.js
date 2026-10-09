@@ -14,6 +14,8 @@ import {
   titleFromFile,
   hasFilledCell,
   createEditHistory,
+  hasUnsavedWork,
+  gridSig,
   centerCrop,
   loadScale,
   blankGrid,
@@ -39,6 +41,21 @@ const CSS_ID = 'nng-create-css';
 
 let root = null;
 let teardown = null;
+
+// The unsaved draft (image, crop, settings, cells, history) outlives the view,
+// in memory only: it is restored on the next mount, cleared by a save or by
+// "Start over", and lost on a reload, which is why leaving the page warns.
+let draft = null;
+let liveUnsaved = null; // while mounted: () => whether the editor holds unsaved work
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', (e) => {
+    if (liveUnsaved ? liveUnsaved() : draft !== null) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
+}
 
 function el(tag, props = {}, ...children) {
   const node = document.createElement(tag);
@@ -128,16 +145,20 @@ export function mount(container) {
     document.head.append(link);
   }
 
-  const st = newEditorState({ width: 15, height: 15 });
-  let image = null; // { canvas, w, h, rgba } once decoded
+  // Come back to the draft left by the last visit, if there is one (D: UX2).
+  const restored = draft;
+  draft = null;
+  const st = restored?.st ?? newEditorState({ width: 15, height: 15 });
+  let image = restored?.image ?? null; // { canvas, w, h, rgba } once decoded
   let gridView = null;
   let previewScale = 1;
   const solver = createSolverClient();
   let reportTimer = null;
   let reportRun = 0; // id of the newest report request; older results are dropped
-  let titleTouched = false; // true once the title was typed by hand
-  let history = createEditHistory(st.grid); // hand edits since the last regenerate
-  let baseline = JSON.stringify(st.grid); // the grid as generated, before hand edits
+  let titleTouched = restored?.titleTouched ?? false; // true once the title was typed by hand
+  let history = restored?.history ?? createEditHistory(st.grid); // hand edits since the last regenerate
+  let baseline = restored?.baseline ?? JSON.stringify(st.grid); // the grid as generated, before hand edits
+  let savedSig = restored?.savedSig ?? null; // gridSig of the last successful save
 
   // --- DOM ---
   const errorBox = el('div', { className: 'nng-create-error', hidden: true });
@@ -152,6 +173,7 @@ export function mount(container) {
   const tileRowsSel = sizeSelect(st.tileRows, TILE_COUNTS);
   const tileColsSel = sizeSelect(st.tileCols, TILE_COUNTS);
   const blankBtn = el('button', { type: 'button', text: 'Blank grid' });
+  const startOverBtn = el('button', { type: 'button', text: 'Start over' });
 
   const controls = el(
     'div',
@@ -165,6 +187,7 @@ export function mount(container) {
     resetBtn,
     el('label', {}, invertBox, 'Invert'),
     blankBtn,
+    startOverBtn,
   );
 
   const previewCanvas = el('canvas', { className: 'nng-create-preview' });
@@ -205,7 +228,11 @@ export function mount(container) {
   reportSlot.append(el('h2', { text: 'Solver report' }), badgeLine, reportStatus, tileList);
   const saveSlot = el('div', { className: 'nng-create-slot' });
   saveSlot.dataset.slot = 'save';
-  const titleInput = el('input', { type: 'text', value: 'Untitled', maxLength: 80 });
+  const titleInput = el('input', {
+    type: 'text',
+    value: restored?.title ?? 'Untitled',
+    maxLength: 80,
+  });
   const saveBtn = el('button', { type: 'button', text: 'Save to library', disabled: true });
   const saveNote = el('p', { className: 'nng-create-save-note' });
   const saveMsg = el('p', { className: 'nng-create-save-msg' });
@@ -423,6 +450,7 @@ export function mount(container) {
       showSaveMessage('Could not save: browser storage is full or unavailable.');
       return;
     }
+    savedSig = gridSig(st);
     showSaveMessage('Saved.', [
       ['Play it', '#/play/' + encodeURIComponent(puzzle.id)],
       ['Library', '#/library'],
@@ -468,6 +496,7 @@ export function mount(container) {
       showSaveMessage('Could not save: browser storage is full or unavailable.');
       return;
     }
+    savedSig = gridSig(st);
     showSaveMessage('Saved set.', [['Library', '#/library']]);
   }
 
@@ -689,6 +718,27 @@ export function mount(container) {
     newBlank();
   }
 
+  /** Throw the draft away and return to the editor as first opened. */
+  function onStartOver() {
+    if (
+      hasUnsavedWork(st, savedSig) &&
+      !confirm('Start over? This discards the image and everything you have drawn.')
+    ) {
+      return;
+    }
+    Object.assign(st, newEditorState({ width: 15, height: 15 }));
+    image = null;
+    titleInput.value = 'Untitled';
+    titleTouched = false;
+    savedSig = null;
+    showError(null);
+    fileInput.value = '';
+    resetHistory();
+    syncControls();
+    drawPreview();
+    renderGridNow();
+  }
+
   // Crop drag: pointer movement shifts the crop in image pixels.
   let drag = null;
   function onPreviewDown(e) {
@@ -725,6 +775,7 @@ export function mount(container) {
   resetBtn.addEventListener('click', onReset);
   invertBox.addEventListener('change', onInvert);
   blankBtn.addEventListener('click', onBlank);
+  startOverBtn.addEventListener('click', onStartOver);
   saveBtn.addEventListener('click', onSave);
   undoBtn.addEventListener('click', () => stepHistory(true));
   redoBtn.addEventListener('click', () => stepHistory(false));
@@ -737,10 +788,17 @@ export function mount(container) {
   previewCanvas.addEventListener('pointerup', onPreviewUp);
   previewCanvas.addEventListener('pointercancel', onPreviewUp);
 
+  liveUnsaved = () => hasUnsavedWork(st, savedSig);
   syncControls();
+  drawPreview();
   renderGridNow();
 
   teardown = () => {
+    // Keep unsaved work for the next visit; a saved or empty editor leaves nothing.
+    draft = hasUnsavedWork(st, savedSig)
+      ? { st, image, history, baseline, titleTouched, title: titleInput.value, savedSig }
+      : null;
+    liveUnsaved = null;
     document.removeEventListener('keydown', onKeydown);
     clearTimeout(reportTimer);
     reportRun++;

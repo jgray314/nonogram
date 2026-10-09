@@ -8,6 +8,8 @@ import {
   titleFromFile,
   hasFilledCell,
   createEditHistory,
+  hasUnsavedWork,
+  gridSig,
   centerCrop,
   loadScale,
   blankGrid,
@@ -326,6 +328,20 @@ test('edit history undoes and redoes, and a new edit drops the redo branch', () 
   h.push(c);
   assert.equal(h.canRedo(), false);
   assert.deepEqual(h.undo(), a);
+});
+
+test('hasUnsavedWork is true until the current grid is saved', () => {
+  const st = newEditorState({ width: 5, height: 5 });
+  assert.equal(hasUnsavedWork(st, null), false);
+  st.grid[0][0] = 1;
+  assert.equal(hasUnsavedWork(st, null), true);
+  const sig = gridSig(st);
+  assert.equal(hasUnsavedWork(st, sig), false);
+  st.grid[1][1] = 1;
+  assert.equal(hasUnsavedWork(st, sig), true);
+  // a loaded image counts even when the grid came out empty
+  const blankWithImage = { ...newEditorState({ width: 5, height: 5 }), hasImage: true };
+  assert.equal(hasUnsavedWork(blankWithImage, null), true);
 });
 
 test('hasFilledCell is false for a blank grid and true once a cell is filled', () => {

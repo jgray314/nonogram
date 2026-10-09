@@ -57,6 +57,19 @@ export function createEditHistory(grid) {
   };
 }
 
+/** A string that changes whenever the saved-or-not content of the editor changes. */
+export function gridSig(st) {
+  return JSON.stringify([st.tileRows, st.tileCols, st.grid]);
+}
+
+/**
+ * True while the editor holds work that was not saved: a loaded image or filled
+ * cells, and not exactly what the last successful save wrote (`savedSig`).
+ */
+export function hasUnsavedWork(st, savedSig) {
+  return (st.hasImage || hasFilledCell(st.grid)) && gridSig(st) !== savedSig;
+}
+
 const MAX_TITLE = 60;
 
 /** A puzzle title from a file name: extension dropped, `-` and `_` become spaces. */

@@ -13,9 +13,9 @@ import {
   hintCell,
   isSolved,
   restartCells,
-  satisfiedLines,
   wrongFills,
 } from '../game.js';
+import { clueProgress } from '../clue-progress.js';
 import { createStore } from '../store.js';
 import { validatePuzzle, validateSave, idMatches } from '../format.js';
 import { serializeSaveFile, parseSaveFile, importWrites } from '../save.js';
@@ -218,12 +218,13 @@ export function mount(container, params = {}) {
     outPanel.hidden = !out;
     holder.classList.toggle('nng-locked', out);
     hintBtn.disabled = !(rules.hint && helpers.enabled) || solvedAt !== null || out;
+    // Hearts, check and hint share one requirement, so one sentence covers all three.
     ruleNote.textContent = heartsOk
       ? helpers.note
-      : `Hearts need a puzzle with a unique solution. ${helpers.note}`;
+      : 'Hearts, check and hint need a puzzle with a unique solution.';
     timerEl.textContent = formatTime(elapsedMs);
     grid.update(solvedAt === null ? cells : reveal(cells));
-    grid.setSatisfied(satisfiedLines(cells, clues));
+    grid.setClueDone(clueProgress(cells, clues));
     holder.classList.toggle('nng-celebrate', solvedAt !== null); // styling hook for the solve glow
     solvedMsg.hidden = solvedAt === null;
     solvedMsg.textContent = solvedAt === null ? '' : 'Solved';

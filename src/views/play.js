@@ -15,6 +15,7 @@ import {
   hintCell,
   isSolved,
   restartCells,
+  restartPrompt,
   solvedSummary,
 } from '../game.js';
 import { clueProgress, solutionProgress } from '../clue-progress.js';
@@ -517,9 +518,7 @@ export function mount(container, params = {}) {
     persist();
   }
   restartBtn.addEventListener('click', () => {
-    if (confirm('Restart this puzzle? Progress and hearts reset, and this cannot be undone.')) {
-      restart();
-    }
+    if (confirm(restartPrompt(zen()))) restart();
   });
   // Out of hearts there is nothing left to lose, so this one skips the confirm.
   outRestartBtn.addEventListener('click', restart);

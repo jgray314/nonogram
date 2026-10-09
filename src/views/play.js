@@ -107,6 +107,12 @@ export function mount(container, params = {}) {
     outRestartBtn,
     outZenBtn,
   );
+  const sizeNote = el(
+    'p',
+    'nng-size-note',
+    "This puzzle is big for this screen, so the grid scrolls. It's easiest on a wider window.",
+  );
+  sizeNote.hidden = true;
   const holder = el('div', 'nng-grid-holder');
   const toolbar = el('div', 'nng-toolbar');
   const exportBtn = el('button', undefined, 'Export save');
@@ -160,7 +166,18 @@ export function mount(container, params = {}) {
     'nng-rule-default',
     "Zen and Auto-cross also apply to puzzles you haven't started yet.",
   );
-  root.append(title, status, outPanel, rulesBar, ruleDefault, toolbar, holder, strip, legend);
+  root.append(
+    title,
+    status,
+    outPanel,
+    rulesBar,
+    ruleDefault,
+    toolbar,
+    sizeNote,
+    holder,
+    strip,
+    legend,
+  );
   container.append(root);
 
   const clues = puzzleClues(puzzle.solution);
@@ -408,7 +425,11 @@ export function mount(container, params = {}) {
     const clueW = px('--clue-w', 22);
     const clueH = px('--clue-h', 18);
     const chrome = 28; // holder padding (16) and the grid's own padding (12)
-    const lost = outPanel.hidden ? 0 : outPanel.offsetHeight + 8; // not part of the steady layout
+    // The out-of-hearts panel and the size note aren't part of the steady layout,
+    // so the note appearing can't change the size that decided to show it.
+    const lost =
+      (outPanel.hidden ? 0 : outPanel.offsetHeight + 8) +
+      (sizeNote.hidden ? 0 : sizeNote.offsetHeight + 8);
     // Room under the grid for the legend and the solved strip, so "Back to
     // library" lands on screen after a solve (gate pass 3, M3).
     const below = legend.offsetHeight + 44;
@@ -420,6 +441,13 @@ export function mount(container, params = {}) {
     const byHeight = (avail - chrome - gutter.top * clueH) / puzzle.height;
     const byWidth = (holder.clientWidth - chrome - gutter.left * clueW) / puzzle.width;
     const size = Math.max(16, Math.min(32, Math.floor(Math.min(byHeight, byWidth))));
+    // D20: at the 16px floor and still too big for the holder, say the grid scrolls.
+    sizeNote.hidden = !(
+      holder.clientWidth > 0 && // no layout (a test DOM) means nothing to measure
+      size === 16 &&
+      (puzzle.width * 16 + gutter.left * clueW + chrome > holder.clientWidth ||
+        puzzle.height * 16 + gutter.top * clueH + chrome > avail)
+    );
     holder.style.setProperty('--cell', `${size}px`);
     holder.style.maxHeight = `${Math.max(200, Math.floor(avail))}px`;
   }

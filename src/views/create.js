@@ -11,6 +11,8 @@ import { isFair } from '../difficulty.js';
 import {
   SIZES,
   defaultSize,
+  titleFromFile,
+  hasFilledCell,
   centerCrop,
   loadScale,
   blankGrid,
@@ -132,6 +134,7 @@ export function mount(container) {
   const solver = createSolverClient();
   let reportTimer = null;
   let reportRun = 0; // id of the newest report request; older results are dropped
+  let titleTouched = false; // true once the title was typed by hand
 
   // --- DOM ---
   const errorBox = el('div', { className: 'nng-create-error', hidden: true });
@@ -312,6 +315,19 @@ export function mount(container) {
 
   function showReport() {
     const multi = tiled();
+    if (!hasFilledCell(st.grid)) {
+      // Nothing to check: no verdict, and nothing worth saving.
+      badgeLine.hidden = multi;
+      tileList.replaceChildren();
+      reportStatus.textContent = 'Fill in some cells to see a report.';
+      reportBadge.textContent = 'Unchecked';
+      reportBadge.dataset.label = 'Unchecked';
+      gridView?.setHighlight([]);
+      saveBtn.textContent = multi ? 'Save set' : 'Save to library';
+      saveBtn.disabled = true;
+      saveNote.textContent = '';
+      return;
+    }
     badgeLine.hidden = multi;
     tileList.replaceChildren();
     const highlight = [];
@@ -450,6 +466,7 @@ export function mount(container) {
     reports = tiles.map(() => ({ phase: 'pending', result: null }));
     saveMsg.replaceChildren();
     showReport();
+    if (!hasFilledCell(st.grid)) return; // nothing to solve yet
     reportTimer = setTimeout(async () => {
       // One tile at a time through the worker.
       for (let i = 0; i < tiles.length; i++) {
@@ -551,6 +568,7 @@ export function mount(container) {
       return;
     }
     image = decoded;
+    if (!titleTouched) titleInput.value = titleFromFile(file.name);
     st.hasImage = true;
     st.offset = { dx: 0, dy: 0 };
     st.autoThreshold = true;
@@ -657,6 +675,9 @@ export function mount(container) {
   invertBox.addEventListener('change', onInvert);
   blankBtn.addEventListener('click', onBlank);
   saveBtn.addEventListener('click', onSave);
+  titleInput.addEventListener('input', () => {
+    titleTouched = true;
+  });
   previewCanvas.addEventListener('pointerdown', onPreviewDown);
   previewCanvas.addEventListener('pointermove', onPreviewMove);
   previewCanvas.addEventListener('pointerup', onPreviewUp);

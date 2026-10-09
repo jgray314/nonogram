@@ -16,12 +16,35 @@ function nearestSize(target) {
   return best;
 }
 
-/** Long side 15; short side the SIZES value closest to 15 * short / long (min 5). */
+/**
+ * A source whose own size is a preset on both sides (pixel art) keeps it.
+ * Otherwise: long side 15; short side the SIZES value closest to 15 * short / long (min 5).
+ */
 export function defaultSize(imgW, imgH) {
+  if (SIZES.includes(imgW) && SIZES.includes(imgH)) return { width: imgW, height: imgH };
   const long = Math.max(imgW, imgH);
   const short = Math.min(imgW, imgH);
   const s = Math.max(5, nearestSize((LONG_SIDE * short) / long));
   return imgW >= imgH ? { width: LONG_SIDE, height: s } : { width: s, height: LONG_SIDE };
+}
+
+const MAX_TITLE = 60;
+
+/** A puzzle title from a file name: extension dropped, `-` and `_` become spaces. */
+export function titleFromFile(name) {
+  const base = String(name ?? '')
+    .trim()
+    .replace(/\.[^./\\]*$/, '')
+    .replace(/[-_\s]+/g, ' ')
+    .trim()
+    .slice(0, MAX_TITLE)
+    .trim();
+  return base || 'Untitled';
+}
+
+/** True when at least one cell of the grid is filled. */
+export function hasFilledCell(grid) {
+  return grid.some((row) => row.some((v) => v !== 0));
 }
 
 /**

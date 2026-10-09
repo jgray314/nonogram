@@ -5,6 +5,8 @@ import { makeSet, tileGrid } from '../src/tiles.js';
 import {
   SIZES,
   defaultSize,
+  titleFromFile,
+  hasFilledCell,
   centerCrop,
   loadScale,
   blankGrid,
@@ -281,4 +283,31 @@ test('set save rollback spares records that existed before (gate M4)', () => {
     ['puzzle', 'new'],
     ['set', 's'],
   ]);
+});
+
+test('defaultSize keeps a preset-sized source', () => {
+  assert.deepEqual(defaultSize(20, 20), { width: 20, height: 20 });
+  assert.deepEqual(defaultSize(25, 10), { width: 25, height: 10 });
+  assert.deepEqual(defaultSize(5, 15), { width: 5, height: 15 });
+  // only when both sides are presets
+  assert.deepEqual(defaultSize(20, 21), { width: 15, height: 15 });
+});
+
+test('titleFromFile cleans a file name', () => {
+  assert.equal(titleFromFile('my-cat_2.png'), 'my cat 2');
+  assert.equal(titleFromFile('  Photo.final.JPG '), 'Photo.final');
+  assert.equal(titleFromFile('x'.repeat(80) + '.png'), 'x'.repeat(60));
+});
+
+test('titleFromFile falls back to Untitled', () => {
+  assert.equal(titleFromFile('.png'), 'Untitled');
+  assert.equal(titleFromFile('---.gif'), 'Untitled');
+  assert.equal(titleFromFile(''), 'Untitled');
+});
+
+test('hasFilledCell is false for a blank grid and true once a cell is filled', () => {
+  const g = blankGrid(5, 5);
+  assert.equal(hasFilledCell(g), false);
+  g[2][3] = 1;
+  assert.equal(hasFilledCell(g), true);
 });

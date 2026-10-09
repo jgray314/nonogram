@@ -5,7 +5,6 @@ import {
   satisfiedLines,
   isSolved,
   createHistory,
-  wrongFills,
   hintCell,
   autoCross,
   helpersAvailability,
@@ -93,16 +92,6 @@ test('history does not alias caller arrays', () => {
   const h = createHistory(g);
   g[0][0] = 1;
   assert.deepEqual(h.current(), [[0, 0]]);
-});
-
-test('check flags only wrong fills', () => {
-  const cells = [
-    [1, 1, -1], // correct fills; a cross on an empty solution cell
-    [-1, 0, 0], // a cross on an empty solution cell
-    [-1, 1, 1], // wrong cross at (2,0) is not flagged; wrong fill at (2,1) is
-  ];
-  assert.deepEqual(wrongFills(cells, SOL), [[2, 1]]);
-  assert.deepEqual(wrongFills(SOL, SOL), []);
 });
 
 test('hint reveals an unsolved cell', () => {

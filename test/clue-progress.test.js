@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { clueProgress } from '../src/clue-progress.js';
+import { clueProgress, solutionProgress } from '../src/clue-progress.js';
 
 const k = (...ns) => ns.map((n) => ({ n, c: 1 }));
 // One-row puzzle helper: row clues + the row, columns left empty-ish.
@@ -78,4 +78,39 @@ test('adjacent runs of different colors are not closed by each other', () => {
 test('columns are scanned too', () => {
   const clues = { rows: [[], [], []], cols: [k(1, 1)] };
   assert.deepEqual(clueProgress([[1], [-1], [0]], clues).cols[0], [true, false]);
+});
+
+// Hearts mode (D11): a number is done once its block in the solution is filled.
+const SOL = [
+  [1, 1, 0, 1],
+  [0, 1, 0, 1],
+];
+
+test('hearts rule: a complete block is done without crosses around it', () => {
+  const cells = [
+    [1, 1, 0, 0],
+    [0, 0, 0, 0],
+  ];
+  assert.deepEqual(solutionProgress(cells, SOL).rows[0], [true, false]);
+});
+
+test('hearts rule: a partly filled block is not done', () => {
+  const cells = [
+    [1, 0, 0, 1],
+    [0, 0, 0, 0],
+  ];
+  assert.deepEqual(solutionProgress(cells, SOL).rows[0], [false, true]);
+});
+
+test('hearts rule: columns follow the same rule', () => {
+  const cells = [
+    [0, 1, 0, 1],
+    [0, 1, 0, 0],
+  ];
+  // Columns of SOL: [1,0], [1,1], [0,0], [1,1].
+  assert.deepEqual(solutionProgress(cells, SOL).cols, [[false], [true], [], [false]]);
+});
+
+test('hearts rule: a block filled with the wrong color is not done', () => {
+  assert.deepEqual(solutionProgress([[2, 2]], [[1, 1]]).rows[0], [false]);
 });

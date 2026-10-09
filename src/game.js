@@ -57,17 +57,6 @@ export function createHistory(cells) {
   };
 }
 
-/** Filled cells whose solution value is empty. Wrong crosses are never flagged. */
-export function wrongFills(cells, solution) {
-  const out = [];
-  cells.forEach((row, r) =>
-    row.forEach((v, c) => {
-      if (v >= 1 && solution[r][c] === 0) out.push([r, c]);
-    }),
-  );
-  return out;
-}
-
 /**
  * The first row-major cell whose state disagrees with the solution, with the
  * value that fixes it: the filled color, or -1 (crossed) for an empty cell.
@@ -101,13 +90,13 @@ export function autoCross(cells, clues, before = null) {
   return next;
 }
 
-/** Check and hint compare against the stored solution, so they need a unique puzzle. */
+/** Mistake marks, hearts and hints compare against the stored solution, so they need a unique puzzle. */
 export function helpersAvailability(verdict) {
   if (isFair(verdict)) return { enabled: true, note: '' };
   return {
     enabled: false,
     // Hearts share this requirement (heartsAvailable), so one note covers all three.
-    note: 'Hearts, check and hint need a puzzle with a unique solution.',
+    note: 'Hearts, mistake marks and hints need a puzzle with a unique solution.',
   };
 }
 

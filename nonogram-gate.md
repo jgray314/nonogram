@@ -185,7 +185,7 @@
 | W4 | **Fixed.** A fresh game starts from `restartCells`. |
 | L4, W5 | **Fixed.** One note in `helpersAvailability`, used as is. Plan text updated. `heartsAvailable` stays as a named alias. |
 | L5, L6, W6 | **Fixed.** Comments, the `restartCells` test now asserts a literal grid, the test with the over-narrow name is split, and decisions are marked superseded. |
-| L3 | **Open, owner decision.** Should switching to Zen mid-game be allowed, or only through Restart? |
+| L3 | **Fixed** by owner decision D12. Switching back from Zen to hearts restarts the puzzle. Manual check in the browser. |
 | L1 | **Accepted residual.** It only arises from a hand-edited import, and this is a personal tool. Trigger: sharing puzzles with other people, at which point imports re-solve. Recorded in the PLAN backlog. |
 | L2 | **Accepted.** Solved wins, and the heart loss still shows. |
 | L7 | **Accepted.** Consistent with the spec. Only reachable by editing a save. |

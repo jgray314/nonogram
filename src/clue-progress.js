@@ -1,6 +1,9 @@
 // Per-number clue progress for the play view. Pure, no DOM.
-// A number is done only when its block is closed in at the matching position
-// from either edge, as most nonogram apps do it.
+// Two rules (D11, D13): with a unique solution, a number is done once its
+// solution block is filled (solutionProgress); wrong fills are caught on the
+// spot in both modes, so this reveals nothing. Without a unique solution there
+// is no answer to compare against, so a number is done only when its block is
+// closed in at the matching position from either edge (clueProgress).
 // Cell encoding: 0 unknown, -1 crossed, k >= 1 filled.
 import { lineSatisfied } from './game.js';
 
@@ -61,4 +64,35 @@ export function clueProgress(cells, clues) {
     ),
   );
   return { rows, cols };
+}
+
+/** One flag per solution block in a line: true when every cell of the block is filled with its color. */
+function blocksFilled(lineCells, lineSolution) {
+  const flags = [];
+  let i = 0;
+  while (i < lineSolution.length) {
+    const v = lineSolution[i];
+    if (v === 0) {
+      i += 1;
+      continue;
+    }
+    let j = i;
+    let filled = true;
+    while (j < lineSolution.length && lineSolution[j] === v) {
+      if (lineCells[j] !== v) filled = false;
+      j += 1;
+    }
+    flags.push(filled);
+    i = j;
+  }
+  return flags;
+}
+
+/** Hearts-mode progress, same shape as clueProgress: a number is done when its solution block is filled. */
+export function solutionProgress(cells, solution) {
+  const column = (grid, c) => grid.map((row) => row[c]);
+  return {
+    rows: solution.map((line, r) => blocksFilled(cells[r], line)),
+    cols: solution[0].map((_, c) => blocksFilled(column(cells, c), column(solution, c))),
+  };
 }

@@ -3,7 +3,7 @@
 ## Plan review: Nonogram Studio v1, 2026-10-08
 
 **Scope:** top-level plan, reviewed against `tools/nonogram/PLAN.md` (D1 to D5 closed).
-**Note:** this isn't a portfolio or AI project. Checks 1, 4 and 8 were applied by analogy, not against JSCC's shape.
+**Note:** this isn't an AI-feature or showcase project. Checks 1, 4 and 8 (eval sizing, personal-data mitigations, signature-signal coverage) were applied by analogy.
 
 **Findings:**
 - **#2, Steps 3 and 4.** The one hard "never" property is *never call an ambiguous puzzle fair*. The plan relied only on hand-picked fixtures. **Fixed.**
@@ -18,14 +18,14 @@
 - **#7, Step 6.** Stroke rules for a right-click on a filled cell, and for fill strokes crossing X'd cells, weren't specified. The step was also oversized. **Fixed:** split into 6a (shell, render, hash routes) and 6b (a full stroke rule table).
 - **#7, Step 11.** Oversized. **Fixed:** split into 11a (editor) and 11b (live report).
 - **#4 by analogy, Step 12.** Source photos are personal data, and the plan didn't say whether they're stored. **Fixed, structurally:** the image is never stored, and the test `library record has no image data` enforces it.
-- **#7, Scope and step 10. Open, needs Jess.** Grid shape (square only, or independent width and height) and image aspect handling aren't specified. Two implementers would diverge. Logged as Q6 in the plan. Blocks step 10 only.
+- **#7, Scope and step 10. Open, needs the owner.** Grid shape (square only, or independent width and height) and image aspect handling aren't specified. Two implementers would diverge. Logged as Q6 in the plan. Blocks step 10 only.
 
 **Clean checks:**
 - #1: no evals, since nothing in the pipeline is non-deterministic.
 - #3: tooling is in step 0.
 - #5: no parallel slices.
 - #6: D1 to D5 each have reasoning and rejected alternatives.
-- #8: N/A as a portfolio check. The project's own core feature, the fairness report, is in v1 (steps 3, 4 and 11b), not deferred.
+- #8: N/A as written (it targets showcase projects). The project's own core feature, the fairness report, is in v1 (steps 3, 4 and 11b), not deferred.
 
 **Verdict:** Ready to execute steps 0 to 9. Q6 must close before step 10.
 
@@ -50,7 +50,7 @@
    - `src/library.js` was dropped from L.
 2. **#5, steps 5 and 12b: contract contradiction.** Step 5's id hash excluded `set`. Step 12b required it, so lane B would have had to edit `format.js`, which lane C owns. **Fixed:** the hash covers `set` in step 5's contract, and the test `id includes set position` was added there.
 3. **#5, D2 save record and 12d: missing field.** The set mosaic counts solved tiles, but the save record had no solved field. That dependency would have been invented mid-lane. **Fixed:** `solvedAt` added to the save record, and step 7 sets it.
-4. **#5, Branching: the worktree method wouldn't work.** The Agent tool's built-in worktree isolation branches the session's repo, and `context-directory/` isn't a git repo. **Fixed:** worktrees are made by hand with `git worktree add`, with one `npm ci` per worktree.
+4. **#5, Branching: the worktree method wouldn't work.** The Agent tool's built-in worktree isolation branches the session's repo, and the session's working folder isn't a git repo. **Fixed:** worktrees are made by hand with `git worktree add`, with one `npm ci` per worktree.
 5. **#7, step 6b: the stroke rules contradicted themselves.** "Left on crossed fills" clashed with "a fill stroke skips crossed cells". **Fixed:**
    - A full table: button by first cell, giving the action and which cells it changes.
    - Crosses are protected from left strokes. One stroke is one undo step.
@@ -80,26 +80,26 @@
 - #8 the fairness report (4a, 4b, 11b) is still in v1 and gained the oracle.
 
 **Not changed, flagged:**
-- `.claude/launch.json` is listed in step 0's owned files, but it lives at the session root, not in the nonogram repo. Harmless.
+- The local serve config is listed in step 0's owned files, but it lives outside the repo. Harmless.
 - D3 has no rejected alternative written down. Trivial.
 
 **Verdict:** Ready to execute. Blocked only on the Node install.
 
 ## Plan review, pass 3: execution mechanics, 2026-10-08
 
-**Scope:** the whole `PLAN.md`, read cold. Node v24.20.0 confirmed installed, and git identity confirmed (Jess Gray, noreply). Pass 2 covered the specs. This pass focuses on what breaks once 4 subagents actually start.
+**Scope:** the whole `PLAN.md`, read cold. Node v24.20.0 confirmed installed, and git identity confirmed (owner's name, noreply email). Pass 2 covered the specs. This pass focuses on what breaks once 4 subagents actually start.
 
 **Findings (all fixed in the plan):**
 1. **#5, step 0 and lane A: shared-file conflict.** Lane A needs a `test:slow` script in `package.json`, which step 0 owns. Any lane adding a script would create merge conflicts. **Fixed:** step 0 defines every script up front (`test`, `test:slow`, `lint`, `format:check`), and lanes never edit `package.json`. The test file convention is `test/<module>.test.js`.
-2. **Structural, not habitual, Branching: co-author trailer.** "No AI co-author trailer" was a rule, but subagents receive the default attribution instruction, and this exact failure has already recurred twice on jscc (memory: no-coauthor-trailer). **Fixed:**
+2. **Structural, not habitual, Branching: co-author trailer.** "No AI co-author trailer" was a rule, but subagents receive the default attribution instruction, and this exact failure has already recurred twice in another of the owner's repos. **Fixed:**
    - A `commit-msg` hook rejects the trailer. It's shared by every worktree.
-   - Commits use a repo-local Jess Gray identity.
+   - Commits use a repo-local identity for the owner.
 3. **#5, [manual] steps under parallel lanes: one browser pane.** There's one pane. W3's three UI lanes each have [manual] checks, so parallel agents would collide in it. **Fixed:** lanes only run Node tests, and the orchestrator does manual checks one at a time on merged `main`.
-4. **Coding-preferences carry-over: no runaway rule for lanes.** The two-failures-then-stop rule and the check-in cadence weren't carried into the lanes. A stuck subagent would loop unseen. **Fixed:**
+4. **Owner's working-rules carry-over: no runaway rule for lanes.** The two-failures-then-stop rule and the check-in cadence weren't carried into the lanes. A stuck subagent would loop unseen. **Fixed:**
    - The Lane rules block goes into every lane prompt: stop after 2 failures, never edit contracts, paste real test output.
    - Check-ins happen at each merge and each wave boundary.
 5. **#7, step 4b: untestable unit claimed as tested.** The worker wrapper sat under a "Tests:" list but can't run in `node --test`. **Fixed:** it's marked as a thin shell, checked [manual] in 11b.
-6. **#7, step 0: launch.json location.** Pass 2 flagged the location but didn't fix it. **Fixed:** the entry is in the session-root `.claude/launch.json`, using `--directory tools/nonogram`.
+6. **#7, step 0: launch.json location.** Pass 2 flagged the location but didn't fix it. **Fixed:** the entry is in the serve config outside the repo, using `--directory`.
 
 **Verified, no change:**
 - `crypto.subtle` is global in Node 24 and available in the browser on localhost (a secure context). The id hash contract holds in both places.
@@ -146,7 +146,7 @@
 
 ## Plan review, pass 5: traceability, 2026-10-08
 
-**Scope:** the whole `PLAN.md`. This pass traced every research finding, decision (D1 to D5, Q6, Q7) and scope line to the step that builds it. It also added the "Limits of plan-only review" section Jess asked for.
+**Scope:** the whole `PLAN.md`. This pass traced every research finding, decision (D1 to D5, Q6, Q7) and scope line to the step that builds it. It also added the "Limits of plan-only review" section the owner asked for.
 
 **Findings (all fixed in the plan):**
 1. **#7, Q6 and step 10: a closed decision with no step building it.** Q6 (width and height picked independently, aspect-based default, draggable crop) was decided, but step 10 still said "size presets". **Fixed:** step 10 now includes the size picker, `defaultSize`, the crop offset and tests.
@@ -154,9 +154,9 @@
 3. **#7, D4 and step 7: keyboard behavior undefined.** D4 says "mouse and keyboard", but no step defined keyboard behavior. **Fixed:** Ctrl+Z, Ctrl+Y and Ctrl+Shift+Z work for undo and redo. Moving a cursor by keyboard is explicitly out of v1.
 4. **#7, step 12: difficulty couldn't be shown.** The library couldn't show difficulty because `verdict` stored only the status, and difficulty needs sweeps. **Fixed:** `verdict` is now `{status, sweeps}`, with the test `difficulty label from verdict`.
 5. **Process fit, step 4b: the merge gate could get slow.** Two exhaustive 4x4 tests run on every merge, against "fast check" expectations. **Fixed:** a runtime rule. The default `npm test` stays under about 10s, otherwise the exhaustive tests move to `test:slow` and the default suite keeps a seeded 2,000-grid sample.
-6. **Risks: the "image conversion" risk had no mitigation that happens before step 10.** **Fixed:** the Limits table asks Jess for 3 to 5 sample images by W3. The UI hint about which images convert well moved into step 10.
+6. **Risks: the "image conversion" risk had no mitigation that happens before step 10.** **Fixed:** the Limits table asks the owner for 3 to 5 sample images by W3. The UI hint about which images convert well moved into step 10.
 
-**Added at Jess's request:**
+**Added at the owner's request:**
 - A **Limits of plan-only review** section listing 6 unknowns a plan can't settle, each with its earliest real evidence.
 - A **W1r retro checkpoint**, so step estimates, solver performance and subagent behavior get checked before W2 builds on them.
 

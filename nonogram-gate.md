@@ -56,7 +56,7 @@
 
 ## Lens 2: Outside-reviewer walkthrough
 
-- **W1 (NEW, High).** No README. The only run instructions were buried in PLAN.md step 0 and the toolkit entry.
+- **W1 (NEW, High).** No README. The only run instructions were buried in PLAN.md step 0 and the owner's local tool index.
 - **W2 (NEW, High).** PLAN.md reads as a future-tense spec and build log, not a record of what exists. The lane and branch machinery dominates it.
 - **W3 (NEW, High).** A dev-only `#/play/demo` route shipped in the UI and bypassed the store.
 - **W4 (NEW, High).** PLAN.md had uncommitted edits: the backlog section, which was in progress at review time.
@@ -92,14 +92,14 @@
 | W3 | **Fixed** `bc3d580`. Demo route removed. Samples cover the use. |
 | W4 | **Fixed** `efecb74` (the backlog committed). |
 | W5 | **Fixed** `6fca7ac`. Q6 and step 10 now state the as-built rule. |
-| W6 | **Rejected.** Jess's standing rule (memory and coding-preferences) is no AI co-author trailer in her personal repos, and the commit hook enforces it. The session's default convention doesn't override her instruction. |
+| W6 | **Rejected.** The owner's standing rule is no AI co-author trailer in their personal repos, and the commit hook enforces it. The session's default convention doesn't override the owner's instruction. |
 | W7 | **Fixed** `6fca7ac` (no hard-coded count) and `efecb74` (the test now matches its description). |
 | W8 | **Deferred** with W2, to the next plan edit. |
 | W9 to W11 | **Fixed** `efecb74`. |
 | W12 | **Deferred.** Trigger: the next change touching two or more views. Extract `src/views/dom.js`, a shared download helper, and one CSS-loading convention then. Duplication beats premature reuse until a change has to touch all copies. |
 | W13 | **Noted only.** Most are test seams. Un-exporting would force tests through views. |
 | W14 | **Fixed** `6fca7ac`. |
-| W15 | Plan-review doc: **kept**, and the README now points to it. Worktrees: **pending Jess**. They're merged and safe to remove, but deleting needs her OK. |
+| W15 | Plan-review doc: **kept**, and the README now points to it. Worktrees: **pending the owner**. They're merged and safe to remove, but deleting needs the owner's OK. |
 | W16, W17 | **Noted only.** The color drift is test-pinned, and the naming is cosmetic. |
 
 **Close checks:**
@@ -107,11 +107,11 @@
 - **Claim grep:** "demo" and "119 tests" appear nowhere in `src/`, README or PLAN status. The default-size claim was updated in both places it appears.
 - **Checks:** `npm test` passes 125 of 125, and lint and format are clean.
 - **CHANGELOG:** none to compact (this repo has none, by design).
-- **Memory:** no project memory file tracks open findings for this tool.
+- **Cross-session notes:** the owner's notes outside the repo list the open items.
 
 ## Retrospective
 
-**Draft from the phase record.** Each lesson cites its evidence. These are awaiting Jess's lessons before being finalized.
+**Draft from the phase record.** Each lesson cites its evidence. These are awaiting the owner's lessons before being finalized.
 
 1. **Lane reports can't be trusted as the record. The branch is.** Two of about 12 lane runs returned an empty or placeholder report (lane B step 2; creator steps 11b to 12c). Another broke the two-failure stop rule (lane A made a third attempt). Every merge was verified from `git log`, the diff, and a fresh `npm test`, and that caught nothing wrong. The verification habit is what made the reports' unreliability harmless.
 2. **The hand checks in the browser found bugs no test could.** These were all found by running the merged app in the browser pane:
@@ -125,6 +125,6 @@
 6. **Sonnet was enough for every contract-bound lane.** No step hit the upgrade-to-Opus rule. The solver, the hardest step, passed both of the reviewer's independent oracles.
 7. **(Orchestrator working style.)** Shell heredocs mangled backslash escapes twice: once in a plan edit, once in the XML escape regex. Content heavy in escapes goes through the file editor or `chr()`, not the shell.
 
-**Jess's lessons:** *pending. Ask what surprised her, what cost more time than it should have, what she'd change at the start next time, what should become standard, and where the process or the assistant got in the way.*
+**Owner's lessons:** *pending. Ask what surprised them, what cost more time than it should have, what she'd change at the start next time, what should become standard, and where the process or the assistant got in the way.*
 
-**Dispositions:** *pending, until Jess's lessons are in.*
+**Dispositions:** *pending, until the owner's lessons are in.*

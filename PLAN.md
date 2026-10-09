@@ -1,7 +1,7 @@
 # Nonogram Studio — Plan
 
 **Created:** 2026-10-08
-**Status:** All build steps (0 to 12s) merged to main and checked by hand in the browser, 2026-10-08. Run `npm test` for the current count. Registered in the toolkit. Remaining in step 13: `/gate-review`, Jess's print preview check, and difficulty calibration by play.
+**Status:** All build steps (0 to 12s) merged to main and checked by hand in the browser, 2026-10-08. Run `npm test` for the current count. Registered in the owner's local tool index. Remaining in step 13: `/gate-review`, a hands-on print preview check, and difficulty calibration by play.
 **Platform:** web browser, desktop first.
 **What it is:** A personal tool to turn an image (your own picture, no AI in the content) into a nonogram, check that it's a fair puzzle, then play it with state saved. Single user, no accounts.
 
@@ -108,7 +108,7 @@ Tags on each step read `[wave·lane]`. Steps in the same wave but different lane
 
 | Wave | Lane | Steps | Depends on | Owns files |
 |---|---|---|---|---|
-| 0 | n/a | 0 setup | none | `package.json` (all scripts), lint/format config, `.git/hooks/commit-msg`, session-root `.claude/launch.json` |
+| 0 | n/a | 0 setup | none | `package.json` (all scripts), lint/format config, `.git/hooks/commit-msg`, a local serve config outside the repo |
 | W1 | A, logic core | 1 → 3 → 4a → 4b | 0 | `src/clues.js`, `src/solver.js`, `src/solver.worker.js` + tests |
 | W1 | B, image | 2 | 0 | `src/image.js` + test |
 | W1 | C, format | 5 | 0 | `src/format.js` + test |
@@ -151,7 +151,7 @@ Tags on each step read `[wave·lane]`. Steps in the same wave but different lane
 
 **Branching.** `tools/nonogram/` becomes its own local git repo in step 0.
 - **`main` is always green.** Nothing lands on it without the full `npm test` and lint passing after the merge.
-- **One branch per lane.** Each runs in its own git worktree under its own subagent. The worktrees are made by hand with `git worktree add ../nonogram-wt/<lane> -b lane/<lane>`, and each subagent is pointed at its own path. The Agent tool's built-in worktree isolation can't be used, because it branches the session's repo and `context-directory/` isn't one. Each worktree runs its own `npm ci`. Lane branches: `lane/a-core`, `lane/b-image`, `lane/c-format`, `lane/d-strokes`, `lane/p-player`, `lane/k-creator`, `lane/l-library`. The W2 gate and W4 run on `main` or on a short `step/<n>` branch.
+- **One branch per lane.** Each runs in its own git worktree under its own subagent. The worktrees are made by hand with `git worktree add ../nonogram-wt/<lane> -b lane/<lane>`, and each subagent is pointed at its own path. The Agent tool's built-in worktree isolation can't be used, because it branches the session's repo, which isn't this one. Each worktree runs its own `npm ci`. Lane branches: `lane/a-core`, `lane/b-image`, `lane/c-format`, `lane/d-strokes`, `lane/p-player`, `lane/k-creator`, `lane/l-library`. The W2 gate and W4 run on `main` or on a short `step/<n>` branch.
 - **Commits.** A lane commits per step, test first then code, inside its worktree. It only touches the files listed for it above.
 - **Merging is the orchestrator's job.** Merges use `--no-ff`, one lane at a time, so a failure points at one lane. `npm test` runs after each merge, and a red merge gets reverted, not fixed on `main`.
 - **Lanes merge per step, not per lane.** A step merges as soon as its tests pass, so dependents can start. Lane A merges step 1 (`clues.js`) right away, which unblocks the W2 gate and 5x without waiting on the solver. A lane that needs another lane's merged step runs `git merge main` in its worktree first. The "Depends on" column names steps, not whole lanes.
@@ -161,7 +161,7 @@ Tags on each step read `[wave·lane]`. Steps in the same wave but different lane
 - **Local only.** Pushing to GitHub isn't in scope unless you ask.
 
 **Lane rules** (every lane prompt includes them):
-- **Lane subagents run on Sonnet** (`model: "sonnet"`, which is Sonnet 5.5), at Jess's request on 2026-10-08. The orchestrator (Opus) merges, runs the manual checks and holds the contracts. **Upgrade rule:** if a Sonnet lane hits the two-failure stop, the orchestrator takes that step over on Opus. It doesn't relaunch Sonnet on the same step.
+- **Lane subagents run on Sonnet** (`model: "sonnet"`, which is Sonnet 5.5), at the owner's request on 2026-10-08. The orchestrator (Opus) merges, runs the manual checks and holds the contracts. **Upgrade rule:** if a Sonnet lane hits the two-failure stop, the orchestrator takes that step over on Opus. It doesn't relaunch Sonnet on the same step.
 - Only touch the files your lane owns. If a contract seems wrong, stop and report back. Never edit a contract or another lane's file.
 - **Two failed attempts at the same test means stop and report** what you tried and what happened. Don't keep trying variations.
 - Logic is tested in Node. Lanes don't drive the browser pane.
@@ -174,12 +174,12 @@ Tags on each step read `[wave·lane]`. Steps in the same wave but different lane
 ### Phase 0. Setup
 0. `[seq]` Node is installed (v24.20.0, verified 2026-10-08). Setup:
    - `git init` with a `main` branch and a `.gitignore` covering `node_modules/`.
-   - A repo-local git identity: Jess Gray, with the noreply email.
+   - A repo-local git identity: the owner's name, with their GitHub noreply email.
    - A **`commit-msg` hook that rejects any `Co-Authored-By` trailer.** It lives in `.git/hooks`, which every worktree shares, so subagent commits are covered too.
    - `package.json` with **every script the lanes will need, defined up front**: `test`, `test:slow`, `lint`, `format:check`. Lanes never edit `package.json`.
    - ESLint (flat config with browser and Node globals) and Prettier. **ESLint bans `innerHTML`, `outerHTML` and `insertAdjacentHTML`** (`no-restricted-properties`). Titles come from imported files, so all text renders through `textContent`. This is a structural rule, not something to remember.
    - Test files go in `test/<module>.test.js`.
-   - The serve entry `nonogram` in the session-root `ClaudeCodeWork/.claude/launch.json`: `python -m http.server 8123 --directory context-directory/tools/nonogram`.
+   - A local serve entry outside the repo: `python -m http.server 8123`, run from the repo root.
    - `.gitattributes` forces LF line endings, so Windows CRLF doesn't churn diffs.
    - **Done 2026-10-08.** Smoke test passes. Lint and format checks are clean. The `innerHTML` ban was confirmed firing on a probe file. The hook rejected a probe commit that had the trailer.
 
@@ -257,7 +257,7 @@ Update the plan before W2 starts. One line to you with the result.
 12c. `[W4]` Creator UI: an R x C picker (up to 4x4), a solver report for each tile (run through the worker, in sequence), and a flag on any tile that is all blank or all filled, since those make degenerate puzzles. "Save set" writes every tile puzzle (each with its `verdict`) and then the set record, using the 11c save path. Test: `set save writes tiles before set record` (pure), so a half-written set never points at missing tiles. **[manual]**
 12d. `[W3·L]` The library groups each set into a mosaic view, where solved tiles show their picture and unsolved tiles stay blank. Clicking a tile plays it. Test: `set progress counts solved tiles`. **[manual]**
 
-### Phase 5. Cozy styling (added 2026-10-08 at Jess's request)
+### Phase 5. Cozy styling (added 2026-10-08 at the owner's request)
 12s. `[W5 seq]` Restyle every view in a cozy game aesthetic. It runs sequentially, after all views exist, because it touches every CSS file. Lanes do functional styling only until then.
 - **Direction (rec, overridable via Q8):**
   - A warm, soft palette: cream paper background, cocoa-brown ink for fills, muted sage or terracotta accents.
@@ -291,7 +291,7 @@ Update the plan before W2 starts. One line to you with the result.
 - **Test added:** the `theme contrast` test runs on both themes.
 
 ### Close
-13. `[seq]` Register in the toolkit. Run `/gate-review`. Calibrate the difficulty labels by playing about 5 puzzles you made.
+13. `[seq]` Register in the owner's local tool index. Run `/gate-review`. Calibrate the difficulty labels by playing about 5 puzzles you made.
 
 ---
 
@@ -342,16 +342,16 @@ What isn't on this list (contract shapes, ownership, dependency order) was revie
 - **Difficulty labels are a heuristic until calibrated in step 13.**
 
 ## Decisions log
-**2026-10-08. D1 to D5 closed, all recommendations.** Jess: "intended for web browser use."
+**2026-10-08. D1 to D5 closed, all recommendations.** Owner: "intended for web browser use."
 - D1 Stack: static web app, plain JS ES modules, no runtime dependencies. Node is dev-only (tests, ESLint, Prettier). Served with `python -m http.server`. Rejected a Python plus JS split (two languages, solver written twice) and browser-only tests without Node (no lint, clunky). Reversing it means rewriting the core.
 - D2 Data model: color-ready puzzle JSON (palette plus index grid, 0 is background). Clues are derived, not stored. Saves are separate, keyed by puzzle id. Rejected a boolean grid because every saved puzzle would need migrating once color lands.
 - D3 Input: upload and touch up an image, or draw from blank, in the same editor.
 - D4 Device: desktop browser first, up to 25x25. Touch comes later.
 - D5 Default rules: Free. Check-mistakes and hint are toggles.
-- Parallel execution (2026-10-08, at Jess's request): four waves, with one branch per lane in its own git worktree, merged `--no-ff` into an always-green `main`. Interface contracts are frozen in the Parallel lanes section. This overrides coding-preferences' "one thread, no subagents", which was written for time-boxed sessions, not this project. Rejected a single thread: W1 has four independent pure-logic lanes, and running them one after another wastes most of that.
+- Parallel execution (2026-10-08, at the owner's request): four waves, with one branch per lane in its own git worktree, merged `--no-ff` into an always-green `main`. Interface contracts are frozen in the Parallel lanes section. This overrides the owner's usual "one thread, no subagents" default, which was written for time-boxed sessions, not this project. Rejected a single thread: W1 has four independent pure-logic lanes, and running them one after another wastes most of that.
 - Q6 Grid shape: width and height are picked independently from {5, 10, 15, 20, 25}. The default is the closest match to the image's aspect, with a center crop and a draggable offset. Rejected square-only (Picross itself uses 25x20) and squashing (distorts the picture). Tiling was added on top (Q7).
-- 2026-10-08: lane subagents use Sonnet (Jess). This is a cost and speed call for well-specified, contract-bound pieces. The orchestrator stays on Opus for merges, contract calls and manual verification.
-- 2026-10-08: cozy game aesthetic added as step 12s (W5, sequential), at Jess's request. It comes after all views exist, so one owner touches every stylesheet instead of three lanes restyling in parallel. Q8 closed: system rounded font; light day theme plus a dark evening theme, following the system setting with a persisted toggle; Stardew Valley and Animal Crossing as feel references only, no copied assets. Rejected: a Google Font (network dependency for a local tool).
+- 2026-10-08: lane subagents use Sonnet (owner's call). This is a cost and speed call for well-specified, contract-bound pieces. The orchestrator stays on Opus for merges, contract calls and manual verification.
+- 2026-10-08: cozy game aesthetic added as step 12s (W5, sequential), at the owner's request. It comes after all views exist, so one owner touches every stylesheet instead of three lanes restyling in parallel. Q8 closed: system rounded font; light day theme plus a dark evening theme, following the system setting with a persisted toggle; Stardew Valley and Animal Crossing as feel references only, no copied assets. Rejected: a Google Font (network dependency for a local tool).
 - Plan-review pass 6: XML export got a UI action in step 12. Set saving is owned by 12c. Validators were added in `format.js` and used by the store and every import. `innerHTML` is banned by lint. Images are downscaled on load.
 - Plan-review pass 5: Q6's size picker and crop now land in step 10. `verdict` carries sweeps. Undo has keyboard shortcuts and the stroke length shows live. A test runtime rule was added. The W1r retro checkpoint and the Limits section were added.
 - Plan-review pass 4: lanes merge per step, not per lane. XML export moved to 5x. `verdict` is cached on the puzzle. The creator owns saving. Library backup was added. Tiles use one global threshold.

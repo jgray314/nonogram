@@ -15,7 +15,7 @@ Beyond the Expert is real guessing: deeper trials, or backtracking.
 
 ## Method
 
-The script in the session scratchpad (`personas.mjs`) runs each persona on a puzzle until it stops making progress. It checks every deduction against the true solution, so a persona never "finishes" by luck. The corpus:
+A one-off script ran each persona on a puzzle until it stopped making progress, checking every deduction against the true solution so a persona never "finishes" by luck. The personas now live in `src/personas.js`; `test/personas.test.js` keeps the no-wrong-deduction check, on random lines. The Expert stops after 4,000 trials (`PROBE_BUDGET`) and the puzzle then counts as Very hard; on random 25x25 needs-guessing grids it took 339 ms at most, in the worker. The corpus:
 - The 9 samples.
 - 190 picture-like grids (soft blobs, 5x5 to 25x25).
 - 300 random grids at 45% to 75% density.
@@ -42,7 +42,7 @@ Of these 509, 394 are fair (a unique solution).
 
 **The Expert tier is rare but real.** Of 4 puzzles that need more than line logic, the one-cell trial solves 3. Today all 4 would be "Hard".
 
-## Proposed rule
+## The rule (adopted as D22, 2026-10-09)
 
 | Label | First persona to finish |
 |---|---|
@@ -53,6 +53,10 @@ Of these 509, 394 are fair (a unique solution).
 | Not fair, Unchecked | Unchanged |
 
 Size stays a separate fact: it's already shown, and a 25x25 Easy is still long.
+
+Puzzles saved before D22 have no stored tier. The library works one out for display and never writes it back. A needs-guessing puzzle without one keeps "Hard", because the Expert's trials are too slow to run on the page itself.
+
+On the samples, Smiley 15x15, Cat 10x10 and Cat 20x20 move from Easy to Medium. The rest keep their labels.
 
 ## Limits
 

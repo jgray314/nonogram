@@ -151,6 +151,13 @@ const STATUS_TEXT = {
   unknown: 'Could not decide: the search ran out of budget.',
 };
 
+/** The verdict to store for a solver result: status, sweeps, and the persona tier when there is one. */
+export function verdictOf(result) {
+  const verdict = { status: result.status, sweeps: result.sweeps };
+  if (result.tier) verdict.tier = result.tier;
+  return verdict;
+}
+
 /**
  * Turn a solver result (or null while checking) into what the report shows:
  * {text, label, highlight}. `highlight` is the cells to mark: the differing
@@ -158,7 +165,7 @@ const STATUS_TEXT = {
  */
 export function reportView(result) {
   if (!result) return { text: 'Checking...', label: 'Unchecked', highlight: [] };
-  const label = difficultyLabel({ status: result.status, sweeps: result.sweeps });
+  const label = difficultyLabel(verdictOf(result));
   let highlight = [];
   if (result.status === 'multiple') highlight = result.differing;
   else if (result.status === 'unique-needs-guessing') highlight = result.unresolved;
@@ -240,7 +247,7 @@ export function buildPuzzleRecord(grid, title, report, art) {
     height: grid.length,
     palette: DEFAULT_PALETTE.map((p) => ({ ...p })),
     solution: grid.map((row) => row.slice()),
-    verdict: { status: report.status, sweeps: report.sweeps },
+    verdict: verdictOf(report),
   };
   if (art) record.art = art;
   return record;
@@ -279,7 +286,7 @@ export function sliceTiles(grid, rows, cols) {
 export function tileStatusLine(row, col, result, flag) {
   const name = `r${row + 1}c${col + 1}`;
   if (!result) return `${name}: checking...`;
-  const label = difficultyLabel({ status: result.status, sweeps: result.sweeps });
+  const label = difficultyLabel(verdictOf(result));
   return flag ? `${name}: ${label} (${flag})` : `${name}: ${label}`;
 }
 
@@ -292,7 +299,7 @@ export function canSaveSet(reports) {
 export function withVerdicts(puzzles, reports) {
   return puzzles.map((p, i) => ({
     ...p,
-    verdict: { status: reports[i].result.status, sweeps: reports[i].result.sweeps },
+    verdict: verdictOf(reports[i].result),
   }));
 }
 

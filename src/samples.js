@@ -4,6 +4,7 @@
 import { puzzleId } from './format.js';
 import { puzzleClues } from './clues.js';
 import { solve } from './solver.js';
+import { personaTier } from './personas.js';
 
 const ART = [
   {
@@ -194,11 +195,11 @@ export async function samplePuzzles() {
       verdict: null,
     };
     // Samples are tiny, so solving here is instant and keeps the verdict honest.
-    const { status, sweeps } = solve(
-      { width: puzzle.width, height: puzzle.height, ...puzzleClues(puzzle.solution) },
-      {},
-    );
+    const problem = { width: puzzle.width, height: puzzle.height, ...puzzleClues(puzzle.solution) };
+    const { status, sweeps } = solve(problem, {});
     puzzle.verdict = { status, sweeps };
+    const tier = personaTier(problem, status);
+    if (tier) puzzle.verdict.tier = tier;
     puzzle.id = await puzzleId(puzzle);
     out.push(puzzle);
   }

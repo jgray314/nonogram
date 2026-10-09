@@ -12,6 +12,7 @@ import {
   groupSets,
   setProgress,
   PUZZLE_KEYS,
+  withTier,
 } from '../src/library-logic.js';
 import { restartCells } from '../src/game.js';
 import { puzzleClues } from '../src/clues.js';
@@ -113,10 +114,24 @@ test('badge shown for non-unique verdict', () => {
 
 test('library row label comes from the verdict', () => {
   const label = (v) => rowModel(puzzle('a', { verdict: v }), null).label;
-  assert.equal(label(verdict('unique-line-solvable', 1)), 'Easy');
-  assert.equal(label(verdict('unique-line-solvable', 99)), 'Medium');
+  assert.equal(label({ ...verdict('unique-line-solvable'), tier: 'casual' }), 'Easy');
+  assert.equal(label({ ...verdict('unique-line-solvable'), tier: 'regular' }), 'Medium');
   assert.equal(label(verdict('unique-needs-guessing')), 'Hard');
   assert.equal(label(null), 'Unchecked');
+});
+
+test('a puzzle saved before tiers is rated for display, not rewritten', () => {
+  const store = createStore(memoryStorage());
+  const full = [
+    [1, 1],
+    [1, 1],
+  ];
+  store.put('puzzle', puzzle('old', { solution: full, verdict: verdict('unique-line-solvable') }));
+  const before = JSON.stringify(store.get('puzzle', 'old'));
+  const [row] = libraryModel(store).rows;
+  assert.equal(row.label, 'Easy'); // full lines: the Newcomer finishes it
+  assert.equal(JSON.stringify(store.get('puzzle', 'old')), before);
+  assert.equal(withTier(store.get('puzzle', 'old')).tier, 'newcomer');
 });
 
 test('progress label is not started, not new', () => {

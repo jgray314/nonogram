@@ -1,7 +1,7 @@
 # Nonogram Studio — Plan
 
 **Created:** 2026-10-08
-**Status (2026-10-09):** v1 (steps 0 to 13), v1.1 (14a to 17) and v1.2 (19a to 22) are built and gated (passes 1 to 3). v1.3 (23a to 25, the UX pass 2 fixes, D20 size warning, D21 touch Fill/Cross) is merged and checked by hand on the mobile preset and at 1024x768; all UX checks pass. Run `npm test` for the current count. Gate pass 3 and its retrospective are closed. Remaining: difficulty calibration by play (step 13).
+**Status (2026-10-09):** v1 (steps 0 to 13), v1.1 (14a to 17) and v1.2 (19a to 22) are built and gated (passes 1 to 3). v1.3 (23a to 25, the UX pass 2 fixes, D20 size warning, D21 touch Fill/Cross) is merged and checked by hand on the mobile preset and at 1024x768; all UX checks pass. Run `npm test` for the current count. Gate pass 3 and its retrospective are closed. Difficulty labels come from solver personas (D22, 2026-10-09). Remaining: checking those labels by play (step 13).
 **Platform:** web browser, desktop first.
 **What it is:** A personal tool to turn an image (your own picture, no AI in the content) into a nonogram, check that it's a fair puzzle, then play it with state saved. Single user, no accounts.
 
@@ -74,7 +74,7 @@ Recommend both. "Draw from blank" is the same editor started without an image.
   - Medium: line-solvable in more than 3.
   - Hard: unique, but needs probing.
   - Not fair: more than one solution, or `unknown`.
-  This is a heuristic, labeled as such, and the thresholds get calibrated in step 13.
+  This is a heuristic, labeled as such, and the thresholds get calibrated in step 13. Superseded 2026-10-09 by D22: labels come from solver personas, not sweep counts.
 - **No auto-fixing ambiguity.** Henstra's automatic modify loop is out. The tool shows the ambiguous cells and you decide. Changing the picture is a design call.
 
 ---
@@ -146,7 +146,7 @@ Tags on each step read `[wave·lane]`. Steps in the same wave but different lane
 - **Tiles:** `tileGrid(rgba, imgW, imgH, crop, tileW, tileH, R, C, {threshold, invert}) → {full, tiles}` uses one global threshold. `makeSet({title, tiles, palette}) → Promise<{set, puzzles}>`, with a deterministic `setId` (a hash of title, rows, cols and the full grid). `tileFlags(tile) → 'blank' | 'full' | null`.
 - **XML:** `toWebpbn(puzzle) → string`.
 - **Store prefs** (added for 12s): `getPref(key, fallback)` and `setPref(key, value)` under `nng:pref:<key>`. They aren't records, have no validator, are never listed, and a corrupt value returns the fallback.
-- **Difficulty** (orchestrator-owned, `src/difficulty.js`): `difficultyLabel(verdict) → 'Easy' | 'Medium' | 'Hard' | 'Not fair' | 'Unchecked'` (null verdict gives Unchecked) and `isFair(verdict)` (only `unique-*` statuses). It's shared by the creator report and the library.
+- **Difficulty** (orchestrator-owned, `src/difficulty.js`): `difficultyLabel(verdict) → 'Easy' | 'Medium' | 'Hard' | 'Very hard' | 'Not fair' | 'Unchecked'` (null verdict gives Unchecked; the label comes from the verdict's persona `tier`, D22) and `isFair(verdict)` (only `unique-*` statuses). It's shared by the creator report and the library.
 - **Routes:** a `#/print/<id>` route was added to `app.js` on main, with a placeholder `src/views/print.js` the library lane replaces.
 
 **Branching.** `tools/nonogram/` becomes its own local git repo in step 0.
@@ -518,9 +518,10 @@ What isn't on this list (contract shapes, ownership, dependency order) was revie
 - **Solver speed at 25x25 when backtracking.** Guarded by the step 4b performance test and the node budget. If it fails, lower the budget and report `unknown`. The worker keeps the UI responsive either way.
 - **Subagent lanes drift from the contracts.** Every merge runs the full suite on `main`, and contract tests live with the module that owns the contract.
 - **Photos rarely survive conversion at 10x10.** Expect icon-style source images to work best, and say so in the UI.
-- **Difficulty labels are a heuristic until calibrated in step 13.**
+- **Difficulty labels are a heuristic until calibrated in step 13.** Since D22 they come from modeled personas, which play may show don't match real people. The Casual technique set is the likeliest to move.
 
 ## Decisions log
+**2026-10-09. D22 difficulty by persona.** Owner: "create a 3-5 simple player personas and use them to level set initial difficulty ratings", then "make the changes". Four personas (Newcomer, Casual, Regular, Expert) are solvers limited to certain techniques (`src/personas.js`, `difficulty-personas.md`). The label is the least skilled persona who finishes: Newcomer or Casual is Easy, Regular is Medium, Expert (one-cell trials) is Hard, and nobody (deeper guessing) is Very hard. The verdict stores the result as an optional `tier`, computed in the solver worker. Puzzles saved earlier get a tier for display only, never written back, and a needs-guessing one without a tier keeps "Hard". The verdict isn't hashed, so ids don't change. Rejected: retuning the sweep threshold. Over 394 fair puzzles, the full line solver's sweep count didn't separate Casual from Regular (both have a median of 3 sweeps), so the old rule called almost everything Easy. Step 13's play now tests the personas instead of setting thresholds from scratch.
 **2026-10-08. D1 to D5 closed, all recommendations.** Owner: "intended for web browser use."
 - D1 Stack: static web app, plain JS ES modules, no runtime dependencies. Node is dev-only (tests, ESLint, Prettier). Served with `python -m http.server`. Rejected a Python plus JS split (two languages, solver written twice) and browser-only tests without Node (no lint, clunky). Reversing it means rewriting the core.
 - D2 Data model: color-ready puzzle JSON (palette plus index grid, 0 is background). Clues are derived, not stored. Saves are separate, keyed by puzzle id. Rejected a boolean grid because every saved puzzle would need migrating once color lands.

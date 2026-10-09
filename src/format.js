@@ -1,8 +1,9 @@
 // Record formats: puzzle, save, set. See PLAN.md D2, step 5, step 12b, and the
 // v1.1 Contracts (save `hearts` and `rules.zen`), and the v1.2 Contracts (puzzle
-// `art`, save `hints`).
+// `art`, save `hints`), and the optional verdict `tier` (difficulty-personas.md).
 
 import { MAX_HEARTS } from './game.js';
+import { TIERS } from './personas.js';
 
 const STATUSES = ['unique-line-solvable', 'unique-needs-guessing', 'multiple', 'none', 'unknown'];
 const HEX = /^#[0-9a-fA-F]{6}$/;
@@ -110,6 +111,10 @@ export function validatePuzzle(x) {
       if (!STATUSES.includes(x.verdict.status)) return fail('invalid verdict status');
       if (!isInt(x.verdict.sweeps) || x.verdict.sweeps < 0 || x.verdict.sweeps > MAX_SWEEPS) {
         return fail('invalid verdict sweeps');
+      }
+      // Persona tier, optional: verdicts saved before tiers have none.
+      if (x.verdict.tier !== undefined && !TIERS.includes(x.verdict.tier)) {
+        return fail('invalid verdict tier');
       }
     }
     if (x.set !== undefined) {

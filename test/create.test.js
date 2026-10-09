@@ -131,10 +131,17 @@ test('reportView maps solver results to text, label and highlight', () => {
       [1, 0],
     ],
   };
-  const unique = { status: 'unique-line-solvable', sweeps: 2, unresolved: [], differing: [] };
+  const unique = {
+    status: 'unique-line-solvable',
+    sweeps: 2,
+    tier: 'casual',
+    unresolved: [],
+    differing: [],
+  };
   const guessing = {
     status: 'unique-needs-guessing',
     sweeps: 1,
+    tier: 'expert',
     unresolved: [[2, 2]],
     differing: [],
   };
@@ -182,6 +189,18 @@ test('saved puzzle carries verdict', async () => {
 
   rec.id = await puzzleId(rec);
   assert.equal(validatePuzzle(rec).ok, true);
+
+  // A fair result's persona tier is saved with it, and doesn't change the id.
+  const fair = { status: 'unique-line-solvable', sweeps: 1, tier: 'regular' };
+  const rated = buildPuzzleRecord(grid, 'My cat', fair);
+  assert.deepEqual(rated.verdict, { status: 'unique-line-solvable', sweeps: 1, tier: 'regular' });
+  rated.id = await puzzleId(rated);
+  assert.equal(rated.id, rec.id);
+  assert.equal(validatePuzzle(rated).ok, true);
+  assert.equal(
+    validatePuzzle({ ...rated, verdict: { ...rated.verdict, tier: 'wizard' } }).ok,
+    false,
+  );
 });
 
 test('canSave refuses pending or stale reports', () => {
@@ -210,7 +229,7 @@ test('tile helpers size and slice the full grid', () => {
 });
 
 test('tile status line names the tile, difficulty and flag', () => {
-  const easy = { status: 'unique-line-solvable', sweeps: 1 };
+  const easy = { status: 'unique-line-solvable', sweeps: 1, tier: 'newcomer' };
   const bad = { status: 'multiple', sweeps: 1 };
   assert.equal(tileStatusLine(0, 1, easy, null), 'r1c2: Easy');
   assert.equal(tileStatusLine(1, 0, bad, 'blank'), 'r2c1: Not fair (blank)');

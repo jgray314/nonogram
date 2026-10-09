@@ -2,6 +2,7 @@
 import { difficultyLabel, isFair } from './difficulty.js';
 import { restartCells } from './game.js';
 import { puzzleClues } from './clues.js';
+import { personaTier } from './personas.js';
 
 /** The keys a stored puzzle may have (PLAN.md D2, the tile `set` field, and D14's `art`). */
 export const PUZZLE_KEYS = [
@@ -41,6 +42,22 @@ export function largePuzzle(puzzle) {
   return puzzle.width >= 20 || puzzle.height >= 20;
 }
 
+/**
+ * The puzzle's verdict, with a persona tier filled in for a line-solvable
+ * puzzle saved before tiers existed. Computed for display only, never written
+ * back. Needs-guessing ones are left alone: the Expert's trials are too slow
+ * for the main thread, so they keep the 'Hard' label.
+ */
+export function withTier(puzzle) {
+  const v = puzzle.verdict;
+  if (!v || v.tier || v.status !== 'unique-line-solvable') return v;
+  const tier = personaTier(
+    { width: puzzle.width, height: puzzle.height, ...puzzleClues(puzzle.solution) },
+    v.status,
+  );
+  return { ...v, tier };
+}
+
 export function rowModel(puzzle, save) {
   let badge = null;
   if (!puzzle.verdict) badge = 'unchecked';
@@ -51,7 +68,7 @@ export function rowModel(puzzle, save) {
     name: sampleLabel(puzzle.title).name,
     ai: sampleLabel(puzzle.title).ai,
     size: `${puzzle.width} x ${puzzle.height}`,
-    label: difficultyLabel(puzzle.verdict),
+    label: difficultyLabel(withTier(puzzle)),
     badge,
     large: largePuzzle(puzzle),
     progress: progressOf(save, puzzle),

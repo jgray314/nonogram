@@ -26,6 +26,10 @@ export function createApp(frame) {
     frame.style.width = `${width}px`;
     frame.src = `index.html?ux=${Date.now()}${hash}`;
     await new Promise((r) => frame.addEventListener('load', r, { once: true }));
+    // Behave like a tab the player is looking at. A hidden browser pane reports
+    // document.hidden, which stops the play timer, so a timing check would pass
+    // whatever the app did (gate pass 3: the H1 check passed with the fix removed).
+    Object.defineProperty(doc(), 'hidden', { configurable: true, get: () => false });
     await waitFor(() => $('#view')?.firstElementChild, `view for ${hash}`);
   }
 

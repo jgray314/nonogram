@@ -12,7 +12,7 @@ function assert(ok, message) {
   if (!ok) throw new Error(message);
 }
 
-/** Reset this origin's app data and seed the samples plus one puzzle with two solutions. */
+/** Reset this origin's app data and seed the samples, one puzzle with two solutions, and one with art. */
 export async function seed(storage) {
   for (const key of Object.keys(storage)) if (key.startsWith('nng:')) storage.removeItem(key);
   const store = createStore(storage);
@@ -37,6 +37,30 @@ export async function seed(storage) {
   twoWays.id = await puzzleId(twoWays);
   store.put('puzzle', twoWays);
   ids.twoWays = twoWays.id;
+  // A puzzle with saved art (D14), so the solve reveal can be checked. The art
+  // is drawn here: a small JPEG, like the one Create saves.
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 40;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#e8b04a';
+  ctx.fillRect(0, 0, 40, 40);
+  const withArt = {
+    v: 1,
+    id: '',
+    title: 'UX check: with art',
+    width: 2,
+    height: 2,
+    palette: [{ name: 'black', hex: '#000000' }],
+    solution: [
+      [1, 1],
+      [1, 0],
+    ],
+    verdict: { status: 'unique-line-solvable', sweeps: 1 },
+    art: canvas.toDataURL('image/jpeg', 0.8),
+  };
+  withArt.id = await puzzleId(withArt);
+  store.put('puzzle', withArt);
+  ids.withArt = withArt.id;
   return ids;
 }
 
@@ -193,7 +217,7 @@ export const CHECKS = [
   },
   {
     id: 'play-solved-strip',
-    name: 'After solving, a strip says how long it took and links back to the library (UX5, D14)',
+    name: 'After solving, a strip says how long it took and links back to the library (UX5)',
     async run(app, ids) {
       await app.open(`#/play/${ids[HEART]}`);
       solveHeart(app);
@@ -202,6 +226,48 @@ export const CHECKS = [
       assert(strip, 'no solved strip');
       assert(/^Solved in \d\d:\d\d$/.test(app.$('.nng-solved-text').textContent), 'no solve time');
       assert(app.$('.nng-solved-strip a[href="#/library"]'), 'no library link in the strip');
+    },
+  },
+  {
+    id: 'play-solve-reveal',
+    name: 'Solving a puzzle with saved art fades the picture over the grid, then shows the strip (D14)',
+    async run(app, ids) {
+      await app.open(`#/play/${ids.withArt}`);
+      app.stroke([
+        [0, 0],
+        [0, 1],
+      ]);
+      app.stroke([[1, 0]]);
+      const art = await waitFor(() => app.$('.nng-art'), 'the picture over the grid');
+      assert(!art.classList.contains('nng-art-instant'), 'a fresh solve skipped the fade');
+      assert(app.$('.nng-solved-strip').hidden, 'the strip showed before the fade ended');
+      await waitFor(() => !app.$('.nng-solved-strip').hidden, 'the strip after the fade', 2500);
+      await app.open(`#/play/${ids.withArt}`);
+      const again = await waitFor(() => app.$('.nng-art'), 'the picture on reopening');
+      assert(again.classList.contains('nng-art-instant'), 'reopening replayed the fade');
+      assert(!app.$('.nng-solved-strip').hidden, 'no strip on reopening');
+    },
+  },
+  {
+    id: 'play-auto-cross-sweep',
+    name: 'Completing a line crosses the rest of it, by default (D19)',
+    async run(app, ids) {
+      await app.open(`#/play/${ids[HEART]}`);
+      assert(app.toggleByLabel('Auto-cross').checked, 'Auto-cross is not on by default');
+      app.stroke([
+        [3, 1],
+        [3, 2],
+        [3, 3],
+      ]);
+      const ends = [app.cell(3, 0), app.cell(3, 4)];
+      assert(
+        ends.every((n) => n.classList.contains('nng-crossed')),
+        'the rest of the row was not crossed',
+      );
+      assert(
+        ends.some((n) => n.classList.contains('nng-sweep')),
+        'the crosses did not sweep in',
+      );
     },
   },
   {
@@ -239,18 +305,31 @@ export const CHECKS = [
   },
   {
     id: 'play-hint-counter',
-    name: 'Hints used counts each reveal, and Restart sets it back to 0 (D18)',
+    name: 'Hints used counts each reveal, and every restart path sets it back to 0 (D18)',
     async run(app, ids) {
       await app.open(`#/play/${ids[HEART]}`);
       const label = () => app.$('.nng-hint-count').textContent;
+      const reveal = () => app.buttonByText('Reveal a cell').click();
       assert(label() === 'Hints used: 0', `starts as "${label()}"`);
-      app.buttonByText('Reveal a cell').click();
-      app.buttonByText('Reveal a cell').click();
+      reveal();
+      reveal();
       assert(label() === 'Hints used: 2', `after two reveals: "${label()}"`);
       app.buttonByText('Undo').click();
       assert(label() === 'Hints used: 2', 'undo refunded a hint');
       await app.withConfirm(true, async () => app.buttonByText('Restart', '.nng-rules').click());
-      assert(label() === 'Hints used: 0', `after restart: "${label()}"`);
+      assert(label() === 'Hints used: 0', `after the Restart button: "${label()}"`);
+      // Out of hearts: Continue in Zen keeps the count, the panel's Restart clears it.
+      reveal();
+      for (const c of [0, 2, 4]) app.stroke([[0, c]]);
+      app.buttonByText('Continue in Zen mode').click();
+      assert(label() === 'Hints used: 1', `Continue in Zen changed it: "${label()}"`);
+      // Leaving Zen restarts the puzzle, so it clears the count too.
+      await app.withConfirm(true, async () => app.toggleByLabel('Zen mode').click());
+      assert(label() === 'Hints used: 0', `after leaving Zen: "${label()}"`);
+      reveal();
+      for (const c of [0, 2, 4]) app.stroke([[0, c]]);
+      app.$('.nng-out button').click();
+      assert(label() === 'Hints used: 0', `after the out-of-hearts Restart: "${label()}"`);
     },
   },
   {
@@ -276,15 +355,12 @@ export const CHECKS = [
   {
     id: 'play-rule-defaults',
     name: 'Turning Zen on also makes it the default for an unstarted puzzle (D16)',
-    async run(app, ids, storage) {
-      try {
-        await app.open(`#/play/${ids[HEART]}`);
-        app.toggleByLabel('Zen mode').click();
-        await app.open(`#/play/${ids['Cat (10x10)']}`);
-        assert(app.toggleByLabel('Zen mode').checked, 'unstarted puzzle did not open in Zen');
-      } finally {
-        storage.removeItem('nng:pref:play.zen'); // later checks expect the hearts default
-      }
+    async run(app, ids) {
+      // clearSaves resets the pref before the next check.
+      await app.open(`#/play/${ids[HEART]}`);
+      app.toggleByLabel('Zen mode').click();
+      await app.open(`#/play/${ids['Cat (10x10)']}`);
+      assert(app.toggleByLabel('Zen mode').checked, 'unstarted puzzle did not open in Zen');
     },
   },
   {
@@ -299,11 +375,15 @@ export const CHECKS = [
   },
   {
     id: 'play-zero-clue',
-    name: 'An empty line shows a 0 clue (Spider row 20)',
+    name: "An empty line shows a 0 clue, styled as done (Spider's last row)",
     async run(app, ids) {
       await app.open(`#/play/${ids[SPIDER]}`);
-      const rowClues = app.$$('.nng-play .nng-clue-row').map((n) => n.textContent);
-      assert(rowClues.includes('0'), 'no 0 clue on the empty row');
+      const lastRow = app.cell(19, 0).style.gridRow;
+      const zero = app
+        .$$('.nng-play .nng-clue-row')
+        .find((n) => n.style.gridRow === lastRow && n.textContent === '0');
+      assert(zero, 'no 0 clue on the last row');
+      assert(zero.classList.contains('nng-clue-done'), 'the 0 clue is not styled as done');
     },
   },
 
@@ -439,11 +519,13 @@ export const CHECKS = [
   },
   {
     id: 'library-restart-reads-not-started',
-    name: 'A restarted puzzle with only automatic crosses reads "not started" (UX14)',
+    name: 'A restarted puzzle you only looked at reads "not started" (UX14, gate pass 3 H1)',
     async run(app, ids) {
       await app.open(`#/play/${ids[SPIDER]}`);
       app.stroke([[0, 9]]);
       await app.withConfirm(true, async () => app.buttonByText('Restart', '.nng-rules').click());
+      // Look at the clean grid for over a second: the clock waits for the first click.
+      await pause(1500);
       await app.go('#/library');
       const row = await waitFor(
         () => app.$$('.nng-lib-row').find((r) => r.textContent.includes('Spider')),

@@ -61,11 +61,31 @@ export function safeFilename(title) {
   return cleaned === '' ? 'puzzle' : cleaned;
 }
 
+const PROGRESS_ORDER = { 'in progress': 0, 'not started': 1, solved: 2 };
+const AI_PREFIX = 'AI test sample: ';
+
+/** {name, ai}: the stored title with the AI-sample prefix split off (D15). The stored title keeps the prefix. */
+export function sampleLabel(title) {
+  const ai = String(title).startsWith(AI_PREFIX);
+  return { name: ai ? title.slice(AI_PREFIX.length) : title, ai };
+}
+
+/** In progress, then not started, then solved; titles A to Z (case-insensitive, AI prefix ignored). */
+function compareRows(a, b) {
+  const byProgress = PROGRESS_ORDER[a.progress] - PROGRESS_ORDER[b.progress];
+  if (byProgress !== 0) return byProgress;
+  const key = (row) => sampleLabel(row.title).name.toLowerCase();
+  return key(a).localeCompare(key(b)) || a.id.localeCompare(b.id);
+}
+
 /** What the library view shows: non-set puzzle rows plus the corrupt count. */
 export function libraryModel(store) {
   const { records: puzzles, skipped } = store.list('puzzle');
   const saves = new Map(store.list('save').records.map((s) => [s.puzzleId, s]));
-  const rows = puzzles.filter((p) => !p.set).map((p) => rowModel(p, saves.get(p.id) ?? null));
+  const rows = puzzles
+    .filter((p) => !p.set)
+    .map((p) => rowModel(p, saves.get(p.id) ?? null))
+    .sort(compareRows);
   const savesById = Object.fromEntries(saves);
   const sets = groupSets(puzzles, store.list('set').records).map((g) => ({
     ...g,

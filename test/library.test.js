@@ -270,3 +270,38 @@ test('samples carry a solver verdict and are fair', async () => {
     assert.ok(isFair(p.verdict), `${p.title} is ${p.verdict.status}`);
   }
 });
+
+test('library orders in progress, not started, solved, then by title', () => {
+  const store = createStore(memoryStorage());
+  const rowsOf = (...specs) => {
+    for (const [id, title, saveRecord] of specs) {
+      store.put('puzzle', puzzle(id, { title }));
+      if (saveRecord) store.put('save', saveRecord);
+    }
+    return libraryModel(store).rows.map((r) => r.id);
+  };
+  const played = (id) =>
+    save(id, [
+      [1, 0],
+      [0, 0],
+    ]);
+  const done = (id) =>
+    save(
+      id,
+      [
+        [1, 0],
+        [0, 1],
+      ],
+      9,
+    );
+  const order = rowsOf(
+    ['a', 'Zebra', played('a')],
+    ['b', 'apple', done('b')],
+    ['c', 'AI test sample: Cat (10x10)', null],
+    ['d', 'Moth', null],
+    ['e', 'Bee', played('e')],
+    ['f', 'Ant', done('f')],
+  );
+  // in progress (Bee, Zebra), not started (Cat ignoring the prefix, Moth), solved (Ant, apple)
+  assert.deepEqual(order, ['e', 'a', 'c', 'd', 'f', 'b']);
+});

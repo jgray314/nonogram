@@ -390,10 +390,9 @@ export const CHECKS = [
   // ---- Create (reviewer tasks 7 to 9) ----
   {
     id: 'create-blank-grid-usable',
-    name: 'Blank grid shows cells big enough to draw on, at least 12px (UX1)',
+    name: 'Create opens on a blank grid with cells big enough to draw on, at least 12px (UX1)',
     async run(app) {
       await app.open('#/create');
-      app.buttonByText('Blank grid').click();
       const node = await waitFor(() => app.$('.nng-create-grid-wrap .nng-cell'), 'a grid cell');
       const w = node.getBoundingClientRect().width;
       assert(w >= 12, `cells are ${w.toFixed(1)}px wide`);
@@ -413,7 +412,6 @@ export const CHECKS = [
       );
       await pause(200);
       assert(app.buttonByText('Save to library')?.disabled, 'Save is enabled on an empty grid');
-      app.buttonByText('Blank grid').click();
       await waitFor(() => app.$('.nng-create-grid-wrap .nng-cell'), 'a grid cell');
       app.stroke([[0, 0]], 0, '.nng-create-grid-wrap');
       await waitFor(
@@ -428,7 +426,6 @@ export const CHECKS = [
     name: 'Create has Undo and Redo for hand edits (UX13)',
     async run(app) {
       await app.open('#/create');
-      app.buttonByText('Blank grid').click();
       await waitFor(() => app.$('.nng-create-grid-wrap .nng-cell'), 'a grid cell');
       const filled = () => app.$$('.nng-create-grid-wrap .nng-filled').length;
       app.stroke(
@@ -451,13 +448,62 @@ export const CHECKS = [
     name: 'Going to the library and back keeps unsaved Create edits (UX2)',
     async run(app) {
       await app.open('#/create');
-      app.buttonByText('Blank grid').click();
       await waitFor(() => app.$('.nng-create-grid-wrap .nng-cell'), 'a grid cell');
       app.stroke([[0, 0]], 0, '.nng-create-grid-wrap');
       await app.go('#/library');
       await app.go('#/create');
       const cell = await waitFor(() => app.cell(0, 0, '.nng-create-grid-wrap'), 'the grid again');
       assert(cell.classList.contains('nng-filled'), 'the edit was lost');
+    },
+  },
+  {
+    id: 'create-save-duplicate-keeps-title',
+    name: 'Saving a grid already in the library keeps the existing puzzle and links to it (UX18)',
+    async run(app, ids, storage) {
+      // Draw Heart (5x5) by hand: the same grid as the sample, so the same id.
+      await app.open('#/create');
+      await waitFor(() => app.$('.nng-create-grid-wrap .nng-cell'), 'a grid cell');
+      const sizes = app.$$('.nng-create select').slice(0, 2);
+      for (const s of sizes) {
+        s.value = '5';
+        s.dispatchEvent(new (app.win().Event)('change', { bubbles: true }));
+      }
+      await waitFor(() => app.$$('.nng-create-grid-wrap .nng-cell').length === 25, 'a 5x5 grid');
+      const rows = ['.#.#.', '#####', '#####', '.###.', '..#..'];
+      rows.forEach((row, r) =>
+        [...row].forEach((ch, c) => ch === '#' && app.stroke([[r, c]], 0, '.nng-create-grid-wrap')),
+      );
+      app.$('.nng-create input[type=text]').value = 'UX check: duplicate';
+      const save = await waitFor(
+        () => {
+          const b = app.buttonByText('Save to library');
+          return b && !b.disabled && b;
+        },
+        'Save enabled',
+        6000,
+      );
+      save.click();
+      const msg = await waitFor(
+        () => /already in your library/.test(app.$('.nng-create-save-msg')?.textContent ?? ''),
+        'the already-in-library message',
+      );
+      assert(msg, 'no message');
+      assert(app.$(`.nng-create-save-msg a[href="#/play/${ids[HEART]}"]`), 'no Open it link');
+      const stored = JSON.parse(storage.getItem(`nng:puzzle:${ids[HEART]}`));
+      assert(stored.title === 'AI test sample: Heart (5x5)', `title became "${stored.title}"`);
+    },
+  },
+  {
+    id: 'create-grid-fits-375',
+    name: 'At 375px the Create grid fits the screen (UX24)',
+    async run(app) {
+      await app.open('#/create', 375);
+      const grid = await waitFor(() => app.$('.nng-create .nng-grid'), 'the grid');
+      await pause(100);
+      const right = grid.getBoundingClientRect().right;
+      assert(right <= app.win().innerWidth, `grid reaches ${Math.round(right)}px of 375`);
+      const doc = app.doc().documentElement;
+      assert(doc.scrollWidth <= doc.clientWidth, 'the page scrolls sideways');
     },
   },
 
@@ -502,6 +548,27 @@ export const CHECKS = [
       }
       assert(/Heart/.test(message), `confirm does not name the puzzle: "${message}"`);
       assert(row.isConnected, 'the row went away after answering no');
+    },
+  },
+  {
+    id: 'narrow-more-menu-on-screen',
+    name: 'At 375px the More menu opens fully on screen (UX21)',
+    async run(app) {
+      await app.open('#/library', 375);
+      const rows = await waitFor(
+        () => app.$$('.nng-lib-row').length && app.$$('.nng-lib-row'),
+        'rows',
+      );
+      for (const row of [rows[0], rows[rows.length - 1]]) {
+        const more = row.querySelector('details.nng-more');
+        more.open = true;
+        const box = more.querySelector('.nng-more-panel').getBoundingClientRect();
+        more.open = false;
+        assert(
+          box.left >= 0 && box.right <= app.win().innerWidth,
+          `panel spans ${Math.round(box.left)} to ${Math.round(box.right)}`,
+        );
+      }
     },
   },
   {

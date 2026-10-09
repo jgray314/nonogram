@@ -1,4 +1,5 @@
-// Record formats: puzzle, save, set. See PLAN.md D2, step 5, step 12b.
+// Record formats: puzzle, save, set. See PLAN.md D2, step 5, step 12b, and the
+// v1.1 Contracts (save `hearts` and `rules.zen`).
 
 import { MAX_HEARTS } from './game.js';
 

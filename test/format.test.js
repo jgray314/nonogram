@@ -303,6 +303,9 @@ test('v1 save without hearts is valid', () => {
   const save = makeSave();
   assert.equal('hearts' in save, false);
   assert.deepEqual(validateSave(save, makePuzzle()), { ok: true });
+});
+
+test('hearts from 0 to MAX_HEARTS and a boolean zen are valid', () => {
   assert.deepEqual(validateSave(makeSave({ hearts: 0 }), makePuzzle()), { ok: true });
   assert.deepEqual(validateSave(makeSave({ hearts: MAX_HEARTS }), makePuzzle()), { ok: true });
   assert.deepEqual(validateSave(makeSave({ rules: { zen: true } }), makePuzzle()), { ok: true });

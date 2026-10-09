@@ -1,7 +1,7 @@
 # Nonogram Studio — Plan
 
 **Created:** 2026-10-08
-**Status:** All build steps (0 to 12s) merged to main and checked by hand in the browser, 2026-10-08. Run `npm test` for the current count. Registered in the owner's local tool index. Remaining in step 13: `/gate-review`, a hands-on print preview check, and difficulty calibration by play.
+**Status (2026-10-08):** v1 (steps 0 to 13) is built, gated (`nonogram-gate.md` pass 1) and print-checked. v1.1 (steps 14a to 17, hearts, Zen mode, restart, per-number clues, print key switch) is merged, checked by hand in the browser, and through a slim gate (pass 2). Run `npm test` for the current count. Remaining: difficulty calibration by play (step 13).
 **Platform:** web browser, desktop first.
 **What it is:** A personal tool to turn an image (your own picture, no AI in the content) into a nonogram, check that it's a fair puzzle, then play it with state saved. Single user, no accounts.
 
@@ -44,7 +44,7 @@
 Reversing this later means rewriting the core. Installing Node takes about 2 minutes with `winget install OpenJS.NodeJS.LTS`, and you'd run it.
 
 **D2. Data model.** *Expensive to reverse, because saved puzzles and save files grow around it.*
-**(rec)** Make it color-ready from day 1 even though v1 is monochrome. A puzzle is `{v: 1, id, title, width, height, palette: [{name, hex}], solution: number[][], verdict}`, where 0 is the background and 1..n index into the palette. Clues are derived from the solution, never stored. `verdict` is `{status, sweeps}` from the solver, computed when the puzzle is saved, so the library can show both fairness and difficulty. It's cached, so the player never re-solves a 25x25 on load, and it's excluded from the id hash. A save is a separate record: `{puzzleId, cells, elapsedMs, rules, solvedAt}` (`solvedAt` is null until solved).
+**(rec; the save record gained `hearts` and `rules.zen` in v1.1, see its Contracts)** Make it color-ready from day 1 even though v1 is monochrome. A puzzle is `{v: 1, id, title, width, height, palette: [{name, hex}], solution: number[][], verdict}`, where 0 is the background and 1..n index into the palette. Clues are derived from the solution, never stored. `verdict` is `{status, sweeps}` from the solver, computed when the puzzle is saved, so the library can show both fairness and difficulty. It's cached, so the player never re-solves a 25x25 on load, and it's excluded from the id hash. A save is a separate record: `{puzzleId, cells, elapsedMs, rules, solvedAt}` (`solvedAt` is null until solved).
 Alternative: a boolean grid now, migrating when color lands. That's cheaper today, but every saved puzzle would need migrating.
 
 **D3. Where the picture comes from.**
@@ -57,7 +57,7 @@ Recommend both. "Draw from blank" is the same editor started without an image.
 2. Tablet or phone first. That makes 25x25 unrealistic and leans hard on the fill/cross toggle.
 
 **D5. Default rule set when playing.**
-1. **(rec)** Free rules by default: no mistake feedback, purest play. Toggles for "check mistakes" and "hint: reveal a cell". A puzzle you made yourself is spoiled for you anyway, so the toggles mostly matter for other people's or older puzzles.
+1. **(rec, reversed in v1.1 by D7: hearts are now the default, and this behavior is Zen mode)** Free rules by default: no mistake feedback, purest play. Toggles for "check mistakes" and "hint: reveal a cell". A puzzle you made yourself is spoiled for you anyway, so the toggles mostly matter for other people's or older puzzles.
 2. Normal (Picross-style) by default.
 
 **Q6. Grid shape and image aspect (CLOSED 2026-10-08: option 1, plus tiling, see Q7).** Should the grid be square only, or allow independent width and height (Picross uses 25x20)? And when the image's aspect ratio doesn't match the grid, what happens?
@@ -313,7 +313,7 @@ Update the plan before W2 starts. One line to you with the result.
 - **`clue-progress.js` (new, lane N owns):** `clueProgress(cells, clues)` returns `{rows: boolean[][], cols: boolean[][]}`, one flag per clue number. Rule per line:
   - If the whole line is satisfied (`lineSatisfied`), every number is done.
   - Otherwise, scan from the start. Skip crossed cells. Stop at the first unknown cell. A filled run counts only if it's closed: bounded by the line edge or a crossed cell on both sides. A closed run that matches the next clue in length (and color) marks that clue done and the scan continues. Anything else stops the scan.
-  - Then do the same from the end, matching clues from the last one backwards. The end scan stops when it reaches a clue the start scan already marked, so no clue is matched twice.
+  - Then do the same from the end, matching clues from the last one backwards. The end scan only sees the cells the start scan didn't consume, so no run and no clue is matched twice. (Corrected at gate pass 2: the original "stop at a clue the start scan marked" let one run mark two numbers.)
 - **`grid.js` (lane N owns):** add `setClueDone({rows, cols})`, which takes the per-number flags and toggles `nng-clue-done` on each clue node. Lane N **keeps** `setSatisfied` so `play.js` still works between merges. Step 17 swaps the call in `play.js` and then removes `setSatisfied`.
 - **Hearts are not part of undo.** Undo and redo move cells only. A heart lost stays lost, and the corrected cross is an ordinary cell that undo can step back past.
 
@@ -334,17 +334,25 @@ Lane rules from v1 apply unchanged: stop after 2 failures, never edit a contract
 14c. `[H]` Play view.
    - Hearts show as 3 heart icons next to the timer, filled or empty.
    - A **Zen mode** switch replaces nothing else: in Zen mode the v1 behavior is unchanged (Check mistakes, Hints, Auto-cross). With Zen off, a fill stroke goes through `heartsStroke`, a wrong cell is shown with a red cross until the next move, and Check mistakes is hidden since mistakes are corrected as they happen.
-   - On a puzzle that isn't fair, Zen mode is forced on, with the note "Hearts need a puzzle with a unique solution."
+   - On a puzzle that isn't fair, Zen mode is forced on, with the note "Hearts, check and hint need a puzzle with a unique solution." (Changed at step 17 from "Hearts need…", which sat next to the separate check-and-hint note.)
    - At 0 hearts the grid locks, the timer stops, and an "Out of hearts" panel offers only **Restart**. Every switch is disabled while out of hearts. A save with `hearts: 0` reopens in this state.
    - The red cross on a wrong cell lives in memory only. It isn't saved and clears on the next move.
    - Hints work in both modes and never cost a heart.
-   - A **Restart** button (with a confirm) sets cells to `restartCells`, the timer to 0, `solvedAt` to null, hearts to `MAX_HEARTS`, and starts a new undo history. Rules are kept. It works on a solved puzzle too, since replay is the point.
+   - A **Restart** button (with a confirm) sets cells to `restartCells`, the timer to 0, `solvedAt` to null, hearts to `MAX_HEARTS`, and starts a new undo history. Rules are kept. It works on a solved puzzle too, since replay is the point. The out-of-hearts panel's own Restart skips the confirm, since the game is already lost (built that way, accepted at step 17).
    - On open, cells go through `crossEmptyLines` before the undo history starts, so those crosses aren't an undo step. This covers v1 saves too. It doesn't mark the save dirty on its own.
    - Tests: `restartCells is blank plus empty-line crosses` goes in 14a, since it's pure. The view wiring has no Node test: it's checked by hand. **[manual]** Lose all 3 hearts on a sample; reload while out of hearts; restart; switch Zen on and off; reload mid-game and check hearts persist; restart a solved puzzle.
 15a. `[N]` `clueProgress` per the contract. Tests: `closed run at the start marks the first number`, `run touching an unknown cell is not done`, `scan from the end marks the last number`, `wrong-length closed run stops the scan`, `satisfied line marks every number`, `empty clue line has no numbers`.
 15b. `[N]` `grid.js` `setClueDone` per the contract. No Node test: it only toggles classes on DOM nodes, and a shape-only test would claim more than it checks (gate lesson 5). **[manual]** after the orchestrator's wiring: numbers grey out one by one while solving.
 16. `[P]` Print page. A "Include answer key" switch, off at first, sits in the print controls. Off: the key isn't shown or printed. On: it shows and prints on page 2, as in v1. **[manual]** Print preview both ways.
 17. `[seq]` Orchestrator: wire `setClueDone` into `play.js`, remove `setSatisfied` from `grid.js` (and its doc comment), run the full suite, do the manual checks on merged `main`, then a slim `/gate-review` scoped to the v1.1 commits.
+
+**Done 2026-10-08.** Lanes merged `--no-ff`: P `ab99949` (16), N `02fbe84` (15a, 15b), H `84c7a73` (14a to 14c), then step 17 `f6266fd`. Full suite green after each merge. Manual checks on merged `main` in the browser pane:
+- Cat 10x10: a correct fill is free, a wrong fill becomes a red cross and costs a heart, a wrong cross is free, undo steps the cross back and the heart stays lost, a hint costs nothing.
+- At 0 hearts the grid locks, every switch is disabled and the timer stops. All three hold after a reload. The panel's Restart gives 3 hearts, 00:00 and a clean grid.
+- Zen on hides the hearts and shows Check mistakes. Single clue numbers grey out (the first "1" of "1 1" once fenced by a cross).
+- Spider: its empty bottom row starts crossed. Checker test (not fair): Zen is forced on and hearts are hidden. Heart (solved): Restart is enabled.
+- Print: the key is hidden at first, and shows and hides with the switch. The owner's real print preview was done on v1.
+- Not yet seen: the light theme for the hearts, the out-of-hearts panel and the red cross.
 
 ---
 
@@ -357,6 +365,9 @@ Each item has a trigger. Items marked **kill** are recorded only so they aren't 
 - `makeSet` shares one palette array across tiles, and `tileFlags` treats any non-zero cell as filled. Fine for monochrome.
 - `toWebpbn` throws when a palette needs more than about 60 distinct characters.
 
+**Trust (gate pass 2, L1):**
+- Hearts, check and hint trust an imported puzzle's `verdict`. A hand-edited verdict could switch hearts on for a puzzle with several solutions. Accepted for a personal tool. Trigger: sharing puzzles with other people; then re-solve on import.
+
 **Solver:**
 - Search always guesses the first unresolved cell. Revisit if a real 25x25 puzzle you make hits `unknown`.
 - `solve` doesn't validate that clue counts match the dimensions. Callers always derive clues from a grid. Revisit if clues ever arrive from imports.
@@ -367,7 +378,7 @@ Each item has a trigger. Items marked **kill** are recorded only so they aren't 
 - Opening an already-solved puzzle replays the solve glow once.
 - The grid scrolls rather than shrinking on a narrow window. Desktop is the target (D4).
 
-**Owner's hands-on testing, 2026-10-08:** reset, hearts, per-number clues, print key hidden, and crossing empty lines at the start are now planned as v1.1 (steps 14a to 17). Print preview itself worked as planned, so step 13's print check is done.
+**Owner's hands-on testing, 2026-10-08:** reset, hearts, per-number clues, print key hidden, and crossing empty lines at the start shipped as v1.1 (steps 14a to 17). Print preview itself worked as planned, so step 13's print check is done.
 
 **Kill (harmless):**
 - With reduced motion on, a stray `nng-pop` class can stay on a cell. The animation is off, so nothing shows.

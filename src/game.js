@@ -106,7 +106,8 @@ export function helpersAvailability(verdict) {
   if (isFair(verdict)) return { enabled: true, note: '' };
   return {
     enabled: false,
-    note: 'Check and hint need a puzzle with a unique solution.',
+    // Hearts share this requirement (heartsAvailable), so one note covers all three.
+    note: 'Hearts, check and hint need a puzzle with a unique solution.',
   };
 }
 

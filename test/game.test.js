@@ -9,7 +9,6 @@ import {
   hintCell,
   autoCross,
   helpersAvailability,
-  MAX_HEARTS,
   crossEmptyLines,
   heartsStroke,
   heartsAvailable,
@@ -296,7 +295,7 @@ test('heartsStroke follows the v1 stroke mode', () => {
   );
   assert.equal(out.wrong, null);
   assert.deepEqual(out.next[0], [0, 0, 0]);
-  // Starting on an unknown cell, only unknown cells fill: the filled (0,0) is skipped.
+  // Starting on an unknown cell the stroke fills: (0,1) is empty in HS, so it is the mistake.
   const start = blank3();
   start[0][0] = 1;
   const fill = heartsStroke(
@@ -312,6 +311,10 @@ test('heartsStroke follows the v1 stroke mode', () => {
 
 test('restartCells is blank plus empty-line crosses', () => {
   const clues = puzzleClues(HS);
-  assert.deepEqual(restartCells(clues, 3, 3), crossEmptyLines(blank3(), clues));
-  assert.equal(MAX_HEARTS, 3);
+  // HS's middle row and middle column are empty.
+  assert.deepEqual(restartCells(clues, 3, 3), [
+    [0, -1, 0],
+    [-1, -1, -1],
+    [0, -1, 0],
+  ]);
 });

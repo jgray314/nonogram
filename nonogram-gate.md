@@ -143,3 +143,52 @@
 - **B** (parallelization worked, at a planning cost): *noted only.* The planning iterations on dependencies are the price, and no cheaper method is in view.
 - **Draft 7 and E** (shell mangling): *applied.* JSCC had the same class of bug: PowerShell text steps without a UTF-8 flag caused mojibake twice, and PowerShell 5.1 redirects write UTF-16. Added a general rule to the owner's coding preferences and cross-session notes: file content goes through the file editor, and any shell text step sets its encoding explicitly.
 - **F** (how it extends and ages): *deferred.* Trigger: the first change after v1, whether color mode or a backlog item. Check then whether the frozen contracts and tests made the change easy or got in the way.
+
+# Pass 2: slim gate on v1.1, 2026-10-08
+
+**Run:** 2026-10-08. **Scope:** the v1.1 commits only, `adf2294..f6266fd` (steps 14a to 17), scoped slim per the skill. Fixes are in the pass 2 fix commit.
+**Prior runs:** pass 1 above. Neither reviewer was shown it.
+**Reviewers:** two read-only Explore subagents (inheriting Opus), cold, no write access.
+**Step 0, backlog prune.** The v1.1 testing notes moved from the backlog into the plan and shipped. Nothing else in the backlog aged.
+
+## Lens 1: Adversarial
+
+- **M1 (NEW, Medium). One filled run could mark two clue numbers done.** With no unknown cells left in a line, the start and end scans in `clueProgress` both crossed the whole line and matched the same run. Example: clue `1 1`, line `filled, cross, cross`. Reachable in hearts mode, because a wrong cross is free. The flaw was in the plan's contract wording too ("stops at a clue the start scan already marked").
+- **M2 (NEW, Medium).** The test `start and end scans never match the same number twice` couldn't fail: it passed with or without the guard. Same root as M1.
+- **L1 (NEW, Low).** Hearts trust an imported puzzle's `verdict`. A hand-edited verdict on a puzzle with several solutions would turn hearts on, and a fill that's right for the other solution would cost a heart. The same gap already existed for check and hint in v1.
+- **L2 (NEW, Low).** One stroke can solve the puzzle and lose the last heart, because the wrong cell gets crossed, and that cross is correct. "Solved" wins.
+- **L3 (NEW, Low, design).** Zen mode can be switched on and off mid-game, so hearts are easy to dodge: switch to Zen, use Check mistakes, then switch back.
+- **L4 (NEW, Low).** The not-fair note text drifted from the plan.
+- **L5, L6 (NEW, Low).** A wrong comment in the `heartsStroke` mode test. `restartCells` was tested against `crossEmptyLines`, its own building block.
+- **L7 (NEW, Low).** A hand-edited save with `hearts: 0` and Zen on plays normally until Zen is turned off, then locks. This is consistent with the spec.
+
+**Verified clean:** the `heartsStroke` contract; out-of-hearts blocks every input path; Restart resets state and history; `validateSave` bounds and v1 compatibility on every import path, with no import cycle; empty-line crossing isn't an undo step and isn't dirty; colour runs; hidden elements; the print key.
+
+## Lens 2: Outside-reviewer walkthrough
+
+- **W1 (NEW, Medium).** PLAN status line, steps 14a to 17 not marked done, and no record that the manual checks ran.
+- **W2 (NEW, Medium).** README stale on print, and silent on hearts, Zen and Restart. The same claims were stale in the owner's tool index.
+- **W3 (NEW, Medium, corroborates M1 and M2).** The overlap test can't fail, and a test comment contradicted its assertion.
+- **W4 (NEW, Medium).** A fresh game and Restart built their starting grid in two places, against the contract.
+- **W5 (NEW, Medium, same as L4).** Two strings and two predicates for one requirement.
+- **W6 (NEW, Low).** v1 decisions (decision 1, D2) not marked as superseded. Stale header comments in `print.js` and `format.js`. The `grid.js` doc didn't mention the red cross. A test name claimed less than it asserted.
+- **W7 (NEW, Low).** Layering: `format.js` imports `game.js` for one constant, and `clue-progress.js` re-implements column extraction. Print lane commit had no body.
+
+**Cross-lens agreement:** M1, M2 and W3 were found independently, one by running inputs and one by reading the test. That's the strongest finding of the pass.
+
+## Disposition
+
+| ID | Disposition |
+|---|---|
+| M1, M2, W3 | **Fixed.** The end scan now only sees cells the start scan didn't consume. New test `one filled run never marks two numbers` failed before the fix (`[true, true]`) and passes after. The plan contract is corrected. Comment fixed. |
+| W1, W2 | **Fixed.** PLAN status, steps 14a to 17 marked done with the manual-check record, README play section, tool index entry. |
+| W4 | **Fixed.** A fresh game starts from `restartCells`. |
+| L4, W5 | **Fixed.** One note in `helpersAvailability`, used as is. Plan text updated. `heartsAvailable` stays as a named alias. |
+| L5, L6, W6 | **Fixed.** Comments, the `restartCells` test now asserts a literal grid, the test with the over-narrow name is split, and decisions are marked superseded. |
+| L3 | **Open, owner decision.** Should switching to Zen mid-game be allowed, or only through Restart? |
+| L1 | **Accepted residual.** It only arises from a hand-edited import, and this is a personal tool. Trigger: sharing puzzles with other people, at which point imports re-solve. Recorded in the PLAN backlog. |
+| L2 | **Accepted.** Solved wins, and the heart loss still shows. |
+| L7 | **Accepted.** Consistent with the spec. Only reachable by editing a save. |
+| W7 | **Noted only.** It's small, and `MAX_HEARTS` is a game rule. Revisit if a third module needs game constants. The commit body can't be changed without rewriting pushed history. |
+
+**Close checks:** 152 tests pass, lint and format are clean. Claim grep: no "answer key on page 2" left as a default claim, no `setSatisfied`, no "Check and hint need".

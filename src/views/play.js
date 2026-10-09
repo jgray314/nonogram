@@ -45,7 +45,6 @@ function loadPuzzle(store, id) {
 
 /** Crosses are hidden and unknowns shown empty once the puzzle is solved. */
 const reveal = (cells) => cells.map((row) => row.map((v) => (v >= 1 ? v : 0)));
-const blank = (puzzle) => puzzle.solution.map((row) => row.map(() => 0));
 const sameGrid = (a, b) => a.every((row, r) => row.every((v, c) => v === b[r][c]));
 
 let root = null;
@@ -135,7 +134,7 @@ export function mount(container, params = {}) {
 
   const clues = puzzleClues(puzzle.solution);
   const rules = { zen: false, check: false, hint: false, autoCross: false };
-  let cells = blank(puzzle);
+  let cells = restartCells(clues, puzzle.width, puzzle.height); // a fresh game starts where Restart does
   let elapsedMs = 0;
   let solvedAt = null;
   let hearts = MAX_HEARTS;
@@ -150,8 +149,8 @@ export function mount(container, params = {}) {
     hearts = loaded.hearts ?? MAX_HEARTS;
     for (const key of Object.keys(rules)) rules[key] = loaded.rules[key] === true;
   }
-  // Empty lines start crossed, before the history, so they are not an undo step.
-  // This covers v1 saves too, and does not mark the save dirty on its own.
+  // A loaded save gets empty lines crossed too (v1 saves had none), before the
+  // history, so they are not an undo step. It does not mark the save dirty.
   cells = crossEmptyLines(cells, clues);
   let history = createHistory(cells);
   // A puzzle can be satisfied before any move: an all-blank tile has only empty
@@ -218,10 +217,7 @@ export function mount(container, params = {}) {
     outPanel.hidden = !out;
     holder.classList.toggle('nng-locked', out);
     hintBtn.disabled = !(rules.hint && helpers.enabled) || solvedAt !== null || out;
-    // Hearts, check and hint share one requirement, so one sentence covers all three.
-    ruleNote.textContent = heartsOk
-      ? helpers.note
-      : 'Hearts, check and hint need a puzzle with a unique solution.';
+    ruleNote.textContent = helpers.note;
     timerEl.textContent = formatTime(elapsedMs);
     grid.update(solvedAt === null ? cells : reveal(cells));
     grid.setClueDone(clueProgress(cells, clues));

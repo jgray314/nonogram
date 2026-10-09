@@ -29,7 +29,8 @@ function div(className, text) {
  * Returns {update(cells), setClueDone({rows, cols}), setWrong([r, c][]),
  *   setHighlight([r, c][]), destroy()}.
  *   setClueDone dims single numbers from per-number flags (rows[r][k],
- *   cols[c][k], as from clueProgress); setWrong outlines cells.
+ *   cols[c][k], as from clueProgress); setWrong outlines cells (play.css also
+ *   draws a crossed wrong cell's cross in red).
  */
 export function renderGrid(container, { width, height, clues, cells, onPointer = () => {} }) {
   const { top, left } = gutterSize(clues);

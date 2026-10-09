@@ -1,4 +1,5 @@
-// Print view: clues plus an empty grid on page 1, the answer key on page 2.
+// Print view: clues plus an empty grid on page 1, and the answer key on page 2
+// when "Include answer key" is ticked (off at first, D9).
 import { createStore } from '../store.js';
 import { puzzleClues } from '../clues.js';
 import { renderGrid } from './grid.js';

@@ -5,10 +5,10 @@
 import { lineSatisfied } from './game.js';
 
 /**
- * Scan a line in one direction and return how many leading clues (in scan
- * order) are done. Crossed cells are skipped, an unknown cell stops the scan,
- * and a filled run counts only if both sides are the line edge or a cross.
- * `limit` caps the count so the two scans never claim the same clue.
+ * Scan a line in one direction. Returns {done, used}: how many leading clues
+ * (in scan order) are done, and how many cells the scan consumed. Crossed
+ * cells are skipped, an unknown cell stops the scan, and a filled run counts
+ * only if both sides are the line edge or a cross. `limit` caps `done`.
  */
 function scan(line, clues, limit) {
   let done = 0;
@@ -28,16 +28,21 @@ function scan(line, clues, limit) {
     done += 1;
     i = j;
   }
-  return done;
+  return { done, used: i };
 }
 
 function lineProgress(lineCells, clues) {
   const flags = clues.map(() => false);
   if (clues.length === 0) return flags;
   if (lineSatisfied(lineCells, clues)) return flags.fill(true);
-  const fromStart = scan(lineCells, clues, clues.length);
-  const fromEnd = scan(
-    lineCells.slice().reverse(),
+  const start = scan(lineCells, clues, clues.length);
+  const fromStart = start.done;
+  // The end scan sees only cells the start scan did not consume, so one run
+  // can never be matched from both ends. The first unconsumed cell is unknown,
+  // or the start of a run the start scan rejected (with an edge or a cross
+  // before it), so treating the cut as an edge closes nothing wrongly.
+  const { done: fromEnd } = scan(
+    lineCells.slice(start.used).reverse(),
     clues.slice().reverse(),
     clues.length - fromStart,
   );

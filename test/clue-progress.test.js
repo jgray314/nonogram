@@ -20,7 +20,8 @@ test('scan from the end marks the last number', () => {
 });
 
 test('wrong-length closed run stops the scan', () => {
-  // The 1-run is closed but the first clue is 2, so the 3 behind it stays open.
+  // The 1-run is closed but the first clue is 2, so the start scan stops there.
+  // The 3 is still marked, by the scan from the end.
   assert.deepEqual(row([1, -1, 1, 1, 1, -1], 2, 3), [false, true]);
 });
 
@@ -38,8 +39,12 @@ test('scan from the start skips leading crosses', () => {
   assert.deepEqual(row([-1, -1, 1, -1, 0, 0], 1, 1), [true, false]);
 });
 
-test('start and end scans never match the same number twice', () => {
-  assert.deepEqual(row([1, -1, 0, 0], 1), [true]);
+test('one filled run never marks two numbers', () => {
+  // Gate pass 2, M1: with no unknown cells both scans crossed the whole line
+  // and matched the same run from each end. A wrong cross is free in hearts
+  // mode, so this line is reachable in play.
+  assert.deepEqual(row([1, -1, -1], 1, 1), [true, false]);
+  assert.deepEqual(row([-1, 1, -1], 1, 1), [true, false]);
 });
 
 test('two-color runs: a closed run of the wrong color is not done', () => {

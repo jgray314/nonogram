@@ -14,8 +14,11 @@ Run it from this folder, then open http://localhost:8123. Opening `index.html` a
 
 - `#/library` lists your puzzles and tile sets, and has backup, samples, print and webpbn XML export.
 - `#/create` turns an image into a grid. You can also start from a blank grid, edit it, see a live fairness report, and save one puzzle or a tile set.
-- `#/play/<id>` is the player.
-- `#/print/<id>` prints the clues and empty grid, with the answer key on page 2.
+- `#/play/<id>` is the player. Left drag fills, right drag crosses, and Ctrl+Z / Ctrl+Y undo and redo. Empty rows and columns start crossed. A clue number greys out once its block is finished and fenced in by crosses or the edge.
+  - **Hearts** are on by default for puzzles with one solution. You get 3. A wrong fill turns into a red cross and costs a heart; a wrong cross is free. At 0 the grid locks until you restart.
+  - **Zen mode** turns hearts off and brings back the optional Check mistakes switch. Puzzles without a unique solution are always in Zen mode.
+  - **Restart** clears the grid, timer and hearts.
+- `#/print/<id>` prints the clues and empty grid. Tick **Include answer key** to add the solution on page 2.
 
 ## Develop
 

@@ -1,5 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { puzzleId, validatePuzzle } from '../src/format.js';
+import { makeSet, tileGrid } from '../src/tiles.js';
 import {
   SIZES,
   defaultSize,
@@ -8,12 +10,22 @@ import {
   blankGrid,
   newEditorState,
   regenerateNeedsConfirm,
+  reportView,
+  buildPuzzleRecord,
+  canSave,
+  TILE_COUNTS,
+  fullSize,
+  sliceTiles,
+  tileStatusLine,
+  canSaveSet,
+  withVerdicts,
+  setWrites,
 } from '../src/create-logic.js';
 
 test('defaultSize picks closest aspect', () => {
   assert.deepEqual(defaultSize(800, 800), { width: 15, height: 15 });
-  // 2:1 -> short 7.5, closest of SIZES is 5 (tie 5/10 -> smaller)
-  assert.deepEqual(defaultSize(1000, 500), { width: 15, height: 5 });
+  // 2:1 -> short 7.5, a tie between 5 and 10 goes to the larger
+  assert.deepEqual(defaultSize(1000, 500), { width: 15, height: 10 });
   // 3:2 -> short 10
   assert.deepEqual(defaultSize(600, 400), { width: 15, height: 10 });
   // tall 1:3 -> short 5, long side is height
@@ -95,4 +107,164 @@ test('blank grid has chosen size', () => {
 test('regenerateNeedsConfirm only when manual edits exist', () => {
   assert.equal(regenerateNeedsConfirm(true), true);
   assert.equal(regenerateNeedsConfirm(false), false);
+});
+
+test('report updates after edit', () => {
+  const multiple = {
+    status: 'multiple',
+    sweeps: 2,
+    unresolved: [[0, 0]],
+    differing: [
+      [0, 1],
+      [1, 0],
+    ],
+  };
+  const unique = { status: 'unique-line-solvable', sweeps: 2, unresolved: [], differing: [] };
+  const guessing = {
+    status: 'unique-needs-guessing',
+    sweeps: 1,
+    unresolved: [[2, 2]],
+    differing: [],
+  };
+
+  const before = reportView(multiple);
+  assert.deepEqual(before.highlight, [
+    [0, 1],
+    [1, 0],
+  ]);
+  assert.equal(before.label, 'Not fair');
+  assert.match(before.text, /more than one/i);
+
+  // the user edits a cell; the next result replaces the report
+  const after = reportView(unique);
+  assert.deepEqual(after.highlight, []);
+  assert.equal(after.label, 'Easy');
+  assert.notEqual(after.text, before.text);
+
+  const hard = reportView(guessing);
+  assert.deepEqual(hard.highlight, [[2, 2]]);
+  assert.equal(hard.label, 'Hard');
+
+  // no result yet: nothing to highlight, nothing claimed
+  const pending = reportView(null);
+  assert.deepEqual(pending.highlight, []);
+  assert.equal(pending.label, 'Unchecked');
+  assert.match(pending.text, /checking/i);
+});
+
+test('saved puzzle carries verdict', async () => {
+  const grid = [
+    [1, 0],
+    [0, 1],
+  ];
+  const result = { status: 'multiple', sweeps: 3, unresolved: [], differing: [[0, 0]] };
+  const rec = buildPuzzleRecord(grid, '  My cat ', result);
+  assert.deepEqual(rec.verdict, { status: 'multiple', sweeps: 3 });
+  assert.equal(rec.title, 'My cat');
+  assert.equal(rec.width, 2);
+  assert.equal(rec.height, 2);
+  assert.deepEqual(rec.palette, [{ name: 'black', hex: '#000000' }]);
+  assert.deepEqual(rec.solution, grid);
+  assert.notEqual(rec.solution, grid); // a copy, so later edits cannot change it
+  assert.equal(buildPuzzleRecord(grid, '   ', result).title, 'Untitled');
+
+  rec.id = await puzzleId(rec);
+  assert.equal(validatePuzzle(rec).ok, true);
+});
+
+test('save waits for a fresh report', () => {
+  const result = { status: 'unique-line-solvable', sweeps: 1 };
+  assert.equal(canSave({ phase: 'pending', result: null }), false);
+  assert.equal(canSave({ phase: 'pending', result }), false); // stale result
+  assert.equal(canSave({ phase: 'error', result: null }), false);
+  assert.equal(canSave({ phase: 'fresh', result: null }), false);
+  assert.equal(canSave({ phase: 'fresh', result }), true);
+});
+
+test('tile helpers size and slice the full grid', () => {
+  assert.deepEqual(TILE_COUNTS, [1, 2, 3, 4]);
+  assert.deepEqual(fullSize(10, 5, 2, 3), { width: 30, height: 10 });
+  assert.deepEqual(fullSize(15, 15, 1, 1), { width: 15, height: 15 });
+  const full = Array.from({ length: 4 }, (_, r) => Array.from({ length: 6 }, (_, c) => r * 10 + c));
+  const tiles = sliceTiles(full, 2, 3);
+  assert.equal(tiles.length, 2);
+  assert.equal(tiles[0].length, 3);
+  assert.deepEqual(tiles[1][2], [
+    [24, 25],
+    [34, 35],
+  ]);
+  // 1x1 is the grid itself
+  assert.deepEqual(sliceTiles(full, 1, 1)[0][0], full);
+});
+
+test('tile status line names the tile, difficulty and flag', () => {
+  const easy = { status: 'unique-line-solvable', sweeps: 1 };
+  const bad = { status: 'multiple', sweeps: 1 };
+  assert.equal(tileStatusLine(0, 1, easy, null), 'r1c2: Easy');
+  assert.equal(tileStatusLine(1, 0, bad, 'blank'), 'r2c1: Not fair (blank)');
+  assert.equal(tileStatusLine(0, 0, null, null), 'r1c1: checking...');
+});
+
+test('set save waits for every tile report', () => {
+  const ok = { phase: 'fresh', result: { status: 'multiple', sweeps: 0 } };
+  const wait = { phase: 'pending', result: null };
+  assert.equal(canSaveSet([ok, ok]), true);
+  assert.equal(canSaveSet([ok, wait]), false);
+  assert.equal(canSaveSet([]), false);
+});
+
+test('set save writes tiles before set record', async () => {
+  const full = Array.from({ length: 2 }, (_, r) =>
+    Array.from({ length: 4 }, (_, c) => (r + c) % 2),
+  );
+  const tiles = sliceTiles(full, 1, 2);
+  const { set, puzzles } = await makeSet({
+    title: 'Mosaic',
+    tiles,
+    palette: [{ name: 'black', hex: '#000000' }],
+  });
+  const reports = [
+    { phase: 'fresh', result: { status: 'unique-line-solvable', sweeps: 2, extra: 1 } },
+    { phase: 'fresh', result: { status: 'multiple', sweeps: 1 } },
+  ];
+  const filled = withVerdicts(puzzles, reports);
+  assert.deepEqual(filled[0].verdict, { status: 'unique-line-solvable', sweeps: 2 });
+  assert.deepEqual(filled[1].verdict, { status: 'multiple', sweeps: 1 });
+  assert.equal(puzzles[0].verdict, null); // input not mutated
+
+  const writes = setWrites(set, filled);
+  assert.equal(writes.length, 3);
+  assert.deepEqual(
+    writes.map((w) => w.kind),
+    ['puzzle', 'puzzle', 'set'],
+  );
+  assert.deepEqual(
+    writes.slice(0, 2).map((w) => w.record.id),
+    set.tileIds,
+  );
+  assert.equal(writes[2].record, set);
+  // every puzzle the set points at is written before the set record
+  const written = new Set();
+  for (const w of writes) {
+    if (w.kind === 'set') assert.ok(w.record.tileIds.every((id) => written.has(id)));
+    else written.add(w.record.id);
+  }
+});
+
+test('sliceTiles agrees with tileGrid tiles', () => {
+  // 4x2 px image: left half dark, right half light; two tiles of 2x2 cells
+  const rgba = new Uint8ClampedArray(4 * 2 * 4);
+  for (let i = 0; i < 8; i++) {
+    const v = i % 4 < 2 ? 0 : 255;
+    rgba.set([v, v, v, 255], i * 4);
+  }
+  const { full, tiles } = tileGrid(rgba, 4, 2, { x: 0, y: 0, w: 4, h: 2 }, 2, 2, 1, 2, {
+    threshold: 128,
+    invert: false,
+  });
+  assert.deepEqual(full, [
+    [1, 1, 0, 0],
+    [1, 1, 0, 0],
+  ]);
+  assert.deepEqual(sliceTiles(full, 1, 2), tiles);
 });

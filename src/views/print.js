@@ -38,13 +38,23 @@ export function mount(container, params = {}) {
   printBtn.addEventListener('click', () => window.print());
   const back = el('a', 'nng-btn', 'Back to library');
   back.href = '#/library';
-  controls.append(printBtn, back);
+  const keyToggle = el('label', 'nng-print-keytoggle');
+  const keyBox = el('input');
+  keyBox.type = 'checkbox';
+  keyBox.checked = false;
+  keyToggle.append(keyBox, el('span', null, 'Include answer key'));
+  controls.append(printBtn, back, keyToggle);
 
   const page = el('div', 'nng-print-page');
   page.append(el('h1', null, puzzle.title));
   page.append(el('p', 'nng-print-meta', `${puzzle.width} x ${puzzle.height}`));
   const key = el('div', 'nng-print-page nng-print-key');
   key.append(el('h1', null, `${puzzle.title} – answer key`));
+
+  key.hidden = true;
+  keyBox.addEventListener('change', () => {
+    key.hidden = !keyBox.checked;
+  });
 
   const dims = { width: puzzle.width, height: puzzle.height, clues };
   grids = [

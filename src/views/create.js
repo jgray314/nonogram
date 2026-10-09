@@ -2,7 +2,7 @@
 // live solver report (11b), save to library (11c), tile sets (12c).
 import { cellLuminance, otsu } from '../image.js';
 import { puzzleClues } from '../clues.js';
-import { renderGrid } from './grid.js';
+import { renderGrid, gutterSize } from './grid.js';
 import { applyStroke } from '../play-state.js';
 import { createHistory } from '../game.js';
 import { puzzleId, validatePuzzle, validateSet } from '../format.js';
@@ -38,6 +38,7 @@ import {
   setWrites,
   rollbackTargets,
   existingPuzzle,
+  narrowCellSize,
 } from '../create-logic.js';
 
 const PREVIEW_MAX = 320;
@@ -321,6 +322,16 @@ export function mount(container) {
     ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
   }
 
+  /** Below 600px wide, size the cells so the grid fits the column (UX24). */
+  function fitCells(cols, clueCols) {
+    if (window.matchMedia('(max-width: 599px)').matches) {
+      const size = narrowCellSize(root.clientWidth, cols, clueCols);
+      gridHost.style.setProperty('--cell', `${size}px`);
+    } else {
+      gridHost.style.removeProperty('--cell');
+    }
+  }
+
   function renderGridNow() {
     gridView?.destroy();
     const d = dims();
@@ -331,6 +342,7 @@ export function mount(container) {
           cols: Array.from({ length: d.width }, () => []),
         }
       : puzzleClues(st.grid);
+    fitCells(d.width, gutterSize(clues).left);
     gridView = renderGrid(gridHost, {
       width: d.width,
       height: d.height,
@@ -817,6 +829,10 @@ export function mount(container) {
   undoBtn.addEventListener('click', () => stepHistory(true));
   redoBtn.addEventListener('click', () => stepHistory(false));
   document.addEventListener('keydown', onKeydown);
+  const onResize = () => {
+    if (!stroke) renderGridNow();
+  };
+  window.addEventListener('resize', onResize);
   titleInput.addEventListener('input', () => {
     titleTouched = true;
   });
@@ -837,6 +853,7 @@ export function mount(container) {
       : null;
     liveUnsaved = null;
     document.removeEventListener('keydown', onKeydown);
+    window.removeEventListener('resize', onResize);
     clearTimeout(reportTimer);
     reportRun++;
     solver.terminate();

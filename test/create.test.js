@@ -31,6 +31,7 @@ import {
   setWrites,
   rollbackTargets,
   existingPuzzle,
+  narrowCellSize,
 } from '../src/create-logic.js';
 
 test('defaultSize picks closest aspect', () => {
@@ -399,6 +400,13 @@ test('withArts adds each tile its own art and leaves others alone', () => {
   const out = withArts(puzzles, ['x', undefined, 'z']);
   assert.deepEqual(out, [{ id: 'a', art: 'x' }, { id: 'b' }, { id: 'c', art: 'z' }]);
   assert.equal('art' in puzzles[0], false, 'input is not mutated');
+});
+
+test('narrowCellSize fits the grid to the width, with a 12px floor and a 24px ceiling', () => {
+  // 343px column, 15 cells, 3 clue columns of 22px: (343 - 66 - 20) / 15 = 17
+  assert.equal(narrowCellSize(343, 15, 3), 17);
+  assert.equal(narrowCellSize(343, 5, 0), 24, 'small grids stay at the normal size');
+  assert.equal(narrowCellSize(343, 25, 7), 12, 'large grids stop at 12 and scroll');
 });
 
 test('existingPuzzle finds a stored grid by id', () => {

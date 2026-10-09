@@ -48,6 +48,18 @@ export function existingPuzzle(store, id) {
   return found ? String(found.title ?? '') : null;
 }
 
+const CLUE_W = 22; // css/base.css --clue-w
+const GRID_CHROME = 20; // the grid's padding and a little slack
+
+/**
+ * Cell size (px) that fits a grid into `availWidth` on a narrow screen: the
+ * width left after the clue columns, split across the cells; 12 to 24.
+ */
+export function narrowCellSize(availWidth, cols, clueCols) {
+  const fit = Math.floor((availWidth - clueCols * CLUE_W - GRID_CHROME) / cols);
+  return clamp(fit, 12, 24);
+}
+
 const MAX_TITLE = 60;
 
 /** A puzzle title from a file name: extension dropped, `-` and `_` become spaces. */

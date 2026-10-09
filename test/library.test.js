@@ -185,7 +185,6 @@ test('samples are valid puzzles', async () => {
   );
   for (const p of samples) {
     assert.equal(validatePuzzle(p).ok, true, p.title);
-    assert.equal(p.verdict, null);
     assert.equal(p.id, await puzzleId(p));
     assert.ok(
       p.solution.flat().some((v) => v === 1),
@@ -199,4 +198,12 @@ test('loadSamples skips existing puzzles', async () => {
   assert.deepEqual(await loadSamples(store), { added: 3, skipped: 0 });
   assert.deepEqual(await loadSamples(store), { added: 0, skipped: 3 });
   assert.equal(store.list('puzzle').records.length, 3);
+});
+
+test('samples carry a solver verdict and are fair', async () => {
+  const { isFair } = await import('../src/difficulty.js');
+  for (const p of await samplePuzzles()) {
+    assert.ok(p.verdict, `${p.title} has no verdict`);
+    assert.ok(isFair(p.verdict), `${p.title} is ${p.verdict.status}`);
+  }
 });

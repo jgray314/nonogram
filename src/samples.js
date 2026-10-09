@@ -1,5 +1,7 @@
 // Three hand-authored sample puzzles, drawn as string art ('#' filled).
 import { puzzleId } from './format.js';
+import { puzzleClues } from './clues.js';
+import { solve } from './solver.js';
 
 const ART = [
   {
@@ -23,21 +25,23 @@ const ART = [
   },
   {
     title: 'Sample: Smiley (15x15)',
+    // Solid face with cut-out features: the hollow-outline version had two
+    // solutions (symmetric mouth corners), caught by the samples fairness test.
     rows: [
       '....#######....',
-      '..###.....###..',
-      '.##.........##.',
-      '.#...#...#...#.',
-      '##...#...#...##',
-      '#.............#',
-      '#.............#',
-      '#.............#',
-      '#.............#',
-      '#..#.......#..#',
-      '##..#.....#..##',
-      '.#...#####...#.',
-      '.##.........##.',
-      '..###.....###..',
+      '..###########..',
+      '.#############.',
+      '.###..###..###.',
+      '####..###..####',
+      '###############',
+      '###############',
+      '###############',
+      '###.#######.###',
+      '####.#####.####',
+      '#####.....#####',
+      '.#############.',
+      '.#############.',
+      '..###########..',
       '....#######....',
     ],
   },
@@ -57,6 +61,12 @@ export async function samplePuzzles() {
       solution: rows.map((row) => Array.from(row, (ch) => (ch === '#' ? 1 : 0))),
       verdict: null,
     };
+    // Samples are tiny, so solving here is instant and keeps the verdict honest.
+    const { status, sweeps } = solve(
+      { width: puzzle.width, height: puzzle.height, ...puzzleClues(puzzle.solution) },
+      {},
+    );
+    puzzle.verdict = { status, sweeps };
     puzzle.id = await puzzleId(puzzle);
     out.push(puzzle);
   }

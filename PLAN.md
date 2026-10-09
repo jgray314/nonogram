@@ -314,6 +314,14 @@ Each item has a trigger. Items marked **kill** are recorded only so they aren't 
 - Opening an already-solved puzzle replays the solve glow once.
 - The grid scrolls rather than shrinking on a narrow window. Desktop is the target (D4).
 
+**Owner's hands-on testing, 2026-10-08 (next round of work; decisions open):**
+- Reset a puzzle for replay.
+- A hearts system for errors: a wrong placement costs a heart automatically.
+- Mark each clue number done on its own, not only the whole row or column.
+- Print page: hide the answer key at first, and offer printing the puzzle sheet alone.
+- Cross out empty rows and columns (clue 0) automatically at the start.
+- Print preview itself worked as planned. Step 13's print check is done.
+
 **Kill (harmless):**
 - With reduced motion on, a stray `nng-pop` class can stay on a cell. The animation is off, so nothing shows.
 

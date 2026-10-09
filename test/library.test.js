@@ -181,6 +181,12 @@ test('samples are valid puzzles', async () => {
       [5, 5],
       [10, 10],
       [15, 15],
+      [10, 10],
+      [15, 15],
+      [20, 20],
+      [25, 25],
+      [10, 10],
+      [20, 20],
     ],
   );
   for (const p of samples) {
@@ -195,9 +201,31 @@ test('samples are valid puzzles', async () => {
 
 test('loadSamples skips existing puzzles', async () => {
   const store = createStore(memoryStorage());
-  assert.deepEqual(await loadSamples(store), { added: 3, skipped: 0 });
-  assert.deepEqual(await loadSamples(store), { added: 0, skipped: 3 });
-  assert.equal(store.list('puzzle').records.length, 3);
+  assert.deepEqual(await loadSamples(store), { added: 9, skipped: 0 });
+  assert.deepEqual(await loadSamples(store), { added: 0, skipped: 9 });
+  assert.equal(store.list('puzzle').records.length, 9);
+});
+
+test('image-based samples match their art source', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const art = JSON.parse(await readFile(new URL('../sample-images/art.json', import.meta.url)));
+  const samples = await samplePuzzles();
+  for (const { title, rows } of art) {
+    const p = samples.find((s) => s.title === `AI test sample: ${title}`);
+    assert.ok(p, `no sample for ${title}`);
+    assert.deepEqual(
+      p.solution.map((row) => row.map((v) => (v ? '#' : '.')).join('')),
+      rows,
+      title,
+    );
+  }
+});
+
+test('every sample is labeled as an AI-drawn test puzzle', async () => {
+  // The owner's rule: no AI in created content, so AI-drawn samples say so.
+  for (const p of await samplePuzzles()) {
+    assert.match(p.title, /^AI test sample: /, p.title);
+  }
 });
 
 test('samples carry a solver verdict and are fair', async () => {

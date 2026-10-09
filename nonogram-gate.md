@@ -137,7 +137,7 @@
 - **Draft 1** (reports aren't the record): *applied* in the project's cross-session notes ("always verify from the branch"). Verification already ran on every merge.
 - **Draft 2** (hand checks found what tests couldn't): *noted only.* The plan already had `[manual]` checks on merged `main`, and they worked.
 - **Draft 3** (no size bounds): *applied.* Added check 9, "every number crossing a trust boundary has an upper bound", to the `/plan-review` skill. It blocks by default, like checks 1 to 6.
-- **Draft 4 and A** (estimates far too high; gate size right): **pending the owner's OK** on the new sizing guidance. The proposal is in the session record. Gate size is *noted only*: it stays as is.
+- **Draft 4 and A** (estimates far too high; gate size right): *applied* (owner chose option 2). Work is now sized by review unit, not by clock, and the estimate rules are separate, in the owner's multi-week planning guidance and decisions log. Gate size is *noted only*: it stays as is.
 - **Draft 5 and C** (test names overclaim): *applied.* Added Step 8, "test names match what they assert", to the `/pre-commit-check` skill. It's scoped to new and renamed tests so it stays seconds-fast.
 - **Draft 6 and D** (Sonnet enough; Opus orchestrates): *noted only.* This matched the expectation and is already the standing rule in the owner's notes on subagent models.
 - **B** (parallelization worked, at a planning cost): *noted only.* The planning iterations on dependencies are the price, and no cheaper method is in view.

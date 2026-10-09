@@ -118,7 +118,6 @@ export function mount(container, params = {}) {
   const toggles = {};
   for (const [key, label] of [
     ['zen', 'Zen mode'],
-    ['hint', 'Hints'],
     ['autoCross', 'Auto-cross'],
   ]) {
     const wrap = el('label', 'nng-toggle');
@@ -155,7 +154,7 @@ export function mount(container, params = {}) {
 
   const clues = puzzleClues(puzzle.solution);
   // v1's `check` rule is gone (D13): every wrong fill is now flagged on the spot.
-  const rules = { zen: false, hint: false, autoCross: false };
+  const rules = { zen: false, autoCross: false };
   let cells = restartCells(clues, puzzle.width, puzzle.height); // a fresh game starts where Restart does
   let elapsedMs = 0;
   let solvedAt = null;
@@ -235,7 +234,7 @@ export function mount(container, params = {}) {
     outPanel.hidden = !out;
     restartBtn.hidden = out; // the panel has its own Restart; show only one
     holder.classList.toggle('nng-locked', out);
-    hintBtn.disabled = !(rules.hint && helpers.enabled) || solvedAt !== null || out;
+    hintBtn.disabled = !helpers.enabled || solvedAt !== null || out;
     undoBtn.disabled = !history.canUndo() || solvedAt !== null || out;
     redoBtn.disabled = !history.canRedo() || solvedAt !== null || out;
     ruleNote.textContent = helpers.note;
@@ -383,7 +382,7 @@ export function mount(container, params = {}) {
     });
   }
   hintBtn.addEventListener('click', () => {
-    if (solvedAt !== null || drag || outOfHearts() || !rules.hint || !helpers.enabled) return;
+    if (solvedAt !== null || drag || outOfHearts() || !helpers.enabled) return;
     const hint = hintCell(cells, puzzle.solution);
     if (!hint) return;
     const next = cells.map((row) => row.slice());

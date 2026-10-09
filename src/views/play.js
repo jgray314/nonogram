@@ -143,7 +143,14 @@ export function mount(container, params = {}) {
   redoBtn.setAttribute('aria-keyshortcuts', 'Control+Y');
   const legend = el('p', 'nng-legend', 'Left-drag to fill · Right-drag to cross · Ctrl+Z to undo');
   rulesBar.append(undoBtn, redoBtn, hintBtn, restartBtn, ruleNote);
-  root.append(title, status, outPanel, rulesBar, toolbar, holder, legend);
+  // Shown once a solve is final (after the art fade, if any): the time and a way back.
+  const strip = el('div', 'nng-solved-strip');
+  strip.hidden = true;
+  const stripText = el('span', 'nng-solved-text');
+  const stripLink = el('a', undefined, 'Back to library');
+  stripLink.href = '#/library';
+  strip.append(stripText, stripLink);
+  root.append(title, status, outPanel, rulesBar, toolbar, holder, strip, legend);
   container.append(root);
 
   const clues = puzzleClues(puzzle.solution);
@@ -244,6 +251,61 @@ export function mount(container, params = {}) {
     solvedMsg.hidden = solvedAt === null;
     solvedMsg.textContent = solvedAt === null ? '' : 'Solved';
     count.textContent = '';
+    syncReveal();
+  }
+
+  // Solve reveal (D14): the original crop fades in over the cells. A puzzle with
+  // no art, a reopened solved puzzle and reduced motion skip the fade.
+  let revealed = false;
+  let animateReveal = false; // set by the move that solves the puzzle
+  let revealTimer = null;
+  const reduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  function showStrip() {
+    clearTimeout(revealTimer);
+    stripText.textContent = `Solved in ${formatTime(elapsedMs)}`;
+    strip.hidden = false;
+  }
+  function clearReveal() {
+    clearTimeout(revealTimer);
+    revealed = false;
+    grid.setOverlay(null);
+    holder.classList.remove('nng-revealed', 'nng-reveal-anim');
+    strip.hidden = true;
+  }
+  function syncReveal() {
+    if (solvedAt === null) {
+      if (revealed || !strip.hidden) clearReveal();
+      return;
+    }
+    if (revealed) return;
+    revealed = true;
+    const animate = animateReveal && !reduceMotion();
+    animateReveal = false;
+    if (!puzzle.art) {
+      showStrip();
+      return;
+    }
+    const img = el('img', 'nng-art');
+    img.alt = 'The finished picture';
+    img.src = puzzle.art;
+    img.addEventListener('error', () => {
+      grid.setOverlay(null);
+      holder.classList.remove('nng-revealed', 'nng-reveal-anim');
+      showStrip();
+    });
+    grid.setOverlay(img);
+    if (!animate) {
+      img.classList.add('nng-art-in', 'nng-art-instant');
+      holder.classList.add('nng-revealed');
+      showStrip();
+      return;
+    }
+    holder.classList.add('nng-reveal-anim');
+    img.getBoundingClientRect(); // commit the start state so the fade runs
+    img.classList.add('nng-art-in');
+    holder.classList.add('nng-revealed');
+    img.addEventListener('transitionend', showStrip, { once: true });
+    revealTimer = setTimeout(showStrip, 1600); // in case transitionend never fires
   }
 
   /** One committed move (a stroke, or later a hint) is one undo step. */
@@ -262,6 +324,7 @@ export function mount(container, params = {}) {
     if (isSolved(cells, clues)) {
       tick(); // bank the time up to the solving move
       solvedAt = Date.now();
+      animateReveal = true;
     }
     dirty = true;
     refresh();
@@ -342,6 +405,7 @@ export function mount(container, params = {}) {
   cleanup.push(() => {
     tick();
     clearInterval(timer);
+    clearTimeout(revealTimer);
     document.removeEventListener('visibilitychange', onVisibility);
   });
 

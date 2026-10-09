@@ -26,11 +26,12 @@ function div(className, text) {
  *     r and c are null when the pointer is outside the cells.
  *     button is 'left' | 'right' while a press that began on a cell is held
  *     (down, enter and up), else null. Presses with other buttons are ignored.
- * Returns {update(cells), setClueDone({rows, cols}), setWrong([r, c][]),
- *   setHighlight([r, c][]), destroy()}.
+ * Returns {update(cells), setClueDone({rows, cols}), setOverlay(node | null),
+ *   setWrong([r, c][]), setHighlight([r, c][]), destroy()}.
  *   setClueDone dims single numbers from per-number flags (rows[r][k],
  *   cols[c][k], as from clueProgress); setWrong outlines cells (play.css also
- *   draws a crossed wrong cell's cross in red).
+ *   draws a crossed wrong cell's cross in red); setOverlay lays one node over the
+ *   cell area, above the cells, or removes it.
  */
 export function renderGrid(container, { width, height, clues, cells, onPointer = () => {} }) {
   const { top, left } = gutterSize(clues);
@@ -110,6 +111,19 @@ export function renderGrid(container, { width, height, clues, cells, onPointer =
     );
   }
 
+  // One node laid over exactly the cell area (above the cells, clues untouched).
+  // Pass null to remove it. The caller owns the node's look and pointer events.
+  let overlay = null;
+  function setOverlay(node) {
+    overlay?.remove();
+    overlay = node ?? null;
+    if (!overlay) return;
+    overlay.style.gridRow = `${top + 1} / span ${height}`;
+    overlay.style.gridColumn = `${left + 1} / span ${width}`;
+    overlay.style.zIndex = '2';
+    root.append(overlay);
+  }
+
   function setWrong(list) {
     for (const row of nodes) for (const node of row) node.classList.remove('nng-wrong');
     for (const [r, c] of list) nodes[r]?.[c]?.classList.add('nng-wrong');
@@ -184,6 +198,7 @@ export function renderGrid(container, { width, height, clues, cells, onPointer =
   return {
     update,
     setClueDone,
+    setOverlay,
     setWrong,
     setHighlight,
     destroy() {

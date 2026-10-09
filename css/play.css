@@ -59,6 +59,42 @@
   color: var(--muted);
 }
 
+/* Solve reveal (D14): the saved crop fades in over the cells while they fade out. */
+.nng-art {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1.2s ease;
+}
+
+.nng-art.nng-art-in {
+  opacity: 1;
+}
+
+.nng-art.nng-art-instant {
+  transition: none;
+}
+
+.nng-grid-holder.nng-reveal-anim .nng-cell {
+  transition: opacity 1.2s ease;
+}
+
+.nng-grid-holder.nng-revealed .nng-cell {
+  opacity: 0;
+}
+
+.nng-solved-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  margin-top: 8px;
+  font-weight: 700;
+}
+
 .nng-legend {
   margin: 4px 0 0;
   color: var(--muted);

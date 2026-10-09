@@ -111,7 +111,7 @@
 
 ## Retrospective
 
-**Draft from the phase record.** Each lesson cites its evidence. These are awaiting the owner's lessons before being finalized.
+**Draft from the phase record.** Each lesson cites its evidence. The owner's lessons follow and outrank the draft where they differ.
 
 1. **Lane reports can't be trusted as the record. The branch is.** Two of about 12 lane runs returned an empty or placeholder report (lane B step 2; creator steps 11b to 12c). Another broke the two-failure stop rule (lane A made a third attempt). Every merge was verified from `git log`, the diff, and a fresh `npm test`, and that caught nothing wrong. The verification habit is what made the reports' unreliability harmless.
 2. **The hand checks in the browser found bugs no test could.** These were all found by running the merged app in the browser pane:
@@ -125,6 +125,21 @@
 6. **Sonnet was enough for every contract-bound lane.** No step hit the upgrade-to-Opus rule. The solver, the hardest step, passed both of the reviewer's independent oracles.
 7. **(Orchestrator working style.)** Shell heredocs mangled backslash escapes twice: once in a plan edit, once in the XML escape regex. Content heavy in escapes goes through the file editor or `chr()`, not the shell.
 
-**Owner's lessons:** *pending. Ask what surprised them, what cost more time than it should have, what she'd change at the start next time, what should become standard, and where the process or the assistant got in the way.*
+**Owner's lessons (2026-10-08, in their words):**
+- A. "While I knew estimates were off from prior experiences the degree still caught me off guard. I'd like to update default guidance on appropriate scale to subdivide work based on the experiences from JSCC and this project. Gate review did seem to be right size still."
+- B. "Was happy with parallelization, though it required more iteration in the planning stage to shake out dependencies. Good so far, but this is probably the best that will get."
+- C. "Test name over claim is a pattern seen before. May make sense to add that into standard checks even at the per commit level."
+- D. "Was expecting sonnet to be sufficient for individual steps with opus acting as planner orchestrator. Parallelizing felt faster."
+- E. "I think similar mangling happened in JSCC. Worth flagging as a general process update if so."
+- F. "Overall I again felt the nothing to first touchable version was amazingly fast and clean. Now to see how things extend and age."
 
-**Dispositions:** *pending, until the owner's lessons are in.*
+**Dispositions:**
+- **Draft 1** (reports aren't the record): *applied* in the project's cross-session notes ("always verify from the branch"). Verification already ran on every merge.
+- **Draft 2** (hand checks found what tests couldn't): *noted only.* The plan already had `[manual]` checks on merged `main`, and they worked.
+- **Draft 3** (no size bounds): *applied.* Added check 9, "every number crossing a trust boundary has an upper bound", to the `/plan-review` skill. It blocks by default, like checks 1 to 6.
+- **Draft 4 and A** (estimates far too high; gate size right): **pending the owner's OK** on the new sizing guidance. The proposal is in the session record. Gate size is *noted only*: it stays as is.
+- **Draft 5 and C** (test names overclaim): *applied.* Added Step 8, "test names match what they assert", to the `/pre-commit-check` skill. It's scoped to new and renamed tests so it stays seconds-fast.
+- **Draft 6 and D** (Sonnet enough; Opus orchestrates): *noted only.* This matched the expectation and is already the standing rule in the owner's notes on subagent models.
+- **B** (parallelization worked, at a planning cost): *noted only.* The planning iterations on dependencies are the price, and no cheaper method is in view.
+- **Draft 7 and E** (shell mangling): *applied.* JSCC had the same class of bug: PowerShell text steps without a UTF-8 flag caused mojibake twice, and PowerShell 5.1 redirects write UTF-16. Added a general rule to the owner's coding preferences and cross-session notes: file content goes through the file editor, and any shell text step sets its encoding explicitly.
+- **F** (how it extends and ages): *deferred.* Trigger: the first change after v1, whether color mode or a backlog item. Check then whether the frozen contracts and tests made the change easy or got in the way.

@@ -1,7 +1,7 @@
 # Nonogram Studio — Plan
 
 **Created:** 2026-10-08
-**Status (2026-10-09):** v1 (steps 0 to 13), v1.1 (14a to 17) and v1.2 (19a to 22) are built and gated (passes 1 to 3). v1.3 (23a to 25, the UX pass 2 fixes, D20 size warning, D21 touch Fill/Cross) is merged and checked by hand on the mobile preset and at 1024x768; all UX checks pass. Run `npm test` for the current count. Remaining: difficulty calibration by play (step 13), and closing gate pass 3's retrospective.
+**Status (2026-10-09):** v1 (steps 0 to 13), v1.1 (14a to 17) and v1.2 (19a to 22) are built and gated (passes 1 to 3). v1.3 (23a to 25, the UX pass 2 fixes, D20 size warning, D21 touch Fill/Cross) is merged and checked by hand on the mobile preset and at 1024x768; all UX checks pass. Run `npm test` for the current count. Gate pass 3 and its retrospective are closed. Remaining: difficulty calibration by play (step 13).
 **Platform:** web browser, desktop first.
 **What it is:** A personal tool to turn an image (your own picture, no AI in the content) into a nonogram, check that it's a fair puzzle, then play it with state saved. Single user, no accounts.
 

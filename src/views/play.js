@@ -13,7 +13,6 @@ import {
   hintCell,
   isSolved,
   restartCells,
-  wrongFills,
 } from '../game.js';
 import { clueProgress, solutionProgress } from '../clue-progress.js';
 import { createStore } from '../store.js';
@@ -112,7 +111,6 @@ export function mount(container, params = {}) {
   const toggles = {};
   for (const [key, label] of [
     ['zen', 'Zen mode'],
-    ['check', 'Check mistakes'],
     ['hint', 'Hints'],
     ['autoCross', 'Auto-cross'],
   ]) {
@@ -133,7 +131,8 @@ export function mount(container, params = {}) {
   container.append(root);
 
   const clues = puzzleClues(puzzle.solution);
-  const rules = { zen: false, check: false, hint: false, autoCross: false };
+  // v1's `check` rule is gone (D13): every wrong fill is now flagged on the spot.
+  const rules = { zen: false, hint: false, autoCross: false };
   let cells = restartCells(clues, puzzle.width, puzzle.height); // a fresh game starts where Restart does
   let elapsedMs = 0;
   let solvedAt = null;
@@ -198,15 +197,11 @@ export function mount(container, params = {}) {
 
   function refresh() {
     const out = outOfHearts();
-    const checkOn = rules.check && helpers.enabled && solvedAt === null && zen();
-    if (checkOn) grid.setWrong(wrongFills(cells, puzzle.solution));
-    else grid.setWrong(wrongMark && solvedAt === null ? [wrongMark] : []);
+    grid.setWrong(wrongMark && solvedAt === null ? [wrongMark] : []);
     for (const key of Object.keys(toggles)) {
       toggles[key].checked = key === 'zen' ? zen() : rules[key];
       toggles[key].disabled = out || (key !== 'autoCross' && !helpers.enabled);
     }
-    // Mistakes are corrected as they happen with hearts on, so Check has nothing to add.
-    toggles.check.parentElement.hidden = !zen();
     heartsEl.hidden = zen();
     heartsEl.setAttribute('aria-label', `${hearts} of ${MAX_HEARTS} hearts`);
     heartNodes.forEach((node, i) => {
@@ -220,9 +215,12 @@ export function mount(container, params = {}) {
     ruleNote.textContent = helpers.note;
     timerEl.textContent = formatTime(elapsedMs);
     grid.update(solvedAt === null ? cells : reveal(cells));
-    // Hearts mode already reveals right and wrong, so numbers can follow the
-    // solution; Zen keeps the logic-only rule so it gives nothing away (D11).
-    grid.setClueDone(zen() ? clueProgress(cells, clues) : solutionProgress(cells, puzzle.solution));
+    // With a unique solution every wrong fill is caught on the spot, in both
+    // modes, so numbers can follow the solution (D11, D13). Without one there is
+    // no answer to compare against, so the logic-only fenced rule applies.
+    grid.setClueDone(
+      heartsOk ? solutionProgress(cells, puzzle.solution) : clueProgress(cells, clues),
+    );
     holder.classList.toggle('nng-celebrate', solvedAt !== null); // styling hook for the solve glow
     solvedMsg.hidden = solvedAt === null;
     solvedMsg.textContent = solvedAt === null ? '' : 'Solved';
@@ -237,7 +235,8 @@ export function mount(container, params = {}) {
     cells = next;
     history.push(cells);
     wrongMark = wrong;
-    if (wrong) {
+    // Zen shows the same red cross but costs nothing (D13).
+    if (wrong && !zen()) {
       if (hearts === 1) tick(); // bank the time up to the losing move, before the timer locks
       hearts -= 1;
     }
@@ -262,11 +261,12 @@ export function mount(container, params = {}) {
       if (r !== null) drag.path.push([r, c]);
       const finished = drag;
       drag = null;
-      if (zen()) {
-        commit(applyStroke(cells, finished));
-      } else {
+      if (heartsOk) {
+        // Hearts and Zen alike: a wrong fill becomes a red cross on the spot.
         const result = heartsStroke(cells, finished, puzzle.solution);
         commit(result.next, result.wrong);
+      } else {
+        commit(applyStroke(cells, finished)); // no unique solution to check against
       }
     }
   }

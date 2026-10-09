@@ -1,9 +1,9 @@
 // Per-number clue progress for the play view. Pure, no DOM.
-// Two rules (D11): in hearts mode a number is done once its solution block is
-// filled (solutionProgress). In Zen mode, and on puzzles without a unique
-// solution, using the solution would leak answers, so a number is done only
-// when its block is closed in at the matching position from either edge
-// (clueProgress).
+// Two rules (D11, D13): with a unique solution, a number is done once its
+// solution block is filled (solutionProgress); wrong fills are caught on the
+// spot in both modes, so this reveals nothing. Without a unique solution there
+// is no answer to compare against, so a number is done only when its block is
+// closed in at the matching position from either edge (clueProgress).
 // Cell encoding: 0 unknown, -1 crossed, k >= 1 filled.
 import { lineSatisfied } from './game.js';
 

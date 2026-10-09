@@ -126,3 +126,22 @@
 .nng-create-save-msg a {
   color: var(--accent);
 }
+
+.nng-create-tiles-hint {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.nng-create .nng-cell.nng-tile-right {
+  border-right: 4px solid var(--accent);
+}
+
+.nng-create .nng-cell.nng-tile-bottom {
+  border-bottom: 4px solid var(--accent);
+}
+
+.nng-create-tile-list {
+  margin: 4px 0 0;
+  padding-left: 20px;
+  columns: 2;
+}

@@ -1,7 +1,7 @@
 # Nonogram Studio — Plan
 
 **Created:** 2026-10-08
-**Status (2026-10-09):** v1 (steps 0 to 13) is built, gated (`nonogram-gate.md` pass 1) and print-checked. v1.1 (steps 14a to 17, hearts, Zen mode, restart, per-number clues, print key switch) is merged and through gate pass 2. v1.2 (steps 19a to 22, the UX pass 1 fixes, the solve reveal, the hint counter, and D19 auto-cross by default) is merged, through gate pass 3 and UX pass 2, and all UX checks pass. Run `npm test` for the current count. Remaining: the owner's calls on UX pass 2's new findings (UX18 to UX28), and difficulty calibration by play (step 13).
+**Status (2026-10-09):** v1 (steps 0 to 13), v1.1 (14a to 17) and v1.2 (19a to 22) are built and gated (passes 1 to 3). v1.3 (23a to 25, the UX pass 2 fixes, D20 size warning, D21 touch Fill/Cross) is merged and checked by hand on the mobile preset and at 1024x768; all UX checks pass. Run `npm test` for the current count. Remaining: difficulty calibration by play (step 13), and closing gate pass 3's retrospective.
 **Platform:** web browser, desktop first.
 **What it is:** A personal tool to turn an image (your own picture, no AI in the content) into a nonogram, check that it's a fair puzzle, then play it with state saved. Single user, no accounts.
 
@@ -458,6 +458,8 @@ v1 lane rules apply.
 24c. `[C]` UX25 and UX26. Create's "Difficulty: …" becomes a flat badge, and is hidden until something is filled. The empty line reads "Choose an image above, or draw on the grid below." "Blank grid" is shown only while an image is loaded, renamed "Clear to blank".
 24d. `[C]` UX21. Below 600px the More panel aligns to its button's left edge and stays inside the screen.
 24e. `[C]` D20 in the library: `largePuzzle`, and the "Best on a big screen" badge below 600px. Test: `largePuzzle is 20 or more on a side`.
+**Done 2026-10-09.** Lanes merged `--no-ff`: C `d309064`, P `b2987f0`; step 25 `141cc0f`. UX checks 40 pass, 0 known; 188 Node tests. Manual checks on the mobile preset and at 1024x768 found two layout bugs the lanes couldn't see, both fixed in `141cc0f`: the sticky offset counted the holder padding twice (clues showed through at 375), and the first grid measurement ran before the layout settled (the size note showed on a 25x25 that fits). The legend and the save buttons now share one row, so 23f costs no height. Touch strokes checked with simulated touch: a Cross drag across three cells, a Fill tap.
+
 25. `[seq]` Orchestrator: merges, new UX checks (`create-save-duplicate-keeps-title`, `play-restart-message-zen`, `narrow-more-menu-on-screen`, `create-grid-fits-375`, `play-header-sample-badge`), manual checks at 375 (UX22, D21), docs.
 
 ---

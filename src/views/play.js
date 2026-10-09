@@ -215,11 +215,11 @@ export function mount(container, params = {}) {
     outPanel,
     rulesBar,
     ruleDefault,
-    toolbar,
     sizeNote,
     holder,
     strip,
     legend,
+    toolbar, // Export / Import save: quiet, below the grid (UX28)
   );
   container.append(root);
 
@@ -476,7 +476,7 @@ export function mount(container, params = {}) {
       (sizeNote.hidden ? 0 : sizeNote.offsetHeight + 8);
     // Room under the grid for the legend and the solved strip, so "Back to
     // library" lands on screen after a solve (gate pass 3, M3).
-    const below = legend.offsetHeight + 44;
+    const below = legend.offsetHeight + toolbar.offsetHeight + 52;
     const avail =
       window.innerHeight -
       (holder.getBoundingClientRect().top + window.scrollY - lost) -

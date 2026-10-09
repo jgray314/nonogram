@@ -100,6 +100,30 @@
   color: color-mix(in srgb, var(--muted) 40%, var(--panel));
 }
 
+/* Touch (D21): a drag on the cells must not scroll the page; the clue gutters still
+   pan the grid. base.css sets none on the whole grid, so Play re-allows it there. */
+.nng-play .nng-grid {
+  touch-action: pan-x pan-y;
+}
+
+.nng-play .nng-cell {
+  touch-action: none;
+}
+
+.nng-mode {
+  display: inline-flex;
+}
+
+.nng-mode[hidden] {
+  display: none;
+}
+
+.nng-mode-btn[aria-pressed='true'] {
+  font-weight: 800;
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
 /* No hover crosshair once the grid is solved or locked: nothing can be played. */
 .nng-grid-holder.nng-celebrate .nng-cell.nng-hot:not(.nng-filled),
 .nng-grid-holder.nng-locked .nng-cell.nng-hot:not(.nng-filled) {

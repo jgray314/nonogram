@@ -152,8 +152,45 @@ export function mount(container, params = {}) {
   redoBtn.type = 'button';
   redoBtn.title = 'Redo (Ctrl+Y)';
   redoBtn.setAttribute('aria-keyshortcuts', 'Control+Y');
-  const legend = el('p', 'nng-legend', 'Left-drag to fill · Right-drag to cross · Ctrl+Z to undo');
-  rulesBar.append(undoBtn, redoBtn, hintBtn, hintCount, restartBtn, ruleNote);
+  const MOUSE_LEGEND = 'Left-drag to fill · Right-drag to cross · Ctrl+Z to undo';
+  const TOUCH_LEGEND = 'Choose Fill or Cross, then tap or drag';
+  const legend = el('p', 'nng-legend', MOUSE_LEGEND);
+  // D21: on a touch screen a Fill / Cross selector stands in for the mouse buttons.
+  let touchMode = 'fill';
+  const modeBar = el('div', 'nng-mode');
+  modeBar.setAttribute('role', 'group');
+  modeBar.setAttribute('aria-label', 'Touch mode');
+  const modeBtns = {};
+  for (const [mode, label] of [
+    ['fill', 'Fill'],
+    ['cross', 'Cross'],
+  ]) {
+    const b = el('button', 'nng-mode-btn', label);
+    b.type = 'button';
+    modeBtns[mode] = b;
+    b.addEventListener('click', () => {
+      touchMode = mode;
+      syncMode();
+    });
+    modeBar.append(b);
+  }
+  function syncMode() {
+    for (const [mode, b] of Object.entries(modeBtns)) {
+      b.setAttribute('aria-pressed', String(mode === touchMode));
+      b.classList.toggle('nng-mode-on', mode === touchMode);
+    }
+  }
+  syncMode();
+  const coarse = window.matchMedia?.('(pointer: coarse)');
+  function syncCoarse() {
+    const on = !!coarse?.matches;
+    modeBar.hidden = !on;
+    legend.textContent = on ? TOUCH_LEGEND : MOUSE_LEGEND;
+  }
+  syncCoarse();
+  coarse?.addEventListener?.('change', syncCoarse);
+  cleanup.push(() => coarse?.removeEventListener?.('change', syncCoarse));
+  rulesBar.append(undoBtn, redoBtn, modeBar, hintBtn, hintCount, restartBtn, ruleNote);
   // Shown once a solve is final (after the art fade, if any): the time and a way back.
   const strip = el('div', 'nng-solved-strip');
   strip.hidden = true;
@@ -411,6 +448,7 @@ export function mount(container, params = {}) {
     clues,
     cells,
     onPointer,
+    touchButton: () => (touchMode === 'cross' ? 'right' : 'left'),
     zeroClues: true,
   });
   refresh();

@@ -2,6 +2,10 @@
 // Cell encoding: 0 unknown, -1 crossed, k >= 1 filled.
 import { lineClues } from './clues.js';
 import { isFair } from './difficulty.js';
+import { applyStroke, strokeCells } from './play-state.js';
+
+/** Hearts a fresh game starts with. */
+export const MAX_HEARTS = 3;
 
 const copy = (cells) => cells.map((row) => row.slice());
 const asLine = (cells) => cells.map((v) => (v >= 1 ? v : 0));
@@ -104,4 +108,48 @@ export function helpersAvailability(verdict) {
     enabled: false,
     note: 'Check and hint need a puzzle with a unique solution.',
   };
+}
+
+/** Cross every unknown cell in a line whose clue list is empty. Other cells are unchanged. */
+export function crossEmptyLines(cells, clues) {
+  const next = copy(cells);
+  for (let r = 0; r < next.length; r++) {
+    for (let c = 0; c < next[r].length; c++) {
+      if (next[r][c] === 0 && (clues.rows[r].length === 0 || clues.cols[c].length === 0)) {
+        next[r][c] = -1;
+      }
+    }
+  }
+  return next;
+}
+
+/**
+ * Apply a stroke under the hearts rule. The mode comes from applyStroke; the
+ * changed cells are walked in stroke order. A fill on a cell the solution
+ * leaves empty becomes a cross instead and ends the walk, so cells before it
+ * stay. Returns {next, wrong: [r, c] | null}. Monochrome only.
+ */
+export function heartsStroke(cells, stroke, solution) {
+  const full = applyStroke(cells, stroke);
+  const next = copy(cells);
+  for (const [r, c] of strokeCells(cells, stroke)) {
+    if (full[r][c] === cells[r][c]) continue;
+    if (full[r][c] >= 1 && solution[r][c] === 0) {
+      next[r][c] = -1;
+      return { next, wrong: [r, c] };
+    }
+    next[r][c] = full[r][c];
+  }
+  return { next, wrong: null };
+}
+
+/** Hearts need the stored solution to be the only one. */
+export function heartsAvailable(verdict) {
+  return isFair(verdict);
+}
+
+/** The starting grid for a fresh game and for Restart: blank, with empty lines crossed. */
+export function restartCells(clues, width, height) {
+  const blank = Array.from({ length: height }, () => new Array(width).fill(0));
+  return crossEmptyLines(blank, clues);
 }

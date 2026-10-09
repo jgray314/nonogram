@@ -9,8 +9,30 @@
   color: var(--muted);
 }
 
+/* Print output is never themed: plain black on white, on screen and on paper. */
 .nng-print-page {
+  --panel: #fff;
+  --ink: #000;
+  --muted: #333;
+  --line: #999;
+  --line-thick: #000;
+  --cell-unknown: #fff;
+  --cell-filled: #000;
+  --cell-cross: #555;
+  --cell-hot: #fff;
+  --clue-text: #000;
+  --shadow: transparent;
   margin-bottom: 24px;
+  padding: 16px;
+  color: #000;
+  background: #fff;
+  border-radius: var(--radius);
+}
+
+.nng-print-page .nng-grid {
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .nng-print .nng-cell.nng-filled {
@@ -27,12 +49,14 @@
   body,
   main {
     background: #fff;
+    background-image: none;
     padding: 0;
     margin: 0;
   }
 
   .nng-print-page {
     margin: 0;
+    padding: 0;
   }
 
   .nng-print-key {

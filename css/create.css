@@ -17,10 +17,10 @@
 .nng-create-error {
   margin: 0 0 12px;
   padding: 8px 12px;
-  border: 1px solid #c0392b;
-  border-radius: 4px;
-  background: #fdecea;
-  color: #7a1f14;
+  border: 2px solid var(--danger);
+  border-radius: var(--radius-sm);
+  background: var(--danger-bg);
+  color: var(--danger);
 }
 
 .nng-create-error[hidden] {
@@ -34,9 +34,10 @@
   gap: 12px 20px;
   margin-bottom: 16px;
   padding: 12px;
-  background: var(--surface);
+  background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--radius);
+  box-shadow: 0 3px 0 var(--shadow);
 }
 
 .nng-create-controls label {
@@ -47,8 +48,27 @@
 
 .nng-create-controls button {
   font: inherit;
-  padding: 4px 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--panel);
+  border: 2px solid var(--line-thick);
+  border-radius: 999px;
+  box-shadow: 0 3px 0 var(--line-thick);
+  padding: 4px 14px;
   cursor: pointer;
+  transition:
+    transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.12s ease;
+}
+
+.nng-create-controls button:hover {
+  background: var(--accent-soft);
+}
+
+.nng-create-controls button:active {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 var(--line-thick);
 }
 
 .nng-create-threshold-value {
@@ -79,8 +99,9 @@
 .nng-create-preview {
   display: block;
   max-width: 100%;
-  border: 1px solid var(--line);
-  background: var(--surface);
+  border: 3px solid var(--line-thick);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
   cursor: grab;
   touch-action: none;
 }
@@ -103,20 +124,20 @@
 .nng-create-badge {
   display: inline-block;
   padding: 1px 8px;
-  border-radius: 10px;
-  border: 1px solid var(--line);
-  background: var(--surface);
+  border-radius: 999px;
+  border: 2px solid var(--line-thick);
+  background: var(--panel);
   font-weight: 600;
 }
 
 .nng-create-badge[data-label='Not fair'] {
-  border-color: #c0392b;
-  color: #7a1f14;
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
 .nng-create-save-note {
   margin: 8px 0 0;
-  color: #7a1f14;
+  color: var(--danger);
 }
 
 .nng-create-save-msg {
@@ -133,11 +154,11 @@
 }
 
 .nng-create .nng-cell.nng-tile-right {
-  border-right: 4px solid var(--accent);
+  border-right: 4px solid var(--accent-2);
 }
 
 .nng-create .nng-cell.nng-tile-bottom {
-  border-bottom: 4px solid var(--accent);
+  border-bottom: 4px solid var(--accent-2);
 }
 
 .nng-create-tile-list {

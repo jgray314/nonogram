@@ -271,3 +271,70 @@ Owner's calls: "H1: start timer with first click", "rest clean up per your recom
 5. **Every lane used shell text for test files again** (3 of 3, plus the orchestrator once), despite the rule in each prompt. Contents were checked and clean each time. **Noted only:** the v1.3 lane prompts put the rule in stronger words ("including test files … every lane broke this last round"), and the orchestrator keeps checking lane diffs before merging.
 6. **The one data-integrity bug of the release came from the UX pass, not the code lenses** (UX18). **Applied:** `/gate-review` Lens 1 now always asks what happens when new content produces an id that already exists.
 7. **Manual checks in a real browser still find what lanes can't** (v1.3, after this pass's fixes): the sticky-gutter offset and the first-layout measurement were both invisible to Node tests and to lanes without a browser. **Noted only:** step 25's manual check on the mobile preset and at 1024x768 is the practice that caught them; keep it in every UI round.
+
+# Pass 4: slim gate on D22, 2026-10-09
+
+**Run:** 2026-10-09. **Scope:** D22, difficulty labels from solver personas: `9438c8e..ba5b1ca`, then the walkthrough fixes `737a007`. Built in the main thread, with no lanes.
+**Prior runs:** passes 1 to 3 above. Neither reviewer was shown them.
+**Reviewers:** two read-only Explore subagents, cold. The first adversarial run died on a rate limit before reporting. It was rerun after the walkthrough fixes, so it reviewed `ba5b1ca` plus `737a007`.
+**Step 0, backlog prune.** Nothing aged. The "revisit after ~5 plays" items still wait on step 13. Color mode gains one item: the personas read run lengths only.
+
+## Lens 1: Adversarial
+
+- **M1 (NEW, Medium). Color puzzles got monochrome personas.** The line techniques assume a gap between runs, but different colors may touch. A two-color 4x4 from a hand-made backup was rated Easy, and `finishes()` checks only that every cell is decided, not that it is right. Create and the samples are black only, so this was reachable only by import.
+- **M2 (NEW, Medium). Test gaps.** Deleting the worker line that sets the tier failed no test. `withVerdicts` never saw a tier. The samples test couldn't tell Newcomer from Casual.
+- **L1 (NEW, Low). An imported tier wasn't checked against the status.** A needs-guessing puzzle claiming `newcomer` showed Easy. The damage stopped at the label: hearts and hints read only the status.
+- **L2 (NEW, Low).** A needs-guessing puzzle saved before D22 shows "Hard" forever, even where Create would now say "Very hard". The duplicate-grid guard blocks re-saving it.
+- **L3 (NEW, Low).** The Expert can hold the worker for about 1 to 1.7 s on a 25x25, and tile checks queue behind it.
+
+**Verified clean:**
+- **Line techniques:** both are sound in monochrome. An exhaustive probe ran every line of length 1 to 10 with every partial knowledge consistent with its solution, 2.8M calls, and found 0 wrong cells.
+- **Termination:** `finishes()` and the Casual loop always end.
+- **Expert:** it is sound, ends, and checks its budget before every trial.
+- **Main thread:** no main-thread path reaches the Expert.
+- **Callers:** every one accepts the new verdict shape. Unknown tiers are rejected. The tier isn't in the id hash, and `PUZZLE_KEYS` is unchanged.
+
+## Lens 2: Outside-reviewer walkthrough
+
+- **W1 (NEW, Medium).** PLAN still described the sweep rule as current in four places: decision 1's list, D2's verdict shape, step 12's "from `verdict.sweeps`", and the Limits table.
+- **W2 (NEW, Medium).** PLAN said the worker has solve()'s exact output. It now adds `tier`.
+- **W3 (NEW, Medium).** The personas doc's Results section spoke of the replaced rule as "current".
+- **W4 (NEW, Medium). The doc's numbers weren't reproducible:** they came from a one-off script outside the repo. `PROBE_BUDGET` and the Very hard tier had no test.
+- **W5 (NEW, Medium).** The doc gave each persona a size limit ("Patience") that the code doesn't model.
+- **W6 to W11 (NEW, Low):**
+  - "Older puzzles get a tier" overclaimed: only line-solvable ones do.
+  - The samples ran on the main thread with no comment.
+  - The PROBE_BUDGET comment was wrong.
+  - Casual had a magic `pass < 4`.
+  - Three test names didn't match their assertions.
+  - The sample-label claim wasn't pinned.
+- **W12 (NEW, Low).** Commit messages: ba5b1ca's body repeats W6, and 3c61f67's subject is jargon.
+
+**What the W4 fix found:** putting the corpus in the repo exposed a real bug. The shipped Newcomer applied overlap only to a fully blank line, so on the column pass it missed full and empty columns. The repo run gave 12 Newcomer puzzles where the one-off script's version gave 48.
+
+## Disposition
+
+| ID | Disposition |
+|---|---|
+| W4 and the Newcomer bug | **Fixed** (`737a007`). The Newcomer counts overlap on any line, which is sound whatever is already marked. The corpus is the seeded slow test `test/slow/personas.corpus.test.js`, and the doc quotes its output (Newcomer 74, Casual 87, Regular 229, Expert 3, Very hard 1). Sample labels are unchanged. |
+| W1, W2, W3, W5, W6 | **Fixed** (`737a007`). PLAN and the doc are reworded; the Patience column is gone. |
+| W7 to W11 | **Fixed** (`737a007`). Comments, a loop that runs until a pass adds nothing, the injectable `probeBudget` tested at 0 (gives `guess`), renamed tests, and pinned sample labels. |
+| M1 | **Fixed** (gate 4 fix commit). `personaTier` returns no tier when any clue's color isn't 1. **Proof, mutation-verified:** with the guard removed, `a puzzle with more than one color gets no tier` fails; with it, it passes. |
+| M2 | **Fixed** (same commit). The worker calls `solveAndRate`, which is tested. `withVerdicts` carries a tier, and the samples test pins tiers as well as labels. |
+| L1 | **Fixed** (same commit). `difficultyLabel` ignores a tier that contradicts the status. Test added. |
+| L2 | **Accepted.** Documented in difficulty-personas.md. Fixing it would mean re-solving on the main thread or letting a re-save overwrite. |
+| L3 | **Accepted.** The Expert runs in the worker, so the page stays responsive, and only needs-guessing grids pay. Trigger: tile checks feel slow. |
+| W12 | **Noted only.** Rewording would rewrite history. The later commit bodies carry the reason. |
+
+**Close checks:**
+- **Tests:** 200 Node tests pass. The slow corpus test passes. Lint and format are clean.
+- **Browser:** the worker returns `expert` for the one-trial 5x5, checked on a fresh no-cache origin. The library labels were checked on 127.0.0.1 in the first build.
+- **Claim grep:** PLAN no longer gives "from `verdict.sweeps`" or the sweep thresholds as current.
+
+## Retrospective
+
+**Draft, from the record. Waiting for the owner's lessons.**
+
+1. **Making a number reproducible found a bug the reviewers didn't.** The one-off script and the shipped code had drifted apart. Moving the script into the repo showed it (12 vs 48), before either lens said anything about the Newcomer. **Proposed:** `/gate-review` Lens 2 asks of every number in a doc: can it be regenerated from code in the repo?
+2. **A "monochrome only" note in a module comment didn't stop a monochrome-only function being called on import data** (M1). The color backlog existed, but nothing enforced it at the call. **Proposed, noted only:** this is the trust-boundary shape again (pass 1 H1, pass 3 L2). The guard now lives in the function.
+3. **A lens can die mid-run** (rate limit). The rerun came after the walkthrough fixes, so the adversarial lens reviewed the final code. That worked out, but it was luck. **Proposed, noted only.**

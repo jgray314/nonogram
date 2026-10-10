@@ -8,6 +8,13 @@ const TIER_LABEL = {
   expert: 'Hard',
   guess: 'Very hard',
 };
+const TIER_STATUS = {
+  newcomer: 'unique-line-solvable',
+  casual: 'unique-line-solvable',
+  regular: 'unique-line-solvable',
+  expert: 'unique-needs-guessing',
+  guess: 'unique-needs-guessing',
+};
 
 export function isFair(verdict) {
   return Boolean(verdict) && verdict.status.startsWith('unique');
@@ -21,6 +28,7 @@ export function isFair(verdict) {
 export function difficultyLabel(verdict) {
   if (!verdict) return 'Unchecked';
   if (!isFair(verdict)) return 'Not fair';
-  if (verdict.tier) return TIER_LABEL[verdict.tier];
+  // A tier that contradicts the status (a hand-edited import) is ignored.
+  if (verdict.tier && TIER_STATUS[verdict.tier] === verdict.status) return TIER_LABEL[verdict.tier];
   return verdict.status === 'unique-needs-guessing' ? 'Hard' : 'Medium';
 }

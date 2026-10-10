@@ -64,7 +64,9 @@ The verdict stores the tier, computed in the solver worker when Create checks a 
 
 Puzzles saved before D22 have no stored tier:
 - **Line-solvable ones:** the library works out a tier for display and never writes it back.
-- **Needs-guessing ones:** these keep "Hard", because the Expert's trials are too slow to run on the page itself.
+- **Needs-guessing ones:** these keep "Hard", because the Expert's trials are too slow to run on the page itself. So Create can say "Very hard" for a grid the library shows as "Hard", and the duplicate-grid guard stops a re-save from updating it (gate pass 4, L2, accepted).
+
+A tier that contradicts the verdict's status (a hand-edited import) is ignored. A puzzle with more than one color gets no tier, because the techniques assume a gap between runs.
 
 On the samples, Smiley 15x15, Cat 10x10 and Cat 20x20 moved from Easy to Medium. The other six kept their labels: Heart, House and Cat 15x15 are Easy, and the rest are Medium. `test/personas.test.js` pins this.
 

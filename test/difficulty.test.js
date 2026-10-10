@@ -20,6 +20,18 @@ test('no tier: needs-guessing stays Hard, line-solvable falls back to Medium', (
   assert.equal(difficultyLabel({ status: 'unique-line-solvable', sweeps: 1 }), 'Medium');
 });
 
+test('a tier that contradicts the status is ignored (gate pass 4, L1)', () => {
+  // A hand-edited import: a needs-guessing puzzle claiming the Newcomer tier.
+  assert.equal(
+    difficultyLabel({ status: 'unique-needs-guessing', sweeps: 1, tier: 'newcomer' }),
+    'Hard',
+  );
+  assert.equal(
+    difficultyLabel({ status: 'unique-line-solvable', sweeps: 1, tier: 'guess' }),
+    'Medium',
+  );
+});
+
 test('only unique verdicts are fair', () => {
   assert.equal(isFair(null), false);
   assert.equal(isFair({ status: 'unique-line-solvable', sweeps: 1 }), true);

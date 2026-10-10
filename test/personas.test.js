@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { personaTier, newcomerLine, casualLine, TIERS } from '../src/personas.js';
+import { personaTier, solveAndRate, newcomerLine, casualLine, TIERS } from '../src/personas.js';
 import { puzzleClues, lineClues } from '../src/clues.js';
 import { solve } from '../src/solver.js';
 import { samplePuzzles } from '../src/samples.js';
@@ -50,23 +50,23 @@ test('trimming a crossed end and gluing to an edge fill are Casual steps', () =>
   assert.deepEqual(casualLine(three, [0, 1, _, _, _]), [0, 1, 1, 1, 0]);
 });
 
-test('sample labels: three samples Easy, six Medium (difficulty-personas.md)', async () => {
-  const labels = Object.fromEntries(
+test('sample tiers and labels: three Easy, six Medium (difficulty-personas.md)', async () => {
+  const rated = Object.fromEntries(
     (await samplePuzzles()).map((p) => [
       p.title.replace('AI test sample: ', ''),
-      difficultyLabel(p.verdict),
+      `${p.verdict.tier} ${difficultyLabel(p.verdict)}`,
     ]),
   );
-  assert.deepEqual(labels, {
-    'Heart (5x5)': 'Easy',
-    'House (10x10)': 'Easy',
-    'Cat (15x15)': 'Easy',
-    'Smiley (15x15)': 'Medium',
-    'Cat (10x10)': 'Medium',
-    'Cat (20x20)': 'Medium',
-    'Cat (25x25)': 'Medium',
-    'Banana (10x10)': 'Medium',
-    'Spider (20x20)': 'Medium',
+  assert.deepEqual(rated, {
+    'Heart (5x5)': 'casual Easy',
+    'House (10x10)': 'casual Easy',
+    'Cat (15x15)': 'casual Easy',
+    'Smiley (15x15)': 'regular Medium',
+    'Cat (10x10)': 'regular Medium',
+    'Cat (20x20)': 'regular Medium',
+    'Cat (25x25)': 'regular Medium',
+    'Banana (10x10)': 'regular Medium',
+    'Spider (20x20)': 'regular Medium',
   });
 });
 
@@ -82,6 +82,26 @@ test('an Expert out of trials rates the puzzle guess (Very hard), never easier',
   const problem = problemOf(grid(ONE_TRIAL));
   assert.equal(personaTier(problem, 'unique-needs-guessing', { probeBudget: 0 }), 'guess');
   assert.ok(TIERS.includes('guess'));
+});
+
+test('the worker call solves and rates in one step', () => {
+  const result = solveAndRate(problemOf(grid(ONE_TRIAL)), {});
+  assert.equal(result.status, 'unique-needs-guessing');
+  assert.equal(result.tier, 'expert');
+});
+
+test('a puzzle with more than one color gets no tier (gate pass 4, M1)', () => {
+  // Touching runs of different colors broke the gap the techniques assume,
+  // and the Newcomer rated this one Easy.
+  const solution = [
+    [2, 1, 2, 2],
+    [2, 0, 2, 0],
+    [1, 1, 2, 0],
+    [2, 0, 2, 2],
+  ];
+  const problem = problemOf(solution);
+  assert.equal(personaTier(problem, 'unique-line-solvable'), null);
+  assert.equal(solveAndRate(problem, {}).tier, null);
 });
 
 test('unfair puzzles have no tier', () => {

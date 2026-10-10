@@ -255,11 +255,18 @@ test('set save writes tiles before set record', async () => {
     palette: [{ name: 'black', hex: '#000000' }],
   });
   const reports = [
-    { phase: 'fresh', result: { status: 'unique-line-solvable', sweeps: 2, extra: 1 } },
-    { phase: 'fresh', result: { status: 'multiple', sweeps: 1 } },
+    {
+      phase: 'fresh',
+      result: { status: 'unique-line-solvable', sweeps: 2, tier: 'casual', extra: 1 },
+    },
+    { phase: 'fresh', result: { status: 'multiple', sweeps: 1, tier: null } },
   ];
   const filled = withVerdicts(puzzles, reports);
-  assert.deepEqual(filled[0].verdict, { status: 'unique-line-solvable', sweeps: 2 });
+  assert.deepEqual(filled[0].verdict, {
+    status: 'unique-line-solvable',
+    sweeps: 2,
+    tier: 'casual',
+  });
   assert.deepEqual(filled[1].verdict, { status: 'multiple', sweeps: 1 });
   assert.equal(puzzles[0].verdict, null); // input not mutated
 

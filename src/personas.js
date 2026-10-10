@@ -4,7 +4,7 @@
  * finishes it without guessing. Monochrome only: the line techniques read run
  * lengths and ignore color (color mode is backlog).
  */
-import { propagate } from './solver.js';
+import { propagate, solve } from './solver.js';
 
 export const TIERS = ['newcomer', 'casual', 'regular', 'expert', 'guess'];
 
@@ -147,9 +147,13 @@ function expertFinishes(problem, budget) {
  * {n, c}), `status` the solver's verdict status. null when the puzzle isn't
  * fair. A line-solvable puzzle is at most 'regular' (the app's line solver is
  * the Regular persona), so only needs-guessing puzzles pay for the Expert.
- * `probeBudget` caps the Expert's trials (PROBE_BUDGET by default).
+ * `probeBudget` caps the Expert's trials (PROBE_BUDGET by default). Also null
+ * for a puzzle with more than one color: the line techniques assume a gap
+ * between runs, which different colors don't need (gate pass 4, M1).
  */
 export function personaTier(problem, status, { probeBudget = PROBE_BUDGET } = {}) {
+  const lines = [...problem.rows, ...problem.cols];
+  if (lines.some((line) => line.some((clue) => clue.c !== 1))) return null;
   if (status === 'unique-line-solvable') {
     if (finishes(problem, newcomerLine)) return 'newcomer';
     if (finishes(problem, casualLine)) return 'casual';
@@ -158,6 +162,13 @@ export function personaTier(problem, status, { probeBudget = PROBE_BUDGET } = {}
   if (status === 'unique-needs-guessing')
     return expertFinishes(problem, probeBudget) ? 'expert' : 'guess';
   return null;
+}
+
+/** Solve and rate in one call: what the solver worker runs, so the page stays responsive. */
+export function solveAndRate(problem, opts) {
+  const result = solve(problem, opts);
+  result.tier = personaTier(problem, result.status);
+  return result;
 }
 
 // Line techniques, exported for tests.

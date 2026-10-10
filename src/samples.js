@@ -198,6 +198,8 @@ export async function samplePuzzles() {
     const problem = { width: puzzle.width, height: puzzle.height, ...puzzleClues(puzzle.solution) };
     const { status, sweeps } = solve(problem, {});
     puzzle.verdict = { status, sweeps };
+    // On the main thread, which is fine here: every sample is line-solvable,
+    // so the slow Expert trials never run (test/personas.test.js pins their labels).
     const tier = personaTier(problem, status);
     if (tier) puzzle.verdict.tier = tier;
     puzzle.id = await puzzleId(puzzle);

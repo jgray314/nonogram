@@ -9,7 +9,7 @@ import { propagate } from './solver.js';
 export const TIERS = ['newcomer', 'casual', 'regular', 'expert', 'guess'];
 
 // Trial propagations the Expert may spend before giving up (one-cell trials).
-// Past it the tier is 'guess': the harder label, never a false Easy.
+// Past it the tier is 'guess' (Very hard): it errs harder, never easier.
 export const PROBE_BUDGET = 4000;
 
 const sum = (ns) => ns.reduce((a, b) => a + b, 0);
@@ -40,11 +40,14 @@ function crossWhenFilled(ns, out) {
   return out.map((v) => (v === null ? 0 : v));
 }
 
-/** Newcomer: overlap on a blank line (which also settles empty and full lines), cross when filled. */
+/**
+ * Newcomer: overlap counted from the ends of the whole line, ignoring what's
+ * marked (which also settles empty and full lines), and cross when filled.
+ */
 function newcomerLine(clues, known) {
   const ns = clues.map((cl) => cl.n);
   const out = known.slice();
-  if (known.every((v) => v === null)) overlap(ns, 0, known.length, out);
+  overlap(ns, 0, known.length, out);
   return crossWhenFilled(ns, out);
 }
 
@@ -56,7 +59,9 @@ function newcomerLine(clues, known) {
 function casualLine(clues, known) {
   const ns = clues.map((cl) => cl.n);
   let out = newcomerLine(clues, known);
-  for (let pass = 0; pass < 4 && ns.length > 0; pass += 1) {
+  // Repeat on this line until a pass adds nothing: each step can open the next.
+  for (let before = ''; ns.length > 0 && JSON.stringify(out) !== before;) {
+    before = JSON.stringify(out);
     let lo = 0;
     let hi = out.length;
     while (lo < hi && out[lo] === 0) lo += 1;
@@ -109,9 +114,9 @@ function finishes(problem, lineFn) {
 /**
  * Expert: full line logic plus one-cell trials. Assume a value, line-solve, and
  * when that contradicts, the cell is the other value. True when that finishes
- * within PROBE_BUDGET trials.
+ * within `budget` trials.
  */
-function expertFinishes(problem) {
+function expertFinishes(problem, budget) {
   let { grid } = propagate(problem);
   let trials = 0;
   for (let progress = true; progress;) {
@@ -120,7 +125,7 @@ function expertFinishes(problem) {
       for (let c = 0; c < problem.width; c += 1) {
         if (grid[r][c] !== null) continue;
         for (const v of [1, 0]) {
-          if (trials >= PROBE_BUDGET) return false;
+          if (trials >= budget) return false;
           trials += 1;
           const trial = grid.map((row) => row.slice());
           trial[r][c] = v;
@@ -142,14 +147,16 @@ function expertFinishes(problem) {
  * {n, c}), `status` the solver's verdict status. null when the puzzle isn't
  * fair. A line-solvable puzzle is at most 'regular' (the app's line solver is
  * the Regular persona), so only needs-guessing puzzles pay for the Expert.
+ * `probeBudget` caps the Expert's trials (PROBE_BUDGET by default).
  */
-export function personaTier(problem, status) {
+export function personaTier(problem, status, { probeBudget = PROBE_BUDGET } = {}) {
   if (status === 'unique-line-solvable') {
     if (finishes(problem, newcomerLine)) return 'newcomer';
     if (finishes(problem, casualLine)) return 'casual';
     return 'regular';
   }
-  if (status === 'unique-needs-guessing') return expertFinishes(problem) ? 'expert' : 'guess';
+  if (status === 'unique-needs-guessing')
+    return expertFinishes(problem, probeBudget) ? 'expert' : 'guess';
   return null;
 }
 

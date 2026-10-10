@@ -15,7 +15,8 @@ export function isFair(verdict) {
 
 /**
  * Verdicts saved before tiers existed have none. The library fills in line-
- * solvable ones (cheap); a needs-guessing one without a tier stays 'Hard'.
+ * solvable ones first (`withTier`, cheap), so the 'Medium' fallback is only for
+ * a caller that skips that. A needs-guessing one without a tier stays 'Hard'.
  */
 export function difficultyLabel(verdict) {
   if (!verdict) return 'Unchecked';

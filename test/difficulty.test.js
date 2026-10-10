@@ -15,7 +15,7 @@ test('difficulty label from the persona tier', () => {
   }
 });
 
-test('verdicts saved before tiers keep a label', () => {
+test('no tier: needs-guessing stays Hard, line-solvable falls back to Medium', () => {
   assert.equal(difficultyLabel({ status: 'unique-needs-guessing', sweeps: 2 }), 'Hard');
   assert.equal(difficultyLabel({ status: 'unique-line-solvable', sweeps: 1 }), 'Medium');
 });

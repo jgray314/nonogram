@@ -1,7 +1,7 @@
 # Nonogram Studio — Plan
 
 **Created:** 2026-10-08
-**Status (2026-10-09):** v1 (steps 0 to 13), v1.1 (14a to 17) and v1.2 (19a to 22) are built and gated (passes 1 to 3). v1.3 (23a to 25, the UX pass 2 fixes, D20 size warning, D21 touch Fill/Cross) is merged and checked by hand on the mobile preset and at 1024x768; all UX checks pass. Run `npm test` for the current count. Gate pass 3 and its retrospective are closed. Difficulty labels come from solver personas (D22, 2026-10-09). Remaining: checking those labels by play (step 13).
+**Status (2026-10-09):** v1 (steps 0 to 13), v1.1 (14a to 17) and v1.2 (19a to 22) are built and gated (passes 1 to 3). v1.3 (23a to 25, the UX pass 2 fixes, D20 size warning, D21 touch Fill/Cross) is merged and checked by hand on the mobile preset and at 1024x768; all UX checks pass. Run `npm test` for the current count. Gate pass 3 and its retrospective are closed. Difficulty labels come from solver personas (D22, 2026-10-09). Gate pass 4 (D22) is closed. Remaining: the owner's hands-on use for broad feedback, including whether the labels feel right (step 13).
 **Platform:** web browser, desktop first.
 **What it is:** A personal tool to turn an image (your own picture, no AI in the content) into a nonogram, check that it's a fair puzzle, then play it with state saved. Single user, no accounts.
 
@@ -286,7 +286,7 @@ Update the plan before W2 starts. One line to you with the result.
 - **Test added:** the `theme contrast` test runs on both themes.
 
 ### Close
-13. `[seq]` Register in the owner's local tool index. Run `/gate-review`. Calibrate the difficulty labels by playing about 5 puzzles you made.
+13. `[seq]` Register in the owner's local tool index. Run `/gate-review`. Calibrate the difficulty labels by playing about 5 puzzles you made. *(Widened 2026-10-09 by the owner: hands-on use gives broad feedback on the whole tool, not only the difficulty labels. The labels' check is one part of it.)*
 
 ---
 

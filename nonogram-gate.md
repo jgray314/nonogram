@@ -333,8 +333,12 @@ Owner's calls: "H1: start timer with first click", "rest clean up per your recom
 
 ## Retrospective
 
-**Draft, from the record. Waiting for the owner's lessons.**
+**Owner, 2026-10-09:** "Ended up going a lot deeper than originally planned, but seems a very structured approach to start that can be adapted later." **Noted only:** the persona model is a starting structure, not a final answer. Play adjusts it (step 13), and the corpus test makes each adjustment measurable. Next, by the owner's call: broader hands-on feedback from using the tool, not only the difficulty rating step 13 first named.
 
-1. **Making a number reproducible found a bug the reviewers didn't.** The one-off script and the shipped code had drifted apart. Moving the script into the repo showed it (12 vs 48), before either lens said anything about the Newcomer. **Proposed:** `/gate-review` Lens 2 asks of every number in a doc: can it be regenerated from code in the repo?
-2. **A "monochrome only" note in a module comment didn't stop a monochrome-only function being called on import data** (M1). The color backlog existed, but nothing enforced it at the call. **Proposed, noted only:** this is the trust-boundary shape again (pass 1 H1, pass 3 L2). The guard now lives in the function.
-3. **A lens can die mid-run** (rate limit). The rerun came after the walkthrough fixes, so the adversarial lens reviewed the final code. That worked out, but it was luck. **Proposed, noted only.**
+**From the record** (owner: "apply lesson 1"):
+
+1. **Making a number reproducible found a bug the reviewers didn't.** The one-off script and the shipped code had drifted apart. Moving the script into the repo showed it (12 vs 48), before either lens said anything about the Newcomer. **Applied:** `/gate-review` Lens 2 now always asks, of every number a doc quotes, whether it can be regenerated from code in the repo as it ships.
+2. **A "monochrome only" note in a module comment didn't stop a monochrome-only function being called on import data** (M1). The color backlog existed, but nothing enforced it at the call. **Noted only:** this is the trust-boundary shape again (pass 1 H1, pass 3 L2). The guard now lives in the function.
+3. **A lens can die mid-run** (rate limit). The rerun came after the walkthrough fixes, so the adversarial lens reviewed the final code. That worked out, but it was luck. **Noted only.**
+
+**Pass closed.**

@@ -8,6 +8,7 @@ import {
   changedCells,
   createHistory,
   crossEmptyLines,
+  fillFullPuzzle,
   formatTime,
   heartsAvailable,
   heartsStroke,
@@ -246,15 +247,16 @@ export function mount(container, params = {}) {
     hints = loaded.hints ?? 0;
     for (const key of Object.keys(rules)) rules[key] = loaded.rules[key] === true;
   }
-  // A loaded save gets empty lines crossed too (v1 saves had none), before the
-  // history, so they are not an undo step. It does not mark the save dirty.
-  cells = crossEmptyLines(cells, clues);
+  // A loaded save gets empty lines crossed too (v1 saves had none), and an
+  // all-filled puzzle filled (D24), before the history, so they are not an
+  // undo step. It does not mark the save dirty.
+  cells = fillFullPuzzle(crossEmptyLines(cells, clues), clues);
   // The clock starts with the first move, so opening or restarting a puzzle and
   // looking at it leaves it "not started" in the library (gate pass 3, H1).
   let started = elapsedMs > 0 || !sameGrid(cells, restartCells(clues, puzzle.width, puzzle.height));
   let history = createHistory(cells);
-  // A puzzle can be satisfied before any move: an all-blank tile has only empty
-  // clues. Filling anything would break it, so count it solved on open.
+  // A puzzle can be satisfied before any move: an all-blank or all-filled tile.
+  // Count it solved on open.
   if (solvedAt === null && isSolved(cells, clues)) {
     solvedAt = Date.now();
     dirty = true;
@@ -584,7 +586,7 @@ export function mount(container, params = {}) {
     wrongMark = null;
     drag = null;
     lastTick = Date.now();
-    solvedAt = isSolved(cells, clues) ? Date.now() : null; // an all-blank tile starts solved
+    solvedAt = isSolved(cells, clues) ? Date.now() : null; // an all-blank or all-filled tile starts solved
     dirty = true;
     refresh();
     persist();

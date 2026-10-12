@@ -11,6 +11,7 @@ import {
   safeFilename,
   groupSets,
   setProgress,
+  tileSolved,
   PUZZLE_KEYS,
   withTier,
   puzzleMeta,
@@ -224,8 +225,34 @@ test('set progress counts solved tiles', () => {
     b: save('b', [[1]], null),
     c: save('c', [[1]], 20),
   };
-  assert.deepEqual(setProgress(set, saves), { solved: 2, total: 4 });
-  assert.deepEqual(setProgress(set, {}), { solved: 0, total: 4 });
+  assert.deepEqual(setProgress(set, saves), { solved: 2, total: 4, complete: false });
+  assert.deepEqual(setProgress(set, {}), { solved: 0, total: 4, complete: false });
+});
+
+test('all-blank and all-filled tiles count as solved unopened; complete needs every tile (D24)', () => {
+  const tile = (id, solution) => puzzle(id, { solution });
+  const tiles = {
+    blank: tile('blank', [
+      [0, 0],
+      [0, 0],
+    ]),
+    full: tile('full', [
+      [1, 1],
+      [1, 1],
+    ]),
+    mixed: tile('mixed', [
+      [1, 0],
+      [0, 1],
+    ]),
+  };
+  const set = { tileIds: ['blank', 'full', 'mixed'], tiles };
+  assert.deepEqual(setProgress(set, {}), { solved: 2, total: 3, complete: false });
+  const saves = { mixed: save('mixed', tiles.mixed.solution, 10) };
+  assert.deepEqual(setProgress(set, saves), { solved: 3, total: 3, complete: true });
+  // A missing tile keeps the set from completing.
+  const holed = { tileIds: ['blank', null], tiles };
+  assert.equal(setProgress(holed, {}).complete, false);
+  assert.equal(tileSolved(undefined, undefined), false);
 });
 
 test('groupSets pairs tiles with set records and tolerates missing parts', () => {

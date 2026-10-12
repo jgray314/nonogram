@@ -238,6 +238,23 @@
   outline-offset: -2px;
 }
 
+/* D24: a finished set is one picture: no gaps, tiles at their own aspect. */
+.nng-mosaic-complete {
+  gap: 0;
+}
+
+.nng-mosaic-complete .nng-tile {
+  width: var(--tile-w, 96px);
+  height: var(--tile-h, 96px);
+}
+
+.nng-tile-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .nng-tile canvas {
   display: block;
   max-width: 100%;

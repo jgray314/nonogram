@@ -166,9 +166,20 @@ export function groupSets(puzzles, setRecords) {
 
 /** {solved, total} for a set; savesByPuzzleId maps puzzle id to save record. */
 export function setProgress(set, savesByPuzzleId) {
-  const solved = set.tileIds.filter((id) => {
-    const solvedAt = id === null ? null : savesByPuzzleId[id]?.solvedAt;
-    return solvedAt !== null && solvedAt !== undefined;
-  }).length;
-  return { solved, total: set.tileIds.length };
+  const solved = set.tileIds.filter(
+    (id) => id !== null && tileSolved(set.tiles?.[id], savesByPuzzleId[id]),
+  ).length;
+  return { solved, total: set.tileIds.length, complete: solved === set.tileIds.length };
+}
+
+/**
+ * A set tile counts as solved when its save says so, or when its solution is
+ * all blank or all filled: those start solved anyway, so the set view doesn't
+ * make the player open them (D24). Display only; no save is written.
+ */
+export function tileSolved(puzzle, save) {
+  if (save?.solvedAt !== null && save?.solvedAt !== undefined) return true;
+  if (!puzzle) return false;
+  const cells = puzzle.solution.flat();
+  return cells.every((v) => v === 0) || cells.every((v) => v !== 0);
 }

@@ -12,6 +12,7 @@ import {
   heartsStroke,
   heartsAvailable,
   restartCells,
+  fillFullPuzzle,
   solvedSummary,
   changedCells,
   restartPrompt,
@@ -335,6 +336,37 @@ test('restartCells is blank plus empty-line crosses', () => {
     [0, -1, 0],
     [-1, -1, -1],
     [0, -1, 0],
+  ]);
+});
+
+test('an all-filled puzzle starts filled, so it is solved on open (D24)', () => {
+  const full = [
+    [1, 1, 1],
+    [1, 1, 1],
+  ];
+  const clues = puzzleClues(full);
+  const start = restartCells(clues, 3, 2);
+  assert.deepEqual(start, full);
+  assert.equal(isSolved(start, clues), true);
+  // A loaded save with crosses on it is filled too.
+  assert.deepEqual(
+    fillFullPuzzle(
+      [
+        [-1, 0, 1],
+        [0, 0, 0],
+      ],
+      clues,
+    ),
+    full,
+  );
+  // One full row is not enough: the rest of the grid is left alone.
+  const partial = puzzleClues([
+    [1, 1, 1],
+    [1, 0, 1],
+  ]);
+  assert.deepEqual(restartCells(partial, 3, 2), [
+    [0, 0, 0],
+    [0, 0, 0],
   ]);
 });
 

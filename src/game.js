@@ -159,10 +159,21 @@ export function heartsAvailable(verdict) {
   return isFair(verdict);
 }
 
-/** The starting grid for a fresh game and for Restart: blank, with empty lines crossed. */
+/**
+ * Fill every cell when every row is one run the full width: the all-filled
+ * twin of an all-blank tile, so it starts solved (D24). Other grids unchanged.
+ */
+export function fillFullPuzzle(cells, clues) {
+  const width = cells[0]?.length ?? 0;
+  const full = clues.rows.every((runs) => runs.length === 1 && runs[0].n === width);
+  if (!full) return cells;
+  return cells.map((row, r) => row.map(() => clues.rows[r][0].c));
+}
+
+/** The starting grid for a fresh game and for Restart: blank, with empty lines crossed (or all filled, D24). */
 export function restartCells(clues, width, height) {
   const blank = Array.from({ length: height }, () => new Array(width).fill(0));
-  return crossEmptyLines(blank, clues);
+  return fillFullPuzzle(crossEmptyLines(blank, clues), clues);
 }
 
 /** The Restart confirm text; it says only what resets in the current mode (UX20). */

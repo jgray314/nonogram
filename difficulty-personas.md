@@ -87,6 +87,7 @@ On the samples, Plus 5x5 and Castle 10x10 are Easy (added in D23, since no earli
 ## Limits
 
 - The personas are models of people, not people. The owner's play (step 13) tests them; the first round gave D23.
+- The personas never make a mistake. People do, and more often on big or dense grids, where one slip costs a heart and a long search. The owner: the personas didn't "entirely match the feel of playing, especially recognizing the human limits of not making mistakes". The D23 size step stands in for that; nothing models it directly.
 - The generated grids aren't the owner's art. Photo-derived puzzles may land differently, especially in the Expert tier.
 - The Casual technique set is a judgment call. It's the part most likely to move after play.
 - Monochrome only: the techniques read run lengths and ignore color (PLAN.md backlog, color mode).

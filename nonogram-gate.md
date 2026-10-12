@@ -396,8 +396,11 @@ All quoted corpus numbers were checked against the code that prints them.
 
 ## Retrospective
 
-Draft from the record, awaiting the owner's lessons:
+**Owner, 2026-10-12:** "Interesting so much effort went into level setting tiles and it really didn't entirely match the feel of playing, especially recognizing the human limits of not making mistakes." And: "Interesting what gets flagged out of interacting with the game."
 
-1. **Two features built in one sitting shared a predicate by accident, not by design.** D24's "all filled" was written twice, once in Play and once in the set view, with different rules. Both lenses found it. **Draft:** when a feature adds a second place that decides the same fact, define it once and call it from both.
-2. **The size step came from asking the owner's expectation against the data**, not from tuning: the corpus split by size showed the gap in one run. **Draft, noted only.**
-3. **Round 1 of hands-on play changed the mapping, not the personas.** The structure from D22 absorbed the feedback with a table edit and one rule. **Draft, noted only:** supports the owner's pass 4 read.
+1. **A model of how something feels to a person missed the person.** D22's personas model which techniques a solver knows, and assume it never slips. Real difficulty also comes from mistakes and fatigue, which grow with size; the D23 size step is a stand-in for that. The deep corpus work came before anyone had played a rated puzzle. **Applied** (owner: "yes, apply it"): `/plan-review` check 10 now says a rule meant to match how something feels to a person gets an owner check on a few real examples before deep modeling. The personas doc's Limits names the human-error gap.
+2. **Play surfaces what no review asked for.** Round 1 produced the label on the play page, the finished-set photo and the all-filled case; none came from four gates or two UX passes. **Noted only:** it's check 10's lesson again, from the other side; small rounds after hands-on use stay the plan.
+3. **From the record: one fact was decided in two places.** D24's "all filled" was written once in Play and once in the set view, with different rules, and both lenses found it. **Noted only:** the existing "problems rhyme" technique covers it; the fix shares one predicate.
+4. **From the record: round 1 changed the mapping, not the personas.** The D22 structure absorbed the feedback with a table edit and one rule. **Noted only:** consistent with the owner's pass 4 read ("a very structured approach to start that can be adapted later").
+
+**Pass closed.**

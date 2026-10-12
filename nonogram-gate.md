@@ -322,7 +322,7 @@ Owner's calls: "H1: start timer with first click", "rest clean up per your recom
 | M1 | **Fixed** (gate 4 fix commit). `personaTier` returns no tier when any clue's color isn't 1. **Proof, mutation-verified:** with the guard removed, `a puzzle with more than one color gets no tier` fails; with it, it passes. |
 | M2 | **Fixed** (same commit). The worker calls `solveAndRate`, which is tested. `withVerdicts` carries a tier, and the samples test pins tiers as well as labels. |
 | L1 | **Fixed** (same commit). `difficultyLabel` ignores a tier that contradicts the status. Test added. |
-| L2 | **Accepted.** Documented in difficulty-personas.md. Fixing it would mean re-solving on the main thread or letting a re-save overwrite. |
+| L2 | **Accepted**, then **closed by D23** (2026-10-11): both needs-guessing tiers now read "Very hard", so a puzzle without a stored tier shows the same label Create would. |
 | L3 | **Accepted.** The Expert runs in the worker, so the page stays responsive, and only needs-guessing grids pay. Trigger: tile checks feel slow. |
 | W12 | **Noted only.** Rewording would rewrite history. The later commit bodies carry the reason. |
 

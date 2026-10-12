@@ -50,23 +50,25 @@ test('trimming a crossed end and gluing to an edge fill are Casual steps', () =>
   assert.deepEqual(casualLine(three, [0, 1, _, _, _]), [0, 1, 1, 1, 0]);
 });
 
-test('sample tiers and labels: three Easy, six Medium (difficulty-personas.md)', async () => {
+test('sample tiers and labels: two Easy, three Medium, six Hard (difficulty-personas.md)', async () => {
   const rated = Object.fromEntries(
     (await samplePuzzles()).map((p) => [
       p.title.replace('AI test sample: ', ''),
-      `${p.verdict.tier} ${difficultyLabel(p.verdict)}`,
+      `${p.verdict.tier} ${difficultyLabel(p.verdict, p)}`,
     ]),
   );
   assert.deepEqual(rated, {
-    'Heart (5x5)': 'casual Easy',
-    'House (10x10)': 'casual Easy',
-    'Cat (15x15)': 'casual Easy',
-    'Smiley (15x15)': 'regular Medium',
-    'Cat (10x10)': 'regular Medium',
-    'Cat (20x20)': 'regular Medium',
-    'Cat (25x25)': 'regular Medium',
-    'Banana (10x10)': 'regular Medium',
-    'Spider (20x20)': 'regular Medium',
+    'Plus (5x5)': 'newcomer Easy',
+    'Castle (10x10)': 'newcomer Easy',
+    'Heart (5x5)': 'casual Medium',
+    'House (10x10)': 'casual Medium',
+    'Smiley (15x15)': 'regular Hard',
+    'Cat (10x10)': 'regular Hard',
+    'Cat (15x15)': 'casual Medium',
+    'Cat (20x20)': 'regular Hard',
+    'Cat (25x25)': 'regular Hard',
+    'Banana (10x10)': 'regular Hard',
+    'Spider (20x20)': 'regular Hard',
   });
 });
 

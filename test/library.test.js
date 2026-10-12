@@ -13,6 +13,7 @@ import {
   setProgress,
   PUZZLE_KEYS,
   withTier,
+  puzzleMeta,
 } from '../src/library-logic.js';
 import { restartCells } from '../src/game.js';
 import { puzzleClues } from '../src/clues.js';
@@ -114,10 +115,24 @@ test('badge shown for non-unique verdict', () => {
 
 test('library row label comes from the verdict', () => {
   const label = (v) => rowModel(puzzle('a', { verdict: v }), null).label;
-  assert.equal(label({ ...verdict('unique-line-solvable'), tier: 'casual' }), 'Easy');
-  assert.equal(label({ ...verdict('unique-line-solvable'), tier: 'regular' }), 'Medium');
-  assert.equal(label(verdict('unique-needs-guessing')), 'Hard');
+  assert.equal(label({ ...verdict('unique-line-solvable'), tier: 'newcomer' }), 'Easy');
+  assert.equal(label({ ...verdict('unique-line-solvable'), tier: 'casual' }), 'Medium');
+  assert.equal(label({ ...verdict('unique-line-solvable'), tier: 'regular' }), 'Hard');
+  assert.equal(label(verdict('unique-needs-guessing')), 'Very hard');
   assert.equal(label(null), 'Unchecked');
+});
+
+test('a large puzzle reads one step harder, in the row and the play header (D23)', () => {
+  const big = puzzle('big', {
+    width: 20,
+    height: 20,
+    verdict: { ...verdict('unique-line-solvable'), tier: 'newcomer' },
+  });
+  assert.equal(rowModel(big, null).label, 'Medium');
+  assert.equal(puzzleMeta(big), '20 x 20 · Medium');
+  const small = puzzle('s', { verdict: { ...verdict('unique-line-solvable'), tier: 'newcomer' } });
+  assert.equal(puzzleMeta(small), '2 x 2 · Easy');
+  assert.equal(puzzleMeta(puzzle('u')), '2 x 2 · Unchecked');
 });
 
 test('a puzzle saved before tiers is rated for display, not rewritten', () => {
@@ -240,6 +255,8 @@ test('samples are valid puzzles', async () => {
     [
       [5, 5],
       [10, 10],
+      [5, 5],
+      [10, 10],
       [15, 15],
       [10, 10],
       [15, 15],
@@ -261,9 +278,9 @@ test('samples are valid puzzles', async () => {
 
 test('loadSamples skips existing puzzles', async () => {
   const store = createStore(memoryStorage());
-  assert.deepEqual(await loadSamples(store), { added: 9, skipped: 0 });
-  assert.deepEqual(await loadSamples(store), { added: 0, skipped: 9 });
-  assert.equal(store.list('puzzle').records.length, 9);
+  assert.deepEqual(await loadSamples(store), { added: 11, skipped: 0 });
+  assert.deepEqual(await loadSamples(store), { added: 0, skipped: 11 });
+  assert.equal(store.list('puzzle').records.length, 11);
 });
 
 test('image-based samples match their art source', async () => {

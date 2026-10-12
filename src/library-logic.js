@@ -46,7 +46,7 @@ export function largePuzzle(puzzle) {
  * The puzzle's verdict, with a persona tier filled in for a line-solvable
  * puzzle saved before tiers existed. Computed for display only, never written
  * back. Needs-guessing ones are left alone: the Expert's trials are too slow
- * for the main thread, so they keep the 'Hard' label.
+ * for the main thread, and both of their tiers read 'Very hard' anyway.
  */
 export function withTier(puzzle) {
   const v = puzzle.verdict;
@@ -56,6 +56,16 @@ export function withTier(puzzle) {
     v.status,
   );
   return { ...v, tier };
+}
+
+/** The difficulty label for a stored puzzle, size step included (D23). */
+export function puzzleLabel(puzzle) {
+  return difficultyLabel(withTier(puzzle), puzzle);
+}
+
+/** The play page's header note, e.g. "15 x 15 · Medium". */
+export function puzzleMeta(puzzle) {
+  return `${puzzle.width} x ${puzzle.height} · ${puzzleLabel(puzzle)}`;
 }
 
 export function rowModel(puzzle, save) {
@@ -68,7 +78,7 @@ export function rowModel(puzzle, save) {
     name: sampleLabel(puzzle.title).name,
     ai: sampleLabel(puzzle.title).ai,
     size: `${puzzle.width} x ${puzzle.height}`,
-    label: difficultyLabel(withTier(puzzle)),
+    label: puzzleLabel(puzzle),
     badge,
     large: largePuzzle(puzzle),
     progress: progressOf(save, puzzle),

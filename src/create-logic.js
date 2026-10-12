@@ -162,10 +162,11 @@ export function verdictOf(result) {
  * Turn a solver result (or null while checking) into what the report shows:
  * {text, label, highlight}. `highlight` is the cells to mark: the differing
  * cells for `multiple`, the unresolved cells for `unique-needs-guessing`.
+ * `size` ({width, height}) lets a large grid's label step up (D23).
  */
-export function reportView(result) {
+export function reportView(result, size = null) {
   if (!result) return { text: 'Checking...', label: 'Unchecked', highlight: [] };
-  const label = difficultyLabel(verdictOf(result));
+  const label = difficultyLabel(verdictOf(result), size);
   let highlight = [];
   if (result.status === 'multiple') highlight = result.differing;
   else if (result.status === 'unique-needs-guessing') highlight = result.unresolved;
@@ -283,10 +284,10 @@ export function sliceTiles(grid, rows, cols) {
 }
 
 /** One line of the per-tile status list, e.g. "r2c1: Not fair (blank)". */
-export function tileStatusLine(row, col, result, flag) {
+export function tileStatusLine(row, col, result, flag, size = null) {
   const name = `r${row + 1}c${col + 1}`;
   if (!result) return `${name}: checking...`;
-  const label = difficultyLabel(verdictOf(result));
+  const label = difficultyLabel(verdictOf(result), size);
   return flag ? `${name}: ${label} (${flag})` : `${name}: ${label}`;
 }
 

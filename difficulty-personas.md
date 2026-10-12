@@ -15,16 +15,16 @@ The code is `src/personas.js`.
 
 Beyond the Expert is real guessing: deeper trials, or backtracking.
 
-The personas model technique, not patience. Size is shown next to the label, and a 25x25 Easy is still long.
+The personas model technique, not patience. A big grid of simple moves is still long, so the shown label adds a size step (D23, under "The rule").
 
 ## Method
 
 `npm run test:slow` reruns everything in this section (`test/slow/personas.corpus.test.js`, seeded). It runs every persona over this corpus:
-- The 9 samples.
+- The 11 samples.
 - 200 picture-like grids (soft blobs, 5x5 to 25x25).
 - 300 random grids at 45% to 75% density.
 
-Of these 509, 394 are fair (a unique solution).
+Of these 511, 396 are fair (a unique solution).
 
 `test/personas.test.js` checks that the Newcomer and Casual techniques never deduce a wrong cell, on 3,000 random lines. A persona that did could "finish" a puzzle it can't.
 
@@ -40,7 +40,7 @@ The Expert stops after 4,000 trials (`PROBE_BUDGET`), and the puzzle then counts
 
 | First to finish | Count | Line-solver sweeps (min / median / max) |
 |---|---|---|
-| Newcomer | 74 | 1 / 1 / 1 |
+| Newcomer | 76 | 1 / 1 / 1 |
 | Casual | 87 | 1 / 2 / 3 |
 | Regular | 229 | 2 / 3 / 13 |
 | Expert | 3 | 3 / 7 / 8 |
@@ -52,27 +52,42 @@ The Expert stops after 4,000 trials (`PROBE_BUDGET`), and the puzzle then counts
 
 ## The rule
 
+D23 (2026-10-11) replaced D22's first mapping after the owner's play. The owner found Easy and Medium about right, but asked for the line-solvable range to split three ways and for the Expert to read Very hard.
+
 | Label | First persona to finish |
 |---|---|
-| Easy | Newcomer or Casual |
-| Medium | Regular |
-| Hard | Expert (one-cell trial) |
-| Very hard | Nobody: unique, but needs deeper guessing |
+| Easy | Newcomer |
+| Medium | Casual |
+| Hard | Regular |
+| Very hard | Expert (one-cell trial), or nobody (deeper guessing) |
 | Not fair, Unchecked | Unchanged |
 
-The verdict stores the tier, computed in the solver worker when Create checks a grid.
+**Size step.** A grid 20 or more cells on its longer side moves Easy to Medium and Medium to Hard. Hard and Very hard don't move. The threshold is the same as the size warning (D20). Picture-like grids, as the shown label:
+
+| Size | Easy | Medium | Hard |
+|---|---|---|---|
+| 5x5 | 23 | 13 | 3 |
+| 10x10 | 13 | 12 | 14 |
+| 15x15 | 11 | 12 | 14 |
+| 20x20 | 0 | 12 | 27 |
+| 25x25 | 0 | 2 | 34 |
+
+Without the step, only about half of the 20x20 and 25x25 grids read Hard, against the owner's expectation that most should.
+
+The verdict stores the tier, computed in the solver worker when Create checks a grid. The size step is applied when the label is shown, so it reaches every puzzle and nothing stored changes.
 
 Puzzles saved before D22 have no stored tier:
 - **Line-solvable ones:** the library works out a tier for display and never writes it back.
-- **Needs-guessing ones:** these keep "Hard", because the Expert's trials are too slow to run on the page itself. So Create can say "Very hard" for a grid the library shows as "Hard", and the duplicate-grid guard stops a re-save from updating it (gate pass 4, L2, accepted).
+- **Needs-guessing ones:** these read "Very hard", the same as both tiers they could have.
 
-A tier that contradicts the verdict's status (a hand-edited import) is ignored. A puzzle with more than one color gets no tier, because the techniques assume a gap between runs.
+A tier that contradicts the verdict's status (a hand-edited import) is ignored. A puzzle with more than one color gets no tier, because the techniques assume a gap between runs; it reads Medium, with the size step.
 
-On the samples, Smiley 15x15, Cat 10x10 and Cat 20x20 moved from Easy to Medium. The other six kept their labels: Heart, House and Cat 15x15 are Easy, and the rest are Medium. `test/personas.test.js` pins this.
+On the samples, Plus 5x5 and Castle 10x10 are Easy (added in D23, since no earlier sample was), Heart, House and Cat 15x15 are Medium, and the other six are Hard. `test/personas.test.js` pins this.
 
 ## Limits
 
-- The personas are models of people, not people. The owner's ~5 plays (step 13) test them.
+- The personas are models of people, not people. The owner's play (step 13) tests them; the first round gave D23.
+- The Very hard samples the owner was given to check are random fills, because picture-like grids almost never need the Expert.
 - The generated grids aren't the owner's art. Photo-derived puzzles may land differently, especially in the Expert tier.
 - The Casual technique set is a judgment call. It's the part most likely to move after play.
 - Monochrome only: the techniques read run lengths and ignore color (PLAN.md backlog, color mode).

@@ -195,13 +195,16 @@ export const CHECKS = [
   },
   {
     id: 'play-header-sample-badge',
-    name: 'The Play header shows the sample name plus the AI badge, like the library (UX27)',
+    name: 'The Play header shows the sample name, AI badge, size and difficulty, like the library (UX27, D23)',
     async run(app, ids) {
       await app.open(`#/play/${ids[HEART]}`);
       const h1 = app.$('.nng-play h1');
       assert(!h1.textContent.includes('AI test sample:'), `header reads "${h1.textContent}"`);
       assert(h1.textContent.startsWith('Heart (5x5)'), `header reads "${h1.textContent}"`);
       assert(h1.querySelector('.nng-badge-ai'), 'no AI badge in the header');
+      // D23: size and difficulty next to the title, as in the library row.
+      const meta = h1.querySelector('.nng-header-meta')?.textContent;
+      assert(meta === '5 x 5 · Medium', `header meta reads "${meta}"`);
     },
   },
   {

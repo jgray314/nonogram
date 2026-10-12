@@ -134,7 +134,7 @@ test('reportView maps solver results to text, label and highlight', () => {
   const unique = {
     status: 'unique-line-solvable',
     sweeps: 2,
-    tier: 'casual',
+    tier: 'newcomer',
     unresolved: [],
     differing: [],
   };
@@ -162,7 +162,9 @@ test('reportView maps solver results to text, label and highlight', () => {
 
   const hard = reportView(guessing);
   assert.deepEqual(hard.highlight, [[2, 2]]);
-  assert.equal(hard.label, 'Hard');
+  assert.equal(hard.label, 'Very hard');
+  // the label steps up on a large grid (D23)
+  assert.equal(reportView(unique, { width: 20, height: 20 }).label, 'Medium');
 
   // no result yet: nothing to highlight, nothing claimed
   const pending = reportView(null);
@@ -234,6 +236,7 @@ test('tile status line names the tile, difficulty and flag', () => {
   assert.equal(tileStatusLine(0, 1, easy, null), 'r1c2: Easy');
   assert.equal(tileStatusLine(1, 0, bad, 'blank'), 'r2c1: Not fair (blank)');
   assert.equal(tileStatusLine(0, 0, null, null), 'r1c1: checking...');
+  assert.equal(tileStatusLine(0, 1, easy, null, { width: 25, height: 25 }), 'r1c2: Medium');
 });
 
 test('set save waits for every tile report', () => {

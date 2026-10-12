@@ -6,6 +6,7 @@ import { puzzleClues } from '../../src/clues.js';
 import { solve } from '../../src/solver.js';
 import { personaTier, TIERS } from '../../src/personas.js';
 import { samplePuzzles } from '../../src/samples.js';
+import { difficultyLabel } from '../../src/difficulty.js';
 
 let seed = 12345;
 const rand = () => {
@@ -77,11 +78,21 @@ test('persona corpus: every fair puzzle gets a tier that fits its verdict', asyn
     const mid = sw[Math.floor(sw.length / 2)];
     lines.push(`${tier}: ${sw.length} (sweeps ${sw[0]} / ${mid} / ${sw[sw.length - 1]})`);
   }
-  for (const size of [10, 15, 20, 25]) {
+  for (const size of [5, 10, 15, 20, 25]) {
     const g = fair.filter((r) => r.src === 'blob' && r.size === size);
     const n = (t) => g.filter((r) => r.tier === t).length;
+    // The shown label, size step included (D23).
+    const shown = (l) =>
+      g.filter(
+        (r) =>
+          difficultyLabel(
+            { status: r.status, sweeps: r.sweeps, tier: r.tier },
+            { width: size, height: size },
+          ) === l,
+      ).length;
     lines.push(
-      `blob ${size}: newcomer ${n('newcomer')}, casual ${n('casual')}, regular ${n('regular')}`,
+      `blob ${size}: newcomer ${n('newcomer')}, casual ${n('casual')}, regular ${n('regular')}` +
+        ` | Easy ${shown('Easy')}, Medium ${shown('Medium')}, Hard ${shown('Hard')}`,
     );
   }
   const slowest = Math.max(...fair.map((r) => r.ms));

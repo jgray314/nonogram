@@ -2,6 +2,14 @@
   max-width: 100%;
 }
 
+/* Size and difficulty next to the title: quiet, like the library row's meta line. */
+.nng-header-meta {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
 .nng-status {
   display: flex;
   gap: 16px;

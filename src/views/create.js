@@ -400,7 +400,7 @@ export function mount(container) {
     });
     if (!multi) {
       const rep = reports[0];
-      const view = reportView(rep.phase === 'fresh' ? rep.result : null);
+      const view = reportView(rep.phase === 'fresh' ? rep.result : null, st);
       if (rep.phase === 'error') {
         reportStatus.textContent = 'The solver could not run, so this grid is unchecked.';
         reportBadge.textContent = 'Unchecked';
@@ -421,7 +421,7 @@ export function mount(container) {
         const text =
           rep.phase === 'error'
             ? `r${row + 1}c${col + 1}: unchecked${flags[i] ? ` (${flags[i]})` : ''}`
-            : tileStatusLine(row, col, rep.phase === 'fresh' ? rep.result : null, flags[i]);
+            : tileStatusLine(row, col, rep.phase === 'fresh' ? rep.result : null, flags[i], st);
         tileList.append(el('li', { text }));
       });
     }

@@ -19,7 +19,7 @@ import {
   solvedSummary,
 } from '../game.js';
 import { clueProgress, solutionProgress } from '../clue-progress.js';
-import { sampleLabel } from '../library-logic.js';
+import { sampleLabel, puzzleMeta } from '../library-logic.js';
 import { createStore } from '../store.js';
 import { validatePuzzle, validateSave, idMatches } from '../format.js';
 import { serializeSaveFile, parseSaveFile, importWrites } from '../save.js';
@@ -90,6 +90,8 @@ export function mount(container, params = {}) {
   if (label.ai) {
     title.append(' ', el('span', 'nng-badge nng-badge-ai nng-header-badge', 'AI test sample'));
   }
+  // Size and difficulty as in the library row, inline so the header stays one line tall.
+  title.append(' ', el('span', 'nng-header-meta', puzzleMeta(puzzle)));
   const status = el('div', 'nng-status');
   const solvedMsg = el('span', 'nng-solved');
   solvedMsg.hidden = true;

@@ -1,6 +1,6 @@
 // Pure helpers for the library view.
-import { difficultyLabel, isFair } from './difficulty.js';
-import { restartCells } from './game.js';
+import { difficultyLabel, isFair, LARGE_SIDE } from './difficulty.js';
+import { restartCells, isSolved } from './game.js';
 import { puzzleClues } from './clues.js';
 import { personaTier } from './personas.js';
 
@@ -39,7 +39,7 @@ export function progressOf(save, puzzle = null) {
 
 /** True when the grid is 20 or more cells on a side (D20): hard to fit on a small screen. */
 export function largePuzzle(puzzle) {
-  return puzzle.width >= 20 || puzzle.height >= 20;
+  return Math.max(puzzle.width, puzzle.height) >= LARGE_SIDE;
 }
 
 /**
@@ -173,13 +173,30 @@ export function setProgress(set, savesByPuzzleId) {
 }
 
 /**
- * A set tile counts as solved when its save says so, or when its solution is
- * all blank or all filled: those start solved anyway, so the set view doesn't
- * make the player open them (D24). Display only; no save is written.
+ * True when the puzzle is solved by its own starting grid (all blank, or all
+ * filled with one color per row), the same rule Play uses on open (D24).
+ */
+export function startsSolved(puzzle) {
+  const clues = puzzleClues(puzzle.solution);
+  return isSolved(restartCells(clues, puzzle.width, puzzle.height), clues);
+}
+
+/**
+ * A set tile counts as solved when its save says so, or when it starts solved,
+ * so the set view doesn't make the player open it (D24). Display only; no save
+ * is written. A tile whose puzzle record is missing never counts.
  */
 export function tileSolved(puzzle, save) {
-  if (save?.solvedAt !== null && save?.solvedAt !== undefined) return true;
   if (!puzzle) return false;
-  const cells = puzzle.solution.flat();
-  return cells.every((v) => v === 0) || cells.every((v) => v !== 0);
+  if (save?.solvedAt !== null && save?.solvedAt !== undefined) return true;
+  return startsSolved(puzzle);
+}
+
+/**
+ * What a set tile shows: 'art' (its photo crop, once the whole set is
+ * complete), 'cells' (its solution, once solved) or 'label' (its position).
+ */
+export function tileFace(puzzle, solved, complete) {
+  if (complete && puzzle.art) return 'art';
+  return solved ? 'cells' : 'label';
 }

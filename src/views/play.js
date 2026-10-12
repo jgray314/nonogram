@@ -249,8 +249,11 @@ export function mount(container, params = {}) {
   }
   // A loaded save gets empty lines crossed too (v1 saves had none), and an
   // all-filled puzzle filled (D24), before the history, so they are not an
-  // undo step. It does not mark the save dirty.
-  cells = fillFullPuzzle(crossEmptyLines(cells, clues), clues);
+  // undo step. It does not mark the save dirty. A save that ran out of hearts
+  // is not filled: that would turn a lost game into a solve (gate pass 5, L2).
+  cells = crossEmptyLines(cells, clues);
+  const lost = loaded && rules.zen !== true && hearts === 0 && solvedAt === null;
+  if (!lost) cells = fillFullPuzzle(cells, clues);
   // The clock starts with the first move, so opening or restarting a puzzle and
   // looking at it leaves it "not started" in the library (gate pass 3, H1).
   let started = elapsedMs > 0 || !sameGrid(cells, restartCells(clues, puzzle.width, puzzle.height));

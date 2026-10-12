@@ -78,23 +78,28 @@ test('persona corpus: every fair puzzle gets a tier that fits its verdict', asyn
     const mid = sw[Math.floor(sw.length / 2)];
     lines.push(`${tier}: ${sw.length} (sweeps ${sw[0]} / ${mid} / ${sw[sw.length - 1]})`);
   }
-  for (const size of [5, 10, 15, 20, 25]) {
-    const g = fair.filter((r) => r.src === 'blob' && r.size === size);
-    const n = (t) => g.filter((r) => r.tier === t).length;
-    // The shown label, size step included (D23).
-    const shown = (l) =>
-      g.filter(
-        (r) =>
-          difficultyLabel(
-            { status: r.status, sweeps: r.sweeps, tier: r.tier },
-            { width: size, height: size },
-          ) === l,
-      ).length;
-    lines.push(
-      `blob ${size}: newcomer ${n('newcomer')}, casual ${n('casual')}, regular ${n('regular')}` +
-        ` | Easy ${shown('Easy')}, Medium ${shown('Medium')}, Hard ${shown('Hard')}`,
-    );
+  for (const src of ['blob', 'noise']) {
+    for (const size of [5, 10, 15, 20, 25]) {
+      const g = fair.filter((r) => r.src === src && r.size === size);
+      const n = (t) => g.filter((r) => r.tier === t).length;
+      // The shown label, size step included (D23).
+      const shown = (l) =>
+        g.filter(
+          (r) =>
+            difficultyLabel(
+              { status: r.status, sweeps: r.sweeps, tier: r.tier },
+              { width: size, height: size },
+            ) === l,
+        ).length;
+      lines.push(
+        `${src} ${size}: fair ${g.length}; ` +
+          TIERS.map((t) => `${t} ${n(t)}`).join(', ') +
+          ` | Easy ${shown('Easy')}, Medium ${shown('Medium')}, Hard ${shown('Hard')},` +
+          ` Very hard ${shown('Very hard')}`,
+      );
+    }
   }
+  // Wall-clock time: varies by machine, unlike the seeded counts above.
   const slowest = Math.max(...fair.map((r) => r.ms));
   lines.push(`slowest tier: ${slowest.toFixed(0)} ms`);
   console.log(lines.join('\n'));

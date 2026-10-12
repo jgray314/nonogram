@@ -12,6 +12,7 @@ import {
   groupSets,
   setProgress,
   tileSolved,
+  tileFace,
   PUZZLE_KEYS,
   withTier,
   puzzleMeta,
@@ -219,7 +220,9 @@ test('safeFilename strips unsafe characters', () => {
 });
 
 test('set progress counts solved tiles', () => {
-  const set = { tileIds: ['a', 'b', 'c', 'd'] };
+  // The default 2x2 puzzle is neither blank nor full, so only saves count.
+  const tiles = Object.fromEntries(['a', 'b', 'c', 'd'].map((id) => [id, puzzle(id)]));
+  const set = { tileIds: ['a', 'b', 'c', 'd'], tiles };
   const saves = {
     a: save('a', [[1]], 10),
     b: save('b', [[1]], null),
@@ -253,6 +256,41 @@ test('all-blank and all-filled tiles count as solved unopened; complete needs ev
   const holed = { tileIds: ['blank', null], tiles };
   assert.equal(setProgress(holed, {}).complete, false);
   assert.equal(tileSolved(undefined, undefined), false);
+});
+
+test('set tiles count as solved by the same rule Play starts with (gate pass 5, M1, L1)', () => {
+  const palette = [
+    { name: 'black', hex: '#000000' },
+    { name: 'red', hex: '#ff0000' },
+  ];
+  // No blank cells, but each row is two runs: Play opens it blank, so it isn't solved.
+  const twoColor = puzzle('tc', {
+    palette,
+    solution: [
+      [1, 2],
+      [1, 2],
+    ],
+  });
+  assert.equal(tileSolved(twoColor, undefined), false);
+  // One color per row, full width: Play fills it, so it is.
+  const rowColors = puzzle('rc', {
+    palette,
+    solution: [
+      [1, 1],
+      [2, 2],
+    ],
+  });
+  assert.equal(tileSolved(rowColors, undefined), true);
+  // An orphan save (its puzzle record is gone) doesn't count.
+  assert.equal(tileSolved(undefined, save('gone', [[1]], 10)), false);
+});
+
+test('a set tile shows its photo only once the whole set is complete (D24)', () => {
+  const withArt = puzzle('a', { art: 'data:image/jpeg;base64,AAAA' });
+  assert.equal(tileFace(withArt, true, true), 'art');
+  assert.equal(tileFace(withArt, true, false), 'cells');
+  assert.equal(tileFace(withArt, false, false), 'label');
+  assert.equal(tileFace(puzzle('b'), true, true), 'cells'); // no crop: keeps its cells
 });
 
 test('groupSets pairs tiles with set records and tolerates missing parts', () => {

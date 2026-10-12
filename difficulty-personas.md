@@ -28,7 +28,7 @@ Of these 511, 396 are fair (a unique solution).
 
 `test/personas.test.js` checks that the Newcomer and Casual techniques never deduce a wrong cell, on 3,000 random lines. A persona that did could "finish" a puzzle it can't.
 
-The Expert stops after 4,000 trials (`PROBE_BUDGET`), and the puzzle then counts as Very hard, so it errs harder, never easier. Its slowest corpus puzzle took about 1.7 s. That runs in the solver worker, so the page doesn't freeze.
+The Expert stops after 4,000 trials (`PROBE_BUDGET`), and the puzzle then counts as Very hard, so it errs harder, never easier. Its slowest corpus puzzle took about 2 s on the owner's laptop (a wall-clock time, so it varies by machine and run, unlike the seeded counts). That runs in the solver worker, so the page doesn't freeze.
 
 ## Results
 
@@ -46,7 +46,7 @@ The Expert stops after 4,000 trials (`PROBE_BUDGET`), and the puzzle then counts
 | Expert | 3 | 3 / 7 / 8 |
 | Nobody (needs real guessing) | 1 | 2 |
 
-**Picture-like grids**, the closest stand-in for the owner's puzzles, spread across tiers. From 10x10 to 20x20 they split roughly evenly between Newcomer, Casual and Regular. At 25x25 the Regular takes about half and the Newcomer almost none. Random grids almost all need the Regular, which matches how scattered pictures feel.
+**Picture-like grids**, the closest stand-in for the owner's puzzles, spread across tiers. At 10x10 and 15x15 they split roughly evenly between Newcomer, Casual and Regular. At 20x20 the Regular leads (17 of 39), and at 25x25 it takes about half (19 of 36) with the Newcomer almost gone (2). From 10x10 up, random grids almost all need the Regular (the `noise` lines), which matches how scattered pictures feel.
 
 **The Expert tier is rare but real.** Of 4 puzzles that need more than line logic, the one-cell trial solves 3. The old rule called all 4 "Hard".
 
@@ -62,17 +62,17 @@ D23 (2026-10-11) replaced D22's first mapping after the owner's play. The owner 
 | Very hard | Expert (one-cell trial), or nobody (deeper guessing) |
 | Not fair, Unchecked | Unchanged |
 
-**Size step.** A grid 20 or more cells on its longer side moves Easy to Medium and Medium to Hard. Hard and Very hard don't move. The threshold is the same as the size warning (D20). Picture-like grids, as the shown label:
+**Size step.** A grid 20 or more cells on its longer side moves Easy to Medium and Medium to Hard. Hard and Very hard don't move. The threshold is the same as the size warning (D20). Fair picture-like grids, as the shown label (the `blob` lines of `npm run test:slow`; none is Very hard):
 
-| Size | Easy | Medium | Hard |
-|---|---|---|---|
-| 5x5 | 23 | 13 | 3 |
-| 10x10 | 13 | 12 | 14 |
-| 15x15 | 11 | 12 | 14 |
-| 20x20 | 0 | 12 | 27 |
-| 25x25 | 0 | 2 | 34 |
+| Size | Fair | Easy | Medium | Hard |
+|---|---|---|---|---|
+| 5x5 | 39 | 23 | 13 | 3 |
+| 10x10 | 39 | 13 | 12 | 14 |
+| 15x15 | 37 | 11 | 12 | 14 |
+| 20x20 | 39 | 0 | 12 | 27 |
+| 25x25 | 36 | 0 | 2 | 34 |
 
-Without the step, only about half of the 20x20 and 25x25 grids read Hard, against the owner's expectation that most should.
+Without the step, Hard is just the Regular tier: 17 of 39 at 20x20 and 19 of 36 at 25x25, against the owner's expectation that most big puzzles should be Hard.
 
 The verdict stores the tier, computed in the solver worker when Create checks a grid. The size step is applied when the label is shown, so it reaches every puzzle and nothing stored changes.
 
@@ -87,7 +87,6 @@ On the samples, Plus 5x5 and Castle 10x10 are Easy (added in D23, since no earli
 ## Limits
 
 - The personas are models of people, not people. The owner's play (step 13) tests them; the first round gave D23.
-- The Very hard samples the owner was given to check are random fills, because picture-like grids almost never need the Expert.
 - The generated grids aren't the owner's art. Photo-derived puzzles may land differently, especially in the Expert tier.
 - The Casual technique set is a judgment call. It's the part most likely to move after play.
 - Monochrome only: the techniques read run lengths and ignore color (PLAN.md backlog, color mode).

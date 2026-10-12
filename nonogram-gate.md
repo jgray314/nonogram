@@ -342,3 +342,62 @@ Owner's calls: "H1: start timer with first click", "rest clean up per your recom
 3. **A lens can die mid-run** (rate limit). The rerun came after the walkthrough fixes, so the adversarial lens reviewed the final code. That worked out, but it was luck. **Noted only.**
 
 **Pass closed.**
+
+# Pass 5: slim gate on D23 and D24, 2026-10-11
+
+**Run:** 2026-10-11. **Scope:** `c564583..aad0b57`: D23 (difficulty labels remapped after the owner's first play round, size step, label in the play header, two Easy samples) and D24 (a finished set shows the combined photo; all-filled puzzles start solved). Built in the main thread, with no lanes.
+**Prior runs:** passes 1 to 4 above. Neither reviewer was shown them.
+**Reviewers:** two read-only Explore subagents, cold.
+**Step 0, backlog prune.** Not rerun: pass 4's prune was two days earlier and nothing in the backlog aged since. Two items added (a 4-wide set on a phone; no UX check for the finished-set view).
+
+## Lens 1: Adversarial
+
+- **M1 (NEW, Medium). The set view and Play disagreed on "all filled".** `tileSolved` counted any tile with no blank cells as solved, but Play only pre-fills when every row is one full-width run. A two-color tile like `[[1,2],[1,2]]` (reachable by import) counted as solved unopened, could complete the set, and then opened blank. Cross-lens: Lens 2's W4 found the same.
+- **L1 (NEW, Low).** An orphan save (its puzzle record dropped as corrupt) counted its tile as solved, so the gapless mosaic could draw around a "missing" box. Pre-existing count; D24 tied the layout to it.
+- **L2 (NEW, Low).** Reopening a pre-D24 save of an all-filled puzzle that had run out of hearts filled it and marked it solved: a loss became a win.
+- **L3 (NEW, Low).** After D23, `difficultyLabel`'s early return for needs-guessing made the Expert and guess entries unreachable.
+- **L4 (NEW, Low).** A single all-filled puzzle shows "not started" until opened, while the same grid as a set tile counts as solved. Matches D24's intent; undocumented.
+- **L5 (NEW, Low).** The view half of D24 (art vs cells vs label, tile box, "complete" text) had no test.
+
+**Verified clean:** Create passes the per-tile size, so the create report, library row and play header agree; the size step matches `largePuzzle` on non-square grids and never moves Hard, Very hard, Not fair or Unchecked; `fillFullPuzzle` handles 0 rows, uniform-color rows and partial grids; a puzzle that starts solved never starts the clock and reads "not started"; `img.src` only gets art that passed the JPEG data-URL and length checks; a null tile id keeps a set incomplete.
+
+## Lens 2: Outside-reviewer walkthrough
+
+All quoted corpus numbers were checked against the code that prints them.
+
+- **W1 (NEW, Medium).** The personas doc said picture-like grids split "roughly evenly" up to 20x20; at 20x20 the Regular leads.
+- **W2 (NEW, Medium).** The "contradicting tier is ignored" test's first assertion passed through the new early return, not the check it names (same root as L3).
+- **W3 (NEW, Low-Med).** "Same threshold as D20" lived in two constants.
+- **W4 (NEW, Low-Med).** Same as M1.
+- **W5 (NEW, Low).** Stale: PLAN's status date, the Limits row's "about 5 puzzles", and D22's superseded tag (it missed the no-tier fallback).
+- **W6 (NEW, Low).** Some doc numbers weren't printed by the corpus test (per-size fair totals, Very hard, the random-grid claim), the timing line wasn't marked as unseeded, and one Limits line referred to nothing in the repo.
+- **W7 (NEW, Low).** The tierless (color) fallback with the size step had no test.
+- **W8 (NEW, Low).** `tileBox`'s comment said "the tile's own aspect" but sizes every tile from the first.
+- **W9 (Nit).** The sample pin wasn't grouped by label.
+
+## Disposition
+
+| ID | Disposition |
+|---|---|
+| M1, W4 | **Fixed** (gate 5 fix commit). One rule, `startsSolved` (the starting grid already satisfies the clues), used by the set view; Play uses the same `restartCells`. **Proof, mutation-verified:** with the old flat rule put back, `set tiles count as solved by the same rule Play starts with` fails; with the fix, it passes. |
+| L1 | **Fixed** (same commit). A tile needs its puzzle record to count. Tested. |
+| L2 | **Fixed** (same commit). A loaded save that is out of hearts isn't filled. Not unit-tested (view code); documented in D24. |
+| L3, W2 | **Fixed** (same commit). The early return is gone: a usable tier maps through the table, otherwise needs-guessing falls back to Very hard. The contradiction test now exercises the check (a needs-guessing verdict claiming `newcomer` would read Easy without it). |
+| L4 | **Fixed (documented)** in PLAN D24. |
+| L5 | **Fixed in part.** The view's choice is the pure `tileFace`, tested. No UX check; backlog item with a trigger. |
+| W1, W5, W6, W8, W9 | **Fixed** (same commit). The corpus test prints fair totals, all tiers and all labels per size for blob and noise grids, and marks the timing as wall-clock; the doc quotes those lines. |
+| W3 | **Fixed.** `largePuzzle` uses `LARGE_SIDE`. |
+| W7 | **Fixed.** Test added. |
+
+**Close checks:**
+- **Tests:** 206 Node tests pass. The slow suite passes. Lint and format are clean.
+- **Browser:** 40 UX checks pass on a fresh no-cache 127.0.0.1 origin. D23's header checked at 1024x768 (one line, 25x25 still fits) and on the phone preset. D24 checked by hand with a 2x2 test set on a separate 127.0.0.1 origin: 3 of 4 with blank and full tiles counted, the all-filled tile opening solved, and the complete set flush as one photo.
+- **Claim grep:** no "Casual is Easy", "Regular is Medium", "keeps Hard", "9 samples" or "three Easy, six Medium" outside the historical D22 entry and passes 1 to 4.
+
+## Retrospective
+
+Draft from the record, awaiting the owner's lessons:
+
+1. **Two features built in one sitting shared a predicate by accident, not by design.** D24's "all filled" was written twice, once in Play and once in the set view, with different rules. Both lenses found it. **Draft:** when a feature adds a second place that decides the same fact, define it once and call it from both.
+2. **The size step came from asking the owner's expectation against the data**, not from tuning: the corpus split by size showed the gap in one run. **Draft, noted only.**
+3. **Round 1 of hands-on play changed the mapping, not the personas.** The structure from D22 absorbed the feedback with a table edit and one rule. **Draft, noted only:** supports the owner's pass 4 read.

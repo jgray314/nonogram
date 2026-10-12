@@ -17,7 +17,7 @@ const TIER_STATUS = {
   guess: 'unique-needs-guessing',
 };
 // Personas rate technique, not effort, so a big grid of simple moves still
-// reads one step harder. Same threshold as the size warning (D20).
+// reads one step harder. Also the size warning's threshold (D20, `largePuzzle`).
 export const LARGE_SIDE = 20;
 const STEP_UP = { Easy: 'Medium', Medium: 'Hard' };
 
@@ -27,18 +27,19 @@ export function isFair(verdict) {
 
 /**
  * `size` ({width, height}) is the grid the verdict is for; without it no size
- * step applies. Verdicts saved before tiers existed have none. The library
- * fills in line-solvable ones first (`withTier`, cheap), so the 'Medium'
- * fallback is only for a caller that skips that (and for color puzzles, which
- * get no tier). A needs-guessing one without a tier is 'Very hard'.
+ * step applies. A verdict without a usable tier (saved before tiers existed,
+ * a color puzzle, or a tier that contradicts the status) falls back to
+ * 'Very hard' for needs-guessing and 'Medium' for line-solvable. The library
+ * fills in line-solvable tiers first (`withTier`), so that 'Medium' is mostly
+ * for color puzzles.
  */
 export function difficultyLabel(verdict, size = null) {
   if (!verdict) return 'Unchecked';
   if (!isFair(verdict)) return 'Not fair';
-  if (verdict.status === 'unique-needs-guessing') return 'Very hard';
   // A tier that contradicts the status (a hand-edited import) is ignored.
   const tierOk = verdict.tier && TIER_STATUS[verdict.tier] === verdict.status;
-  const label = tierOk ? TIER_LABEL[verdict.tier] : 'Medium';
+  const fallback = verdict.status === 'unique-needs-guessing' ? 'Very hard' : 'Medium';
+  const label = tierOk ? TIER_LABEL[verdict.tier] : fallback;
   const large = size && Math.max(size.width, size.height) >= LARGE_SIDE;
   return large ? (STEP_UP[label] ?? label) : label;
 }

@@ -4,7 +4,7 @@ import { createStore } from '../store.js';
 import { toWebpbn } from '../webpbn.js';
 import { buildBackup, parseBackup, planImport } from '../backup.js';
 import { loadSamples } from '../samples.js';
-import { libraryModel, safeFilename, tileSolved } from '../library-logic.js';
+import { libraryModel, safeFilename, tileSolved, tileFace } from '../library-logic.js';
 
 let root = null;
 let store = null;
@@ -236,17 +236,22 @@ function tileNode(set, index) {
   tile.title = `${set.title} tile ${label}`;
   // D24: a finished set shows the source photo, each tile its own crop, so
   // together they read as the whole image. A tile without a crop keeps its cells.
-  if (set.progress.complete && puzzle.art) {
+  const face = tileFace(puzzle, solved, set.progress.complete);
+  if (face === 'art') {
     const img = el('img', 'nng-tile-art');
     img.src = puzzle.art;
     img.alt = '';
     tile.append(img);
-  } else if (solved) tile.append(solutionCanvas(puzzle));
+  } else if (face === 'cells') tile.append(solutionCanvas(puzzle));
   else tile.textContent = label;
   return tile;
 }
 
-/** Tile box size: 96px on the longer side, the tile's own aspect, so a finished set has no letterboxing. */
+/**
+ * Tile box size: 96px on the longer side, at the tiles' aspect, so a finished
+ * set has no letterboxing. Create slices evenly, so every tile in a set shares
+ * the first tile's size.
+ */
 function tileBox(set) {
   const first = set.tiles[set.tileIds.find((id) => id !== null && set.tiles[id])];
   if (!first) return { w: 96, h: 96 };

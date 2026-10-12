@@ -27,6 +27,8 @@ test('a grid 20 or more on a side steps Easy and Medium up one, nothing else', (
   assert.equal(difficultyLabel(v('newcomer'), under), 'Easy');
   assert.equal(difficultyLabel({ status: 'multiple', sweeps: 1 }, big), 'Not fair');
   assert.equal(difficultyLabel(null, big), 'Unchecked');
+  // No tier (a color puzzle): the Medium fallback steps up too.
+  assert.equal(difficultyLabel({ status: 'unique-line-solvable', sweeps: 1 }, big), 'Hard');
 });
 
 test('no tier: needs-guessing is Very hard, line-solvable falls back to Medium', () => {

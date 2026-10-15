@@ -1,6 +1,6 @@
 // Difficulty label from a cached solver verdict ({status, sweeps, tier?}).
 // The tier is the least skilled persona who finishes the puzzle
-// (src/personas.js, difficulty-personas.md). Each line-solvable persona has
+// (src/personas.js, docs/difficulty-personas.md). Each line-solvable persona has
 // its own label, and a large grid steps Easy or Medium up one (D23).
 const TIER_LABEL = {
   newcomer: 'Easy',

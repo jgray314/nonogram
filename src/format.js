@@ -1,6 +1,6 @@
 // Record formats: puzzle, save, set. See PLAN.md D2, step 5, step 12b, and the
 // v1.1 Contracts (save `hearts` and `rules.zen`), and the v1.2 Contracts (puzzle
-// `art`, save `hints`), and the optional verdict `tier` (difficulty-personas.md).
+// `art`, save `hints`), and the optional verdict `tier` (docs/difficulty-personas.md).
 
 import { MAX_HEARTS } from './game.js';
 import { TIERS } from './personas.js';

@@ -39,7 +39,7 @@ Run it from this folder, then open http://localhost:8123. Opening `index.html` a
 ```
 npm test              # fast suite, under 1s
 npm run test:slow     # solver: every 4x4 grid checked exhaustively, plus a 25x25 timing guard, about 11s
-npm run test:extended # difficulty persona corpus behind difficulty-personas.md, about 1 minute
+npm run test:extended # difficulty persona corpus behind docs/difficulty-personas.md, about 1 minute
 npm run lint
 npm run format:check
 ```

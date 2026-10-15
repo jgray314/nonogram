@@ -27,11 +27,16 @@ test('parseFeatureParam reads the features list after the ?', () => {
   assert.deepEqual(parseFeatureParam('#/play/abc?features=color,color'), { set: ['color'] });
 });
 
-test('parseFeatureParam: none clears, no param is null, unknown names are ignored', () => {
+test('parseFeatureParam: only none clears; no param, an empty value or only unknown names change nothing', () => {
   assert.deepEqual(parseFeatureParam('#/library?features=none'), { set: [] });
-  assert.deepEqual(parseFeatureParam('#/library?features='), { set: [] });
+  assert.deepEqual(parseFeatureParam('#/library?features=none,bogus'), { set: [] });
   assert.deepEqual(parseFeatureParam('#/library'), { set: null });
   assert.deepEqual(parseFeatureParam('#/library?other=1'), { set: null });
+  assert.deepEqual(parseFeatureParam('#/library?features='), { set: null });
+  assert.deepEqual(parseFeatureParam('#/library?features=colour'), { set: null });
+});
+
+test('parseFeatureParam: a mixed list keeps the known names', () => {
   assert.deepEqual(parseFeatureParam('#/library?features=bogus,color'), { set: ['color'] });
 });
 
@@ -46,13 +51,17 @@ test('isEnabled is false unless the pref is literally true', () => {
   assert.equal(isEnabled(store, 'color'), true);
 });
 
-test('applyFeatureParam sets and clears', () => {
+test('applyFeatureParam sets, ignores typos and clears', () => {
   const store = createStore(memoryStorage());
   applyFeatureParam(store, '#/library');
   assert.equal(isEnabled(store, 'color'), false);
   applyFeatureParam(store, '#/library?features=color');
   assert.equal(isEnabled(store, 'color'), true);
   applyFeatureParam(store, '#/create'); // no param: leaves the choice alone
+  assert.equal(isEnabled(store, 'color'), true);
+  applyFeatureParam(store, '#/library?features=colour'); // typo: leaves the choice alone
+  assert.equal(isEnabled(store, 'color'), true);
+  applyFeatureParam(store, '#/library?features=');
   assert.equal(isEnabled(store, 'color'), true);
   applyFeatureParam(store, '#/library?features=none');
   assert.equal(isEnabled(store, 'color'), false);

@@ -1,5 +1,5 @@
 # Runs the fast suite, lint and the format check. The area suites (npm run
-# test:slow for the solver, test:extended for the persona corpus) run locally
+# test:solver_slow for the solver, test:difficulty_very_slow for the persona corpus) run locally
 # after changes in those areas; they aren't part of the green gate.
 name: CI
 

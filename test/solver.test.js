@@ -194,7 +194,7 @@ function checkVerdict(m) {
   }
 }
 
-// The full 65,536-grid version lives in test/slow/solver.exhaustive.test.js.
+// The full 65,536-grid version lives in test/solver_slow/solver.exhaustive.test.js.
 test('seeded 4x4 cross-check sample', () => {
   const rand = mulberry32(12345);
   for (let i = 0; i < 500; i += 1) checkVerdict(Math.floor(rand() * 65536));
@@ -257,7 +257,7 @@ function bruteFixpoint(p) {
   return { contradiction: false, grid: g };
 }
 
-// The full all-4x4 version lives in test/slow/solver.exhaustive.test.js.
+// The full all-4x4 version lives in test/solver_slow/solver.exhaustive.test.js.
 test('brute line oracle agrees on all 4x4 (sample)', () => {
   const seen = new Set();
   const pick = mulberry32(4242);
@@ -293,4 +293,4 @@ test('25x25 line-solvable rings solve in under 1s', () => {
   assert.deepEqual(easy.grid, rings);
 });
 
-// The 25x25 noise timing guard at the app's budget lives in test/slow/solver.perf.test.js.
+// The 25x25 noise timing guard at the app's budget lives in test/solver_slow/solver.perf.test.js.

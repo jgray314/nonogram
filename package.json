@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "test": "node --test \"test/*.test.js\"",
-    "test:slow": "node --test \"test/slow/*.test.js\"",
-    "test:extended": "node --test \"test/extended/*.test.js\"",
+    "test:solver_slow": "node --test \"test/solver_slow/*.test.js\"",
+    "test:difficulty_very_slow": "node --test \"test/difficulty_very_slow/*.test.js\"",
     "lint": "eslint .",
     "format:check": "prettier --check ."
   },

@@ -41,14 +41,14 @@ Run it from this folder, then open http://localhost:8123. Opening `index.html` a
 ## Develop
 
 ```
-npm test              # fast suite, under 1s
-npm run test:slow     # solver: every 4x4 grid checked exhaustively, plus a 25x25 timing guard, about 11s
-npm run test:extended # difficulty persona corpus behind docs/difficulty-personas.md, about 1 minute
+npm test                          # fast suite, under 1s
+npm run test:solver_slow          # solver: every 4x4 grid checked exhaustively, plus a 25x25 timing guard, about 11s
+npm run test:difficulty_very_slow # difficulty persona corpus behind docs/difficulty-personas.md, about 1 minute
 npm run lint
 npm run format:check
 ```
 
-CI (`.github/workflows/ci.yml`) runs `npm test`, lint and the format check on every push to `main` and every pull request. Run `test:slow` after solver changes and `test:extended` after persona or difficulty changes. Those two and the UX checks run locally only.
+CI (`.github/workflows/ci.yml`) runs `npm test`, lint and the format check on every push to `main` and every pull request. Run `test:solver_slow` after solver changes and `test:difficulty_very_slow` after persona or difficulty changes. Those two and the UX checks run locally only.
 
 **UX checks.** With the server running, open http://127.0.0.1:8123/ux-checks.html. It drives the real app in a frame and checks what a player should see: hearts, mistakes, restart, Zen, hints, the solve reveal, clue numbers, Create, the library, print, narrow layout and basic labels. It resets the app's data, so it only runs on `127.0.0.1`, which keeps its own storage, and refuses to run on `localhost`, where your library lives. A check marked KNOWN is tied to an open finding in `docs/reviews/nonogram-ux-review.md`. When one shows FIXED?, drop its `known` flag in `test/ux/checks.js`. Add `?only=<check id>` to run a single check.
 

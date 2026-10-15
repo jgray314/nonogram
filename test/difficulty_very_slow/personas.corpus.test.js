@@ -1,5 +1,5 @@
 // The persona corpus behind docs/difficulty-personas.md. Seeded, so the printed
-// table is the one the doc quotes; rerun with `npm run test:extended`.
+// table is the one the doc quotes; rerun with `npm run test:difficulty_very_slow`.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { puzzleClues } from '../../src/clues.js';

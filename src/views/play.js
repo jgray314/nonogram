@@ -59,6 +59,8 @@ let root = null;
 let grid = null;
 let cleanup = [];
 let persistNow = () => {};
+// Bumped by mount and unmount; async handlers check it before touching the page.
+let generation = 0;
 
 function showMissing(el_) {
   const box = el('section', 'nng-play');
@@ -73,6 +75,7 @@ function showMissing(el_) {
 }
 
 export function mount(container, params = {}) {
+  generation += 1;
   ensureCss();
   let store;
   try {
@@ -632,12 +635,19 @@ export function mount(container, params = {}) {
       message.textContent = 'Import failed: storage unavailable';
       return;
     }
+    // A player who leaves mid-import must not have this handler clear the next
+    // view's save hook or navigate them back (gate pass 1, L7).
+    const gen = generation;
+    const live = () => gen === generation;
     const parsed = parseSaveFile(await file.text());
+    if (!live()) return;
     if (!parsed.ok) {
       message.textContent = `Import failed: ${parsed.error}`;
       return;
     }
-    if (!(await idMatches(parsed.puzzle))) {
+    const idOk = await idMatches(parsed.puzzle);
+    if (!live()) return;
+    if (!idOk) {
       message.textContent = 'Import failed: puzzle id does not match its content';
       return;
     }
@@ -656,18 +666,21 @@ export function mount(container, params = {}) {
         const [rated] = await rateImports([writes[0].record], ratePuzzleWith(solver));
         writes = [{ kind: 'puzzle', record: rated }, ...writes.slice(1)];
       } catch {
-        message.textContent = 'Import failed: the solver could not check the puzzle';
+        if (live()) message.textContent = 'Import failed: the solver could not check the puzzle';
         return;
       } finally {
         solver.terminate();
       }
     }
+    // The replace was confirmed, so the import is written even if the player has
+    // left; only the page updates below need this mount.
     try {
       for (const w of writes) store.put(w.kind, w.record);
     } catch {
-      message.textContent = 'Import failed: could not write to storage';
+      if (live()) message.textContent = 'Import failed: could not write to storage';
       return;
     }
+    if (!live()) return;
     // Drop the live state so unmount does not overwrite the imported save.
     persistNow = () => {};
     const target = `#/play/${encodeURIComponent(parsed.puzzle.id)}`;
@@ -694,6 +707,7 @@ export function mount(container, params = {}) {
 }
 
 export function unmount() {
+  generation += 1;
   for (const fn of cleanup) fn(); // includes the final timer tick
   cleanup = [];
   persistNow();

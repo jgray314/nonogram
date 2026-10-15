@@ -11,6 +11,8 @@ let root = null;
 let store = null;
 let status = null;
 let listEl = null;
+// Bumped by mount and unmount; async work checks it before touching the page.
+let generation = 0;
 
 function ensureCss(href) {
   if (document.querySelector(`link[data-nng-css="${href}"]`)) return;
@@ -84,9 +86,24 @@ function exportLibrary() {
   );
 }
 
+/**
+ * Runs `fn` only while the mount that started an async task is still live, so a
+ * task that outlives the view (the player navigated away mid-import) still
+ * finishes its writes but never touches a torn-down page (gate pass 1, L7).
+ */
+function forThisMount() {
+  const gen = generation;
+  return (fn) => {
+    if (gen === generation) fn();
+  };
+}
+
 async function importLibrary(file) {
-  const parsed = parseBackup(await file.text(), (id) => store.get('puzzle', id));
-  if (!parsed.ok) return say(`Import failed: ${parsed.error}.`);
+  // Keep this mount's store: unmount clears the module's `store`.
+  const store0 = store;
+  const ui = forThisMount();
+  const parsed = parseBackup(await file.text(), (id) => store0.get('puzzle', id));
+  if (!parsed.ok) return ui(() => say(`Import failed: ${parsed.error}.`));
   // Reject puzzles whose id is not the hash of their content, and their saves.
   const forged = new Set();
   for (const p of parsed.puzzles) if (!(await idMatches(p))) forged.add(p.id);
@@ -97,19 +114,21 @@ async function importLibrary(file) {
       parsed.skipped.push({ kind: 'puzzle', id, error: 'id does not match content' });
   }
   let plan = planImport(parsed, {
-    puzzles: store.list('puzzle').records.map((p) => p.id),
-    saves: store.list('save').records.map((s) => s.puzzleId),
-    sets: store.list('set').records.map((s) => s.setId),
+    puzzles: store0.list('puzzle').records.map((p) => p.id),
+    saves: store0.list('save').records.map((s) => s.puzzleId),
+    sets: store0.list('set').records.map((s) => s.setId),
   });
   // An imported verdict is only a claim: re-solve each puzzle that will be written.
   const toCheck = plan.filter((w) => w.kind === 'puzzle').length;
   if (toCheck) {
-    say(`Checking ${toCheck} imported puzzle${toCheck === 1 ? '' : 's'}…`);
+    ui(() => say(`Checking ${toCheck} imported puzzle${toCheck === 1 ? '' : 's'}…`));
     const solver = createSolverClient();
     try {
       plan = await ratePlan(plan, ratePuzzleWith(solver));
     } catch {
-      return say('Import failed: the solver could not check the puzzles. Nothing was imported.');
+      return ui(() =>
+        say('Import failed: the solver could not check the puzzles. Nothing was imported.'),
+      );
     } finally {
       solver.terminate();
     }
@@ -117,12 +136,14 @@ async function importLibrary(file) {
   let written = 0;
   try {
     for (const { kind, record } of plan) {
-      store.put(kind, record);
+      store0.put(kind, record);
       written += 1;
     }
   } catch (e) {
-    render();
-    return say(`Import stopped after ${written} of ${plan.length} records: ${e.message}.`);
+    return ui(() => {
+      render();
+      say(`Import stopped after ${written} of ${plan.length} records: ${e.message}.`);
+    });
   }
   const valid = parsed.puzzles.length + parsed.saves.length + parsed.sets.length;
   const parts = [`Imported ${plan.length} record${plan.length === 1 ? '' : 's'}`];
@@ -142,16 +163,21 @@ async function importLibrary(file) {
   if (n) {
     parts.push(`${n} picture${n === 1 ? '' : 's'} dropped (not a small JPEG)`);
   }
-  render();
-  say(`${parts.join(', ')}.`);
+  ui(() => {
+    render();
+    say(`${parts.join(', ')}.`);
+  });
 }
 
 async function addSamples() {
+  const ui = forThisMount();
   const { added, skipped } = await loadSamples(store);
-  render();
-  say(
-    `Added ${added} sample puzzle${added === 1 ? '' : 's'}${skipped ? `, ${skipped} already present` : ''}.`,
-  );
+  ui(() => {
+    render();
+    say(
+      `Added ${added} sample puzzle${added === 1 ? '' : 's'}${skipped ? `, ${skipped} already present` : ''}.`,
+    );
+  });
 }
 
 /** A script-free "More" menu: Print, export for other solvers, and a tucked-away Delete. */
@@ -316,6 +342,7 @@ function deleteSet(set) {
 }
 
 export function mount(el0) {
+  generation += 1;
   ensureCss('css/library.css');
   store = createStore();
   root = el('section', 'nng-library');
@@ -346,6 +373,7 @@ export function mount(el0) {
 }
 
 export function unmount() {
+  generation += 1;
   root?.remove();
   root = null;
   store = null;

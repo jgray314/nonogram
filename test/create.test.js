@@ -1,10 +1,17 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { puzzleId, validatePuzzle, ART_PREFIX, MAX_ART_CHARS } from '../src/format.js';
+import {
+  puzzleId,
+  validatePuzzle,
+  ART_PREFIX,
+  MAX_ART_CHARS,
+  MAX_ART_SIDE,
+} from '../src/format.js';
 import { makeSet, tileGrid } from '../src/tiles.js';
 import { createStore } from '../src/store.js';
 import {
   SIZES,
+  ART_MAX_SIDE,
   defaultSize,
   titleFromFile,
   hasFilledCell,
@@ -459,4 +466,10 @@ test('hasFilledCell is false for a blank grid and true once a cell is filled', (
   assert.equal(hasFilledCell(g), false);
   g[2][3] = 1;
   assert.equal(hasFilledCell(g), true);
+});
+
+// format.js cannot import create-logic.js, so the two 320s are tied here: art
+// Create makes must never exceed what import accepts (gate pass 6, L8).
+test('the art side Create makes fits the side import accepts', () => {
+  assert.ok(ART_MAX_SIDE <= MAX_ART_SIDE);
 });

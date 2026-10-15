@@ -171,9 +171,28 @@ function layerStats(grid) {
   };
 }
 
+// A blank or all-filled grid is trivially "unique-line-solvable", so counting
+// it as fair would reward a puzzle with no picture. Two rules guard against it:
+// - A layer is trivial when every cell has the same value (all blank, or all
+//   one ink). Trivial layers are left out of every layer count.
+// - A puzzle is degenerate when it has no non-trivial layer, or when the cells
+//   inked in any layer cover less than MIN_INK of the grid, or all of it.
+// Degenerate puzzles are counted in their own column and left out of the
+// fair, line, layer-fair, clues, max/line and sweeps figures.
+const MIN_INK = 0.05;
+const isTrivial = (grid) => {
+  const [first, ...rest] = flat(grid);
+  return rest.every((v) => v === first);
+};
+
 function evaluate(build, cells) {
-  const layers = build.layers.map(layerStats);
-  const fairLayers = layers.filter((l) => l.status.startsWith('unique')).length;
+  const layers = build.layers.map((g) => ({ ...layerStats(g), trivial: isTrivial(g) }));
+  const real = layers.filter((l) => !l.trivial);
+  const total = cells.length * cells[0].length;
+  const flats = build.layers.map(flat);
+  const inked = flats.length ? flats[0].filter((_, i) => flats.some((f) => f[i] !== 0)).length : 0;
+  const share = inked / total;
+  const degenerate = real.length === 0 || share < MIN_INK || share === 1;
   const lab = (p) => rgbToLab(p);
   let sum = 0;
   cells.forEach((row, r) =>
@@ -183,13 +202,16 @@ function evaluate(build, cells) {
   );
   return {
     layers,
-    allFair: layers.every((l) => l.status.startsWith('unique')),
-    allLine: layers.every((l) => l.status === 'unique-line-solvable'),
-    layerFair: layers.length ? fairLayers / layers.length : 1,
+    degenerate,
+    inkShare: share,
+    allFair: !degenerate && real.every((l) => l.status.startsWith('unique')),
+    allLine: !degenerate && real.every((l) => l.status === 'unique-line-solvable'),
+    nReal: real.length,
+    fairLayers: real.filter((l) => l.status.startsWith('unique')).length,
     clues: layers.reduce((s, l) => s + l.clues, 0),
     maxLine: Math.max(0, ...layers.map((l) => l.maxLine)),
     sweeps: layers.reduce((s, l) => s + l.sweeps, 0),
-    dE: sum / (cells.length * cells[0].length),
+    dE: sum / total,
   };
 }
 
@@ -237,7 +259,15 @@ for (const img of images) {
 // ---- output -------------------------------------------------------------
 
 const mean = (xs) => xs.reduce((a, b) => a + b, 0) / xs.length;
-const pct = (xs, key) => `${Math.round(100 * mean(xs.map((x) => (x[key] ? 1 : 0))))}`;
+const live = (xs) => xs.filter((x) => !x.degenerate); // non-degenerate puzzles
+const pct = (xs, key) => {
+  const ok = live(xs);
+  return ok.length ? `${Math.round(100 * mean(ok.map((x) => (x[key] ? 1 : 0))))}` : '-';
+};
+const meanLive = (xs, key, d = 1) => {
+  const ok = live(xs);
+  return ok.length ? fix(mean(ok.map((x) => x[key])), d) : '-';
+};
 const fix = (v, d = 1) => v.toFixed(d);
 
 console.log(`# Color layering experiment`);
@@ -257,7 +287,11 @@ Suffix x: w = white is the only anchor (black is just a candidate color); a = bl
 always-present ink outside the N chosen colors (N+1 inks); b = white and black are both blank in
 every layer (N inks; black cells are lost and show as white).
 fair = unique solution (line-solvable or needs guessing). line = unique and line-solvable.
-For layer stacks, fair/line mean every layer passes. layers = non-empty layers (mean over images).
+For layer stacks, fair/line mean every non-trivial layer passes. layers = non-trivial layers (mean over images).
+A layer is trivial when every cell has the same value (all blank or all one ink). A puzzle is degenerate (deg) when it has no
+non-trivial layer, or its inked cells (any layer) cover under ${MIN_INK * 100}% of the grid or all of it. fair%, line%,
+layerfair%, clues, max/line and sweeps leave degenerate puzzles out (the denominator is the
+non-degenerate puzzles; - means none). deg is a count of puzzles. dE counts every puzzle.
 dE = mean CIE76 delta E between each cell's source color and the color the finished puzzle shows.
 `);
 
@@ -281,6 +315,7 @@ for (const [group, byApproach] of Object.entries(results)) {
     ...sizes.map((n) => `fair% ${n}`),
     ...sizes.map((n) => `line% ${n}`),
     ...sizes.map((n) => `layerfair% ${n}`),
+    ...sizes.map((n) => `deg ${n}`),
     ...sizes.map((n) => `dE ${n}`),
     `clues ${mid}`,
     `max/line ${mid}`,
@@ -290,17 +325,24 @@ for (const [group, byApproach] of Object.entries(results)) {
   console.log(`|${head.map((_, i) => (i === 0 ? '---' : '---:')).join('|')}|`);
   for (const approach of approachOrder) {
     const per = byApproach[approach];
-    const layers = mean(sizes.flatMap((n) => per[n].map((x) => x.layers.length)));
+    const layers = mean(sizes.flatMap((n) => per[n].map((x) => x.nReal)));
     const row = [
       approach,
       fix(layers),
       ...sizes.map((n) => pct(per[n], 'allFair')),
       ...sizes.map((n) => pct(per[n], 'allLine')),
-      ...sizes.map((n) => `${Math.round(100 * mean(per[n].map((x) => x.layerFair)))}`),
+      ...sizes.map((n) => {
+        const ok = live(per[n]);
+        const total = ok.reduce((t, x) => t + x.nReal, 0);
+        return total
+          ? `${Math.round((100 * ok.reduce((t, x) => t + x.fairLayers, 0)) / total)}`
+          : '-';
+      }),
+      ...sizes.map((n) => per[n].filter((x) => x.degenerate).length),
       ...sizes.map((n) => fix(mean(per[n].map((x) => x.dE)))),
-      fix(mean(per[mid].map((x) => x.clues)), 0),
-      fix(mean(per[mid].map((x) => x.maxLine))),
-      fix(mean(per[mid].map((x) => x.sweeps))),
+      meanLive(per[mid], 'clues', 0),
+      meanLive(per[mid], 'maxLine'),
+      meanLive(per[mid], 'sweeps'),
     ];
     console.log(`| ${row.join(' | ')} |`);
   }
@@ -311,10 +353,11 @@ console.log(
 );
 for (const [group, byApproach] of Object.entries(results)) {
   console.log(`\n### ${group}\n`);
-  console.log('| approach | layers | L | G | M | ? | X |');
-  console.log('|---|---:|---:|---:|---:|---:|---:|');
+  console.log('| approach | layers | L | G | M | ? | X | trivial |');
+  console.log('|---|---:|---:|---:|---:|---:|---:|---:|');
   for (const approach of approachOrder) {
-    const layers = sizes.flatMap((n) => byApproach[approach][n].flatMap((x) => x.layers));
+    const all = sizes.flatMap((n) => byApproach[approach][n].flatMap((x) => x.layers));
+    const layers = all.filter((l) => !l.trivial);
     const count = (st) => layers.filter((l) => l.status === st).length;
     const row = [
       approach,
@@ -322,6 +365,7 @@ for (const [group, byApproach] of Object.entries(results)) {
       ...['unique-line-solvable', 'unique-needs-guessing', 'multiple', 'unknown', 'none'].map(
         count,
       ),
+      all.length - layers.length,
     ];
     console.log(`| ${row.join(' | ')} |`);
   }
@@ -336,16 +380,16 @@ if (detail) {
     none: 'X',
   };
   console.log(
-    `\n## Detail at grid size ${mid} (status per layer: L line-solvable, G needs guessing, M multiple, ? unknown, X none)\n`,
+    `\n## Detail at grid size ${mid} (status per layer: L line-solvable, G needs guessing, M multiple, ? unknown, X none, - trivial layer; ink = share of cells inked; deg = degenerate)\n`,
   );
-  console.log('| group | image | approach | statuses | clues | max/line | dE |');
-  console.log('|---|---|---|---|---:|---:|---:|');
+  console.log('| group | image | approach | statuses | ink% | deg | clues | max/line | dE |');
+  console.log('|---|---|---|---|---:|---|---:|---:|---:|');
   for (const [group, byApproach] of Object.entries(results)) {
     for (const approach of approachOrder) {
       for (const m of byApproach[approach][mid]) {
-        const st = m.layers.map((l) => short[l.status]).join(' ');
+        const st = m.layers.map((l) => (l.trivial ? '-' : short[l.status])).join(' ');
         console.log(
-          `| ${group} | ${m.image} | ${approach} | ${st} | ${m.clues} | ${m.maxLine} | ${fix(m.dE)} |`,
+          `| ${group} | ${m.image} | ${approach} | ${st} | ${Math.round(100 * m.inkShare)} | ${m.degenerate ? 'yes' : 'no'} | ${m.clues} | ${m.maxLine} | ${fix(m.dE)} |`,
         );
       }
     }

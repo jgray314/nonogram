@@ -6,6 +6,7 @@ import * as play from './views/play.js';
 import * as print from './views/print.js';
 import { createStore } from './store.js';
 import { initTheme } from './theme.js';
+import { applyFeatureParam, hashPath } from './features.js';
 
 const ROUTES = {
   library: { view: library, nav: 'library' },
@@ -15,11 +16,12 @@ const ROUTES = {
 };
 const DEFAULT = '#/library';
 
+const store = createStore();
 const main = document.getElementById('view');
 let current = null;
 
 function parse(hash) {
-  const [, name, ...rest] = hash.split('/');
+  const [, name, ...rest] = hashPath(hash).split('/');
   if (!Object.hasOwn(ROUTES, name)) return null;
   let id;
   try {
@@ -32,6 +34,7 @@ function parse(hash) {
 }
 
 function render() {
+  applyFeatureParam(store, location.hash);
   const route = parse(location.hash);
   if (!route) {
     location.hash = DEFAULT; // fires hashchange, which renders
@@ -46,6 +49,6 @@ function render() {
   }
 }
 
-initTheme(createStore(), document.getElementById('theme-toggle'));
+initTheme(store, document.getElementById('theme-toggle'));
 window.addEventListener('hashchange', render);
 render();

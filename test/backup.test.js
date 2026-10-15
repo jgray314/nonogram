@@ -181,6 +181,27 @@ test('rateImports replaces the stored verdict', async () => {
   assert.equal(claimed.verdict.status, 'unique-line-solvable'); // input not mutated
 });
 
+test('rateImports and ratePlan report progress once per puzzle', async () => {
+  const calls = [];
+  await rateImports([puzzle('a'), puzzle('b'), puzzle('c')], fake, (d, t) => calls.push([d, t]));
+  assert.deepEqual(calls, [
+    [1, 3],
+    [2, 3],
+    [3, 3],
+  ]);
+  const planCalls = [];
+  const plan = [
+    { kind: 'puzzle', record: puzzle('a') },
+    { kind: 'set', record: set },
+    { kind: 'puzzle', record: puzzle('b') },
+  ];
+  await ratePlan(plan, fake, (d, t) => planCalls.push([d, t]));
+  assert.deepEqual(planCalls, [
+    [1, 2],
+    [2, 2],
+  ]);
+});
+
 test('rateImports keeps every other field', async () => {
   const p = puzzle('a', { set: { id: 's1', row: 0, col: 1 }, art: 'data:image/jpeg;base64,x' });
   const [out] = await rateImports([p, puzzle('b')], fake);

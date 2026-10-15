@@ -92,17 +92,24 @@ export function planImport(parsed, existingIds = {}) {
  * Copies of `puzzles` with each verdict replaced by `await rate(puzzle)`, one at
  * a time. An imported verdict is only a claim: hearts, mistake marks and hints
  * trust it, so imports recompute it with the solver (gate pass 3, L2).
+ * `onProgress(done, total)`, if given, runs after each puzzle is rated.
  */
-export async function rateImports(puzzles, rate) {
+export async function rateImports(puzzles, rate, onProgress) {
   const out = [];
-  for (const puzzle of puzzles) out.push({ ...puzzle, verdict: await rate(puzzle) });
+  for (const puzzle of puzzles) {
+    out.push({ ...puzzle, verdict: await rate(puzzle) });
+    onProgress?.(out.length, puzzles.length);
+  }
   return out;
 }
 
-/** `plan` (from planImport) with every puzzle record re-rated; other records pass through. */
-export async function ratePlan(plan, rate) {
+/**
+ * `plan` (from planImport) with every puzzle record re-rated; other records pass
+ * through. `onProgress(done, total)` counts puzzles only (gate pass 6, L2).
+ */
+export async function ratePlan(plan, rate, onProgress) {
   const puzzles = plan.filter((w) => w.kind === 'puzzle').map((w) => w.record);
-  const rated = await rateImports(puzzles, rate);
+  const rated = await rateImports(puzzles, rate, onProgress);
   let next = 0;
   return plan.map((w) => (w.kind === 'puzzle' ? { kind: 'puzzle', record: rated[next++] } : w));
 }

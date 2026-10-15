@@ -11,6 +11,8 @@ let root = null;
 let store = null;
 let status = null;
 let listEl = null;
+// The toolbar's Export, Import and Load sample buttons; disabled while an import runs.
+let toolbarButtons = [];
 // Bumped by mount and unmount; async work checks it before touching the page.
 let generation = 0;
 
@@ -98,10 +100,26 @@ function forThisMount() {
   };
 }
 
+/**
+ * Imports re-solve every new puzzle, which can take a while, so the other
+ * toolbar actions stay off until it ends (gate pass 6, L2). Re-enabling goes
+ * through `ui`, so a later mount's fresh buttons are never touched.
+ */
 async function importLibrary(file) {
+  const ui = forThisMount();
+  for (const b of toolbarButtons) b.disabled = true;
+  try {
+    await runImport(file, ui);
+  } finally {
+    ui(() => {
+      for (const b of toolbarButtons) b.disabled = false;
+    });
+  }
+}
+
+async function runImport(file, ui) {
   // Keep this mount's store: unmount clears the module's `store`.
   const store0 = store;
-  const ui = forThisMount();
   const parsed = parseBackup(await file.text(), (id) => store0.get('puzzle', id));
   if (!parsed.ok) return ui(() => say(`Import failed: ${parsed.error}.`));
   // Reject puzzles whose id is not the hash of their content, and their saves.
@@ -121,10 +139,12 @@ async function importLibrary(file) {
   // An imported verdict is only a claim: re-solve each puzzle that will be written.
   const toCheck = plan.filter((w) => w.kind === 'puzzle').length;
   if (toCheck) {
-    ui(() => say(`Checking ${toCheck} imported puzzle${toCheck === 1 ? '' : 's'}…`));
+    const checking = (done) =>
+      ui(() => say(`Checking ${done} of ${toCheck} imported puzzle${toCheck === 1 ? '' : 's'}…`));
+    checking(0);
     const solver = createSolverClient();
     try {
-      plan = await ratePlan(plan, ratePuzzleWith(solver));
+      plan = await ratePlan(plan, ratePuzzleWith(solver), checking);
     } catch {
       return ui(() =>
         say('Import failed: the solver could not check the puzzles. Nothing was imported.'),
@@ -358,12 +378,12 @@ export function mount(el0) {
     file.value = '';
     if (chosen) await importLibrary(chosen);
   });
-  toolbar.append(
+  toolbarButtons = [
     button('Export library', exportLibrary),
     button('Import library', () => file.click()),
     button('Load sample puzzles', addSamples),
-    file,
-  );
+  ];
+  toolbar.append(...toolbarButtons, file);
   status = el('p', 'nng-lib-status');
   status.setAttribute('role', 'status');
   listEl = el('div', 'nng-lib-content');
@@ -379,4 +399,5 @@ export function unmount() {
   store = null;
   status = null;
   listEl = null;
+  toolbarButtons = [];
 }

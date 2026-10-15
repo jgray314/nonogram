@@ -205,6 +205,7 @@ function evaluate(build, cells) {
     degenerate,
     inkShare: share,
     allFair: !degenerate && real.every((l) => l.status.startsWith('unique')),
+    unknown: !degenerate && real.some((l) => l.status === 'unknown'),
     allLine: !degenerate && real.every((l) => l.status === 'unique-line-solvable'),
     nReal: real.length,
     fairLayers: real.filter((l) => l.status.startsWith('unique')).length,
@@ -260,10 +261,9 @@ for (const img of images) {
 
 const mean = (xs) => xs.reduce((a, b) => a + b, 0) / xs.length;
 const live = (xs) => xs.filter((x) => !x.degenerate); // non-degenerate puzzles
-const pct = (xs, key) => {
-  const ok = live(xs);
-  return ok.length ? `${Math.round(100 * mean(ok.map((x) => (x[key] ? 1 : 0))))}` : '-';
-};
+/** "n/d (p%)", or "-" when d is 0. */
+const frac = (n, d) => (d ? `${n}/${d} (${Math.round((100 * n) / d)}%)` : '-');
+const share = (xs, key) => frac(live(xs).filter((x) => x[key]).length, live(xs).length);
 const meanLive = (xs, key, d = 1) => {
   const ok = live(xs);
   return ok.length ? fix(mean(ok.map((x) => x[key])), d) : '-';
@@ -286,12 +286,16 @@ E grayN: white blank + (N-1) gray shades, one color puzzle.
 Suffix x: w = white is the only anchor (black is just a candidate color); a = black is an extra
 always-present ink outside the N chosen colors (N+1 inks); b = white and black are both blank in
 every layer (N inks; black cells are lost and show as white).
-fair = unique solution (line-solvable or needs guessing). line = unique and line-solvable.
-For layer stacks, fair/line mean every non-trivial layer passes. layers = non-trivial layers (mean over images).
-A layer is trivial when every cell has the same value (all blank or all one ink). A puzzle is degenerate (deg) when it has no
-non-trivial layer, or its inked cells (any layer) cover under ${MIN_INK * 100}% of the grid or all of it. fair%, line%,
-layerfair%, clues, max/line and sweeps leave degenerate puzzles out (the denominator is the
-non-degenerate puzzles; - means none). deg is a count of puzzles. dE counts every puzzle.
+Counts are shown as n/d (p%). d is the number of non-degenerate puzzles; - means d is 0.
+fair = a unique solution was found (line-solvable or needs guessing). line = unique and line-solvable.
+For layer stacks, fair/line mean every non-trivial layer passes. layerfair = fair non-trivial layers
+over all non-trivial layers of the non-degenerate puzzles. layers = non-trivial layers (mean over images).
+unk = non-degenerate puzzles where the solver budget ran out on some layer. They are not counted
+as fair, so the budget leans against an approach by at most this many puzzles.
+A layer is trivial when every cell has the same value (all blank or all one ink). A puzzle is
+degenerate (deg, a count) when it has no non-trivial layer, or its inked cells (any layer) cover
+under ${MIN_INK * 100}% of the grid or all of it. Degenerate puzzles are left out of fair, line, layerfair,
+unk, clues, max/line and sweeps. dE counts every puzzle.
 dE = mean CIE76 delta E between each cell's source color and the color the finished puzzle shows.
 `);
 
@@ -312,9 +316,10 @@ for (const [group, byApproach] of Object.entries(results)) {
   const head = [
     'approach',
     'layers',
-    ...sizes.map((n) => `fair% ${n}`),
-    ...sizes.map((n) => `line% ${n}`),
-    ...sizes.map((n) => `layerfair% ${n}`),
+    ...sizes.map((n) => `fair ${n}`),
+    ...sizes.map((n) => `line ${n}`),
+    ...sizes.map((n) => `layerfair ${n}`),
+    ...sizes.map((n) => `unk ${n}`),
     ...sizes.map((n) => `deg ${n}`),
     ...sizes.map((n) => `dE ${n}`),
     `clues ${mid}`,
@@ -329,15 +334,16 @@ for (const [group, byApproach] of Object.entries(results)) {
     const row = [
       approach,
       fix(layers),
-      ...sizes.map((n) => pct(per[n], 'allFair')),
-      ...sizes.map((n) => pct(per[n], 'allLine')),
+      ...sizes.map((n) => share(per[n], 'allFair')),
+      ...sizes.map((n) => share(per[n], 'allLine')),
       ...sizes.map((n) => {
         const ok = live(per[n]);
-        const total = ok.reduce((t, x) => t + x.nReal, 0);
-        return total
-          ? `${Math.round((100 * ok.reduce((t, x) => t + x.fairLayers, 0)) / total)}`
-          : '-';
+        return frac(
+          ok.reduce((t, x) => t + x.fairLayers, 0),
+          ok.reduce((t, x) => t + x.nReal, 0),
+        );
       }),
+      ...sizes.map((n) => per[n].filter((x) => x.unknown).length),
       ...sizes.map((n) => per[n].filter((x) => x.degenerate).length),
       ...sizes.map((n) => fix(mean(per[n].map((x) => x.dE)))),
       meanLive(per[mid], 'clues', 0),

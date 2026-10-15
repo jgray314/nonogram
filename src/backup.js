@@ -13,11 +13,11 @@ const asArray = (x) => (Array.isArray(x) ? x : []);
 /**
  * Parse and validate a backup. Invalid records are skipped and reported in
  * `skipped` as {kind, id, error}. Art that is not a small JPEG is dropped from its
- * puzzle (the puzzle stays) and counted in `artDropped`. A save is checked against its puzzle in the
+ * puzzle (the puzzle stays) and listed by id in `artDroppedIds`. A save is checked against its puzzle in the
  * file, else against `lookupPuzzle(id)` (e.g. the existing store). Never throws.
  */
 export function parseBackup(text, lookupPuzzle = () => null) {
-  const empty = { ok: false, puzzles: [], saves: [], sets: [], skipped: [], artDropped: 0 };
+  const empty = { ok: false, puzzles: [], saves: [], sets: [], skipped: [], artDroppedIds: [] };
   try {
     let data;
     try {
@@ -35,13 +35,13 @@ export function parseBackup(text, lookupPuzzle = () => null) {
       skipped.push({ kind, id: String(record?.[ID_FIELDS[kind]] ?? '?'), error });
 
     const puzzles = [];
-    let artDropped = 0;
+    const artDroppedIds = [];
     for (const p of asArray(data.puzzles)) {
       const v = validatePuzzle(p);
       if (v.ok) {
         const bounded = boundArt(pickKnown('puzzle', p));
         puzzles.push(bounded.puzzle);
-        if (bounded.dropped) artDropped += 1;
+        if (bounded.dropped) artDroppedIds.push(p.id);
       } else skip('puzzle', p, v.error);
     }
     const sets = [];
@@ -62,7 +62,7 @@ export function parseBackup(text, lookupPuzzle = () => null) {
       if (v.ok) saves.push(pickKnown('save', s));
       else skip('save', s, v.error);
     }
-    return { ok: true, puzzles, saves, sets, skipped, artDropped };
+    return { ok: true, puzzles, saves, sets, skipped, artDroppedIds };
   } catch (e) {
     return { ...empty, error: `unexpected error: ${e && e.message}` };
   }

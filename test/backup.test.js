@@ -145,7 +145,7 @@ test('import drops oversized art and keeps the puzzle', () => {
   const notJpeg = puzzle('b', { art: `${ART_PREFIX}AAAA` });
   const parsed = parseBackup(buildBackup({ puzzles: [big, notJpeg] }));
   assert.equal(parsed.puzzles.length, 2);
-  assert.equal(parsed.artDropped, 2);
+  assert.equal(parsed.artDroppedIds.length, 2);
   for (const p of parsed.puzzles) assert.equal('art' in p, false);
   assert.equal(parsed.puzzles[0].title, 'T a');
 });
@@ -154,7 +154,7 @@ test('import keeps art within the bound', () => {
   const art = jpegHeader(320, 240);
   const parsed = parseBackup(buildBackup({ puzzles: [puzzle('a', { art })] }));
   assert.equal(parsed.puzzles[0].art, art);
-  assert.equal(parsed.artDropped, 0);
+  assert.deepEqual(parsed.artDroppedIds, []);
 });
 
 const fake = async (p) => ({ status: 'multiple', sweeps: p.width });

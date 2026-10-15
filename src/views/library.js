@@ -136,8 +136,10 @@ async function importLibrary(file) {
       `${parsed.skipped.length} invalid skipped (${why}${parsed.skipped.length > 3 ? '; ...' : ''})`,
     );
   }
-  if (parsed.artDropped) {
-    const n = parsed.artDropped;
+  // Only puzzles this import wrote: an existing puzzle keeps its own art.
+  const dropped = new Set(parsed.artDroppedIds);
+  const n = plan.filter((w) => w.kind === 'puzzle' && dropped.has(w.record.id)).length;
+  if (n) {
     parts.push(`${n} picture${n === 1 ? '' : 's'} dropped (not a small JPEG)`);
   }
   render();

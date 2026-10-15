@@ -1,6 +1,6 @@
 #!/bin/sh
 # Runs the same steps CI runs, in CI's order, so a red CI run is a local
-# failure first, plus the feature-list integrity check. About 3s. Bypass is
+# failure first, plus the feature-list integrity check. About 15s with the UX checks. Bypass is
 # `git push --no-verify` and should be said out loud when used.
 set -e
 cd "$(git rev-parse --show-toplevel)"

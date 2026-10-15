@@ -129,7 +129,10 @@ const summary = text(/id="summary"[^>]*>(.*?)<\/p>/s.exec(dom)?.[1] ?? '');
 const lines = [...dom.matchAll(/<li><span class="(fail|known)">(.*?)<\/span>/gs)].map((m) =>
   text(m[2]),
 );
-console.log(summary || 'ux-checks: no summary in the page (did it finish?)');
-for (const l of lines) console.log(' ', l);
+const out = (line) =>
+  process.stdout.write(`${line}
+`);
+out(summary || 'ux-checks: no summary in the page (did it finish?)');
+for (const l of lines) out(`  ${l}`);
 const m = /(\d+) pass, (\d+) fail/.exec(summary);
 if (!m || Number(m[2]) > 0 || Number(m[1]) === 0) process.exit(1);

@@ -21,11 +21,11 @@
       "verify": "npm run lint",
       "state": "passing",
       "evidence": {
-        "commit": "8f073a2ab20676c779bd349299c30f2dbbf2dd27",
+        "commit": "5366c91fa01c1f7d341cd84d08f07f97f79cdf94",
         "dirty": false,
-        "at": "2026-10-15T22:13:25Z",
+        "at": "2026-10-15T22:38:33Z",
         "exit_code": 0,
-        "seal": "nljkpihlajbmjooc"
+        "seal": "icepbpnbchjdikpf"
       }
     },
     {
@@ -34,11 +34,11 @@
       "verify": "npm run format:check",
       "state": "passing",
       "evidence": {
-        "commit": "8f073a2ab20676c779bd349299c30f2dbbf2dd27",
+        "commit": "5366c91fa01c1f7d341cd84d08f07f97f79cdf94",
         "dirty": false,
-        "at": "2026-10-15T22:13:25Z",
+        "at": "2026-10-15T22:38:34Z",
         "exit_code": 0,
-        "seal": "gphhenplbpicmdpo"
+        "seal": "fldggohfjeabpnmi"
       }
     },
     {
@@ -48,11 +48,11 @@
       "state": "passing",
       "source": "harness-history analysis 2026-10-15, item 3: untrusted import fixed four times across three gate passes",
       "evidence": {
-        "commit": "8f073a2ab20676c779bd349299c30f2dbbf2dd27",
+        "commit": "5366c91fa01c1f7d341cd84d08f07f97f79cdf94",
         "dirty": false,
-        "at": "2026-10-15T22:13:26Z",
+        "at": "2026-10-15T22:38:34Z",
         "exit_code": 0,
-        "seal": "aihajhgjlododldk"
+        "seal": "oekhfifljlaabhbe"
       }
     },
     {
@@ -62,11 +62,11 @@
       "state": "passing",
       "source": "harness-history analysis item 2: pass 6 W13 found about 21 review ids in comments and only noted them",
       "evidence": {
-        "commit": "8f073a2ab20676c779bd349299c30f2dbbf2dd27",
+        "commit": "5366c91fa01c1f7d341cd84d08f07f97f79cdf94",
         "dirty": false,
-        "at": "2026-10-15T22:13:26Z",
+        "at": "2026-10-15T22:38:35Z",
         "exit_code": 0,
-        "seal": "jhogdklmicdmpiha"
+        "seal": "jblgjhnnoknknoog"
       }
     },
     {
@@ -76,11 +76,11 @@
       "state": "passing",
       "source": "harness-history analysis item 11: shell-written text corrupted twice in JSCC, same class noted in nonogram retro",
       "evidence": {
-        "commit": "8f073a2ab20676c779bd349299c30f2dbbf2dd27",
+        "commit": "5366c91fa01c1f7d341cd84d08f07f97f79cdf94",
         "dirty": false,
-        "at": "2026-10-15T22:13:26Z",
+        "at": "2026-10-15T22:38:35Z",
         "exit_code": 0,
-        "seal": "imkjjdgbhcaeanei"
+        "seal": "ghdbafdkakkaeapb"
       }
     },
     {
@@ -104,11 +104,11 @@
       "state": "passing",
       "source": "harness follow-up 2026-10-15: light type checking in the pre-push hook and CI",
       "evidence": {
-        "commit": "7eea00538cf4c72214fcca5da2b29861a0bead01",
-        "dirty": true,
-        "at": "2026-10-15T22:38:02Z",
+        "commit": "5366c91fa01c1f7d341cd84d08f07f97f79cdf94",
+        "dirty": false,
+        "at": "2026-10-15T22:38:37Z",
         "exit_code": 0,
-        "seal": "kplpflepcjjmhkho"
+        "seal": "fanhmjfalkdcfajd"
       }
     },
     {
@@ -118,11 +118,11 @@
       "state": "passing",
       "source": "harness follow-up 2026-10-15: UX checks were manual-only and not in CI",
       "evidence": {
-        "commit": "0301beb797aa8b612fb5e15baa836fe53e8a3590",
-        "dirty": true,
-        "at": "2026-10-15T22:38:31Z",
+        "commit": "5366c91fa01c1f7d341cd84d08f07f97f79cdf94",
+        "dirty": false,
+        "at": "2026-10-15T22:38:44Z",
         "exit_code": 0,
-        "seal": "hbjkkhcmjahgebia"
+        "seal": "jckckbhhhdigbpcn"
       }
     }
   ]

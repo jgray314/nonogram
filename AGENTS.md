@@ -5,7 +5,7 @@ Browser nonogram maker and player: turns an image into a fair puzzle, then plays
 ## Run and verify
 
 - Serve: `python -m http.server 8123` from this folder, then open http://127.0.0.1:8123/ (use 127.0.0.1, not localhost).
-- Full check, same as CI: `npm test && npm run lint && npm run format:check && npm run typecheck` (about 3 seconds).
+- Full check, same as CI: `npm test && npm run lint && npm run format:check && npm run typecheck` (about 5 seconds).
 - Area suites, run after changes in those areas, not in CI: `npm run test:solver_slow` (about 10s), `npm run test:difficulty_very_slow` (about a minute).
 - UX checks: `npm run test:ux` (headless Chrome, runs in CI and pre-push), or open `/ux-checks.html` on the running server to watch them.
 - Setup on a fresh clone: `npm ci`, then `git config core.hooksPath .githooks` (once; enables the commit-msg and pre-push hooks).

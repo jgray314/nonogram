@@ -463,39 +463,33 @@ v1 lane rules apply.
 
 Each item has a trigger. Items marked **kill** are recorded only so they aren't re-raised.
 
-**Color mode (all deferred to the trigger "color mode starts"):**
-- Left-clear removes any filled color, not just the start cell's color (`play-state.js`). Decide the rule when color lands.
-- `makeSet` shares one palette array across tiles, and `tileFlags` treats any non-zero cell as filled. Fine for monochrome.
-- `toWebpbn` throws when a palette needs more than about 60 distinct characters.
-- The difficulty personas (D22) read run lengths only, so they'd mis-rate a color puzzle. Give them color-aware line techniques.
+**Color mode (re-sorted at gate pass 6, 2026-10-14, once color research started):**
+- Left-clear rule and color-aware personas are now owner decisions 8 and 5 in `docs/color-research.md`, settled before the color build plan.
+- `makeSet` shares one palette array across tiles, and `tileFlags` treats any non-zero cell as filled. Fine for monochrome. Trigger: the color build plan.
+- **Kill:** `toWebpbn` throwing past about 60 distinct characters. Unreachable: `MAX_PALETTE` is 30 and the export has 61 fallback characters.
 
 **Trust (gate pass 2, L1):**
-- **Done on branch public-prep.** Hearts, mistake marks and hints trusted an imported puzzle's `verdict`, so a hand-edited verdict could switch hearts on for a puzzle with several solutions. Library backup import and Import save now discard the verdict and re-solve each written puzzle with the solver worker (`rateImports`, `ratePlan`; the client is `src/solver-client.js`).
+- **Done (merged `a9ff17f`).** Hearts, mistake marks and hints trusted an imported puzzle's `verdict`, so a hand-edited verdict could switch hearts on for a puzzle with several solutions. Library backup import and Import save now discard the verdict and re-solve each written puzzle with the solver worker (`rateImports`, `ratePlan`; the client is `src/solver-client.js`).
 
 **Solver:**
 - Search always guesses the first unresolved cell. Revisit if a real 25x25 puzzle you make hits `unknown`.
 - `solve` doesn't validate that clue counts match the dimensions. Callers always derive clues from a grid. Revisit if clues ever arrive from imports.
 
-**Creator and player feel (revisit after you've played about 5 puzzles):**
-- In the editor, clues update on stroke release, not during the drag.
-- There's no way back to the source image after pressing "Blank grid".
-- Opening an already-solved puzzle replays the solve glow once. (The picture reveal itself doesn't replay; checked by `play-solve-reveal`.)
-- Below a 16px cell the play grid scrolls rather than shrinking (20f fits 16 to 32px). Desktop is the target (D4).
+**Creator and player feel:**
+- **Kill (gate pass 6):** clues updating on stroke release, no way back to the source after "Clear to blank", the solve glow replaying on reopen, the play grid scrolling below 16px, and gate pass 1 L11's elapsed time on close and leave-Create warning. Their trigger was "after about 5 puzzles played"; three hands-on rounds later, none came up.
 - A set 4 tiles wide (4 x 96px) is wider than a phone screen in the library, whether finished or not (noticed 2026-10-11, D24). Trigger: you play sets on the phone.
 - D24's finished-set view is covered by unit tests on `tileFace` and `setProgress`, not by a UX check. Trigger: the set view changes again.
 
 **Trust (gate pass 3, L2), accepted for a personal tool:**
-- **Done on branch public-prep.** `validatePuzzle` lets unknown extra keys through, and the store kept them. Both import paths now apply `pickKnown`, which keeps only `PUZZLE_KEYS`, `SAVE_KEYS` and `SET_KEYS`. `validatePuzzle` itself is unchanged, so stored records still load.
-- **Done on branch public-prep.** The `art` bound counted characters, not decoded pixels. `jpegSize` (in `format.js`) now reads the JPEG frame header, and imports drop `art` that isn't a parseable JPEG or has a side over `MAX_ART_SIDE` (320). The puzzle stays, without its picture reveal.
+- **Done (merged `a9ff17f`).** `validatePuzzle` lets unknown extra keys through, and the store kept them. Both import paths now apply `pickKnown`, which keeps only `PUZZLE_KEYS`, `SAVE_KEYS` and `SET_KEYS`. `validatePuzzle` itself is unchanged, so stored records still load.
+- **Done (merged `a9ff17f`).** The `art` bound counted characters, not decoded pixels. `jpegSize` (in `format.js`) now reads the JPEG frame header, and imports drop `art` that isn't a parseable JPEG or has a side over `MAX_ART_SIDE` (320). The puzzle stays, without its picture reveal.
 - A 4x4 tile set can store 16 art strings, about 3.2M characters at worst, near the storage quota. Typical art is a few KB, and a failed save rolls back the whole set. Trigger: a quota error on save.
 
 **Owner's hands-on testing, 2026-10-08:** reset, hearts, per-number clues, print key hidden, and crossing empty lines at the start shipped as v1.1 (steps 14a to 17). Print preview itself worked as planned, so step 13's print check is done.
 
 **Kill (harmless):**
 - With reduced motion on, a stray `nng-pop` class can stay on a cell. The animation is off, so nothing shows.
-
-**Unreproduced:**
-- One stray filled row appeared during a browser session after a viewport resize. It wasn't reproducible from a fresh load. Watch for it in real play, and if it recurs, capture the steps.
+- (Gate pass 6) One stray filled row seen once after a viewport resize on 2026-10-08. Never reproduced, and it didn't recur in three hands-on rounds.
 
 ## Limits of plan-only review
 

@@ -81,22 +81,22 @@
 | M4 | **Fixed** `bc3d580`. `rollbackTargets` spares records that existed before the save (test red, then green). |
 | L5 | **Fixed** `a38a332`. Export reports how many corrupt records were left out. |
 | L6 | **Fixed** `bc3d580`. A bad escape falls back to the library route. |
-| L7 | **Deferred.** Trigger: any error report from navigating during an import, or the next time those handlers are touched. Fix shape: a per-mount generation token, checked after each await. Real but needs a mid-read navigation, and the worst case is a console error or a leaked listener, not data loss. |
+| L7 | **Deferred.** Trigger: any error report from navigating during an import, or the next time those handlers are touched. Fix shape: a per-mount generation token, checked after each await. Real but needs a mid-read navigation, and the worst case is a console error or a leaked listener, not data loss. **Gate pass 6:** the trigger fired (public-prep added a solver await to both handlers); fixed, see pass 6. |
 | L8 | **Fixed** `bc3d580`. Control characters are dropped before escaping (test added). |
 | L9 | **Noted only.** It matches how auto-cross works in other games: it reasons from the clues, not the answer. Auto-cross is off by default, and Check exists for this. |
 | L10 | Bitmask part **fixed** by the palette cap in `6fca7ac`. 25x25 timing at the real budget is **fixed** in `efecb74` (nine seeded noise grids at `DEFAULT_BUDGET`, each under 1s). Structured worst cases stay under the "Limits" table item until real 25x25 puzzles exist. |
-| L11 | `e.key` **fixed** in `6fca7ac`. The rest are **noted only**, since they're minor UX for a single-user tool. Elapsed-time-on-close and leave-Create-warning join the backlog's "after about 5 puzzles played" trigger. |
-| Weak tests | Smoke test **deleted**. Three tests **renamed** to say what they assert (`efecb74`). Noise timing **replaced** with a real-budget test. The Otsu tie pin and the create stale-race test are **deferred**: the race is guarded in code (verified clean above), and testing it needs DOM wiring this repo doesn't unit-test. |
+| L11 | `e.key` **fixed** in `6fca7ac`. The rest are **noted only**, since they're minor UX for a single-user tool. Elapsed-time-on-close and leave-Create-warning join the backlog's "after about 5 puzzles played" trigger. **Gate pass 6:** killed with that group (no hands-on round raised them). |
+| Weak tests | Smoke test **deleted**. Three tests **renamed** to say what they assert (`efecb74`). Noise timing **replaced** with a real-budget test. The Otsu tie pin and the create stale-race test are **deferred**: the race is guarded in code (verified clean above), and testing it needs DOM wiring this repo doesn't unit-test. **Gate pass 6:** Otsu tie pin fixed; stale-race test killed (guarded in code, no DOM harness). |
 | W1 | **Fixed** `efecb74`. README added with what it is, how to run it, the routes, dev commands and doc pointers. |
-| W2 | **Partly fixed.** The status line is now an as-built summary. Moving the lane machinery to an appendix is **deferred** until the next plan edit. It's an accurate record of how this was built, just long. |
+| W2 | **Partly fixed.** The status line is now an as-built summary. Moving the lane machinery to an appendix is **deferred** until the next plan edit. It's an accurate record of how this was built, just long. **Gate pass 6:** killed; skipped at every plan edit since, and the as-built record is accurate. |
 | W3 | **Fixed** `bc3d580`. Demo route removed. Samples cover the use. |
 | W4 | **Fixed** `efecb74` (the backlog committed). |
 | W5 | **Fixed** `6fca7ac`. Q6 and step 10 now state the as-built rule. |
 | W6 | **Rejected.** The owner's standing rule is no AI co-author trailer in their personal repos, and the commit hook enforces it. The session's default convention doesn't override the owner's instruction. |
 | W7 | **Fixed** `6fca7ac` (no hard-coded count) and `efecb74` (the test now matches its description). |
-| W8 | **Deferred** with W2, to the next plan edit. |
+| W8 | **Deferred** with W2, to the next plan edit. **Gate pass 6:** killed with W2. |
 | W9 to W11 | **Fixed** `efecb74`. |
-| W12 | **Deferred.** Trigger: the next change touching two or more views. Extract `src/views/dom.js`, a shared download helper, and one CSS-loading convention then. Duplication beats premature reuse until a change has to touch all copies. |
+| W12 | **Deferred.** Trigger: the next change touching two or more views. Extract `src/views/dom.js`, a shared download helper, and one CSS-loading convention then. Duplication beats premature reuse until a change has to touch all copies. **Gate pass 6:** the trigger fired with public-prep, which didn't touch the duplicated pieces. Re-deferred to the color UI build (create, play and grid). |
 | W13 | **Noted only.** Most are test seams. Un-exporting would force tests through views. |
 | W14 | **Fixed** `6fca7ac`. |
 | W15 | Plan-review doc: **kept**, and the README now points to it. Worktrees: **pending the owner**. They're merged and safe to remove, but deleting needs the owner's OK. |
@@ -142,7 +142,7 @@
 - **Draft 6 and D** (Sonnet enough; Opus orchestrates): *noted only.* This matched the expectation and is already the standing rule in the owner's notes on subagent models.
 - **B** (parallelization worked, at a planning cost): *noted only.* The planning iterations on dependencies are the price, and no cheaper method is in view.
 - **Draft 7 and E** (shell mangling): *applied.* JSCC had the same class of bug: PowerShell text steps without a UTF-8 flag caused mojibake twice, and PowerShell 5.1 redirects write UTF-16. Added a general rule to the owner's coding preferences and cross-session notes: file content goes through the file editor, and any shell text step sets its encoding explicitly.
-- **F** (how it extends and ages): *deferred.* Trigger: the first change after v1, whether color mode or a backlog item. Check then whether the frozen contracts and tests made the change easy or got in the way.
+- **F** (how it extends and ages): *deferred.* Trigger: the first change after v1, whether color mode or a backlog item. Check then whether the frozen contracts and tests made the change easy or got in the way. **Gate pass 6:** killed. It was never answered, and five passes of retrospectives have since covered how changes landed.
 
 # Pass 2: slim gate on v1.1, 2026-10-08
 
@@ -253,7 +253,7 @@ Owner's calls: "H1: start timer with first click", "rest clean up per your recom
 | W4 | **Fixed** (`19f4c00`). The seed adds a puzzle with art; new check `play-solve-reveal` (fade on a fresh solve, strip after it, no fade on reopening). |
 | W5, W6, W8 | **Fixed.** PLAN status, the reversed v1 line, lanes table, backlog; test renames; comments. |
 | W10 | **Noted only.** Not worth rewriting history. Next lane prompts give one subject style: `v<version> <step> (<lane>): ...`. |
-| W11 | **Fixed** on branch public-prep. The three review docs moved to `docs/reviews/` and the links were updated. `ux-checks.html` stays at the root, since it loads from the server root. |
+| W11 | **Fixed** (merged `a9ff17f`). The three review docs moved to `docs/reviews/` and the links were updated. `ux-checks.html` stays at the root, since it loads from the server root. |
 | D19 | **Done** (owner's request mid-pass). Auto-cross on by default, with crosses sweeping in along the line. New check `play-auto-cross-sweep`. |
 
 **Close checks (2026-10-09, after v1.3 merged):** 188 Node tests and 40 UX checks pass; lint and format clean. Claim grep: no "never stored", "Check mistakes", "Hints switch" or `createEditHistory` left as a current claim. Memory and the toolkit entry updated. **Pass closed.**

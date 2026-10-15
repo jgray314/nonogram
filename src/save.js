@@ -1,6 +1,6 @@
 // Pure save-file logic: bundle a puzzle with its save, parse and validate one,
 // and decide which store records an import writes. No DOM, never throws.
-import { validatePuzzle, validateSave } from './format.js';
+import { validatePuzzle, validateSave, pickKnown } from './format.js';
 
 const KIND = 'nng-save';
 const fail = (error) => ({ ok: false, puzzle: null, save: null, error });
@@ -28,7 +28,12 @@ export function parseSaveFile(text) {
     const s = validateSave(data.save, data.puzzle);
     if (!s.ok) return fail(`save: ${s.error}`);
     if (data.save.puzzleId !== data.puzzle.id) return fail('save belongs to a different puzzle');
-    return { ok: true, puzzle: data.puzzle, save: data.save, error: null };
+    return {
+      ok: true,
+      puzzle: pickKnown('puzzle', data.puzzle),
+      save: pickKnown('save', data.save),
+      error: null,
+    };
   } catch (e) {
     return fail(`unexpected error: ${e && e.message}`);
   }

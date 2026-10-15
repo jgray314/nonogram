@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildBackup, parseBackup, planImport } from '../src/backup.js';
+import { puzzleId, idMatches } from '../src/format.js';
 
 const puzzle = (id, extra = {}) => ({
   v: 1,
@@ -119,4 +120,19 @@ test('parseBackup never throws on bad input', () => {
   const missing = parseBackup('{"kind":"nng-backup","v":1}');
   assert.equal(missing.ok, true);
   assert.deepEqual(missing.puzzles, []);
+});
+
+test('backup import drops unknown keys', async () => {
+  const p = puzzle('');
+  p.id = await puzzleId(p);
+  const text = buildBackup({
+    puzzles: [{ ...p, junk: 1 }],
+    saves: [{ ...save(p.id), note: 'x' }],
+    sets: [{ ...set, extra: true }],
+  });
+  const parsed = parseBackup(text);
+  assert.deepEqual(parsed.puzzles, [p]);
+  assert.deepEqual(parsed.saves, [save(p.id)]);
+  assert.deepEqual(parsed.sets, [set]);
+  assert.equal(await idMatches(parsed.puzzles[0]), true);
 });

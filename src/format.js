@@ -30,6 +30,34 @@ const isInt = (x) => Number.isInteger(x);
 const fail = (error) => ({ ok: false, error });
 const OK = { ok: true };
 
+// The fields each record kind has. Imports keep only these (gate pass 3, L2), so
+// a hand-edited file cannot carry extra data into the library. `set`, `art`,
+// `hearts` and `hints` are optional and stay absent when the record lacks them.
+export const PUZZLE_KEYS = [
+  'v',
+  'id',
+  'title',
+  'width',
+  'height',
+  'palette',
+  'solution',
+  'verdict',
+  'set',
+  'art',
+];
+export const SAVE_KEYS = ['puzzleId', 'cells', 'elapsedMs', 'rules', 'solvedAt', 'hearts', 'hints'];
+export const SET_KEYS = ['v', 'setId', 'title', 'rows', 'cols', 'tileIds'];
+const KEYS = { puzzle: PUZZLE_KEYS, save: SAVE_KEYS, set: SET_KEYS };
+
+/** Shallow copy of `record` with only the known keys of `kind` ('puzzle', 'save' or 'set'). */
+export function pickKnown(kind, record) {
+  const out = {};
+  for (const key of KEYS[kind]) {
+    if (Object.hasOwn(record, key)) out[key] = record[key];
+  }
+  return out;
+}
+
 /** Canonical JSON with a fixed key order, independent of insertion order. */
 function canonical(puzzle) {
   const obj = {

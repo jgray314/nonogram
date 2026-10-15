@@ -94,3 +94,12 @@ test('import adds missing puzzle', () => {
     ['save'],
   );
 });
+
+test('save file import drops unknown keys', () => {
+  const out = parseSaveFile(
+    serializeSaveFile({ ...puzzle, junk: 1 }, { ...save, note: 'x', hearts: 2 }),
+  );
+  assert.equal(out.ok, true);
+  assert.deepEqual(out.puzzle, puzzle);
+  assert.deepEqual(out.save, { ...save, hearts: 2 });
+});

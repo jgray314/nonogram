@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   puzzleId,
   idMatches,
+  pickKnown,
   validatePuzzle,
   validateSave,
   validateSet,
@@ -381,4 +382,25 @@ test('non-boolean zen rejected', () => {
   for (const zen of [1, 'true', null]) {
     assert.equal(validateSave(makeSave({ rules: { zen } }), makePuzzle()).ok, false, String(zen));
   }
+});
+
+test('pickKnown drops unknown keys', () => {
+  const p = makePuzzle({ extra: 'x' });
+  assert.deepEqual(pickKnown('puzzle', p), makePuzzle());
+  assert.deepEqual(pickKnown('save', { ...makeSave(), note: 'hi' }), makeSave());
+  const set = { v: 1, setId: 's', title: 'S', rows: 1, cols: 1, tileIds: ['a'] };
+  assert.deepEqual(pickKnown('set', { ...set, junk: [1] }), set);
+});
+
+test('pickKnown keeps optional keys that are present', () => {
+  const full = makePuzzle({
+    set: { id: 's', row: 0, col: 1 },
+    art: `${ART_PREFIX}AAAA`,
+  });
+  assert.deepEqual(pickKnown('puzzle', full), full);
+  assert.equal('set' in pickKnown('puzzle', makePuzzle()), false);
+  assert.equal('art' in pickKnown('puzzle', makePuzzle()), false);
+  const save = makeSave({ hearts: 2, hints: 1 });
+  assert.deepEqual(pickKnown('save', save), save);
+  assert.equal('hearts' in pickKnown('save', makeSave()), false);
 });

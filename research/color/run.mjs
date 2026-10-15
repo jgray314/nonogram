@@ -1,11 +1,13 @@
 // Color layering experiment. Usage:
 //   node research/color/run.mjs [imageDir] [--detail] [--sizes=10,15,20] [--no-synthetic] [--preview]
-// Default image dir is sample-images/. PNG only (8-bit, non-interlaced).
+// Default image dir is sample-images/. PNG only (8-bit, non-interlaced). Colors are read
+// as sRGB; an embedded color profile is ignored with a warning. With --preview, sheets go
+// to research/color/out/ as <group>-<image>-<size>.png.
 // Own images: put PNGs in research/color/photos/ (gitignored); they are picked
 // up automatically as the "photos" group. An explicit imageDir is the "user" group.
 // Imports the real clue and solver code from src/; everything else is local.
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { puzzleClues } from '../../src/clues.js';
 import { solve } from '../../src/solver.js';
@@ -44,12 +46,17 @@ const started = Date.now();
 // ---- load images --------------------------------------------------------
 
 const images = []; // {name, group, width, height, rgba}
+const loadedDirs = new Set();
 function loadDir(dir, group) {
-  if (!existsSync(dir)) return;
+  // A folder passed as the image folder that is also the photos folder loads once.
+  const key = resolve(dir).toLowerCase();
+  if (!existsSync(dir) || loadedDirs.has(key)) return;
+  loadedDirs.add(key);
   for (const file of readdirSync(dir).sort()) {
     if (!file.toLowerCase().endsWith('.png')) continue;
     try {
-      const img = decodePng(readFileSync(join(dir, file)));
+      const { warnings, ...img } = decodePng(readFileSync(join(dir, file)));
+      for (const w of warnings) console.log(`warning ${file}: ${w}`);
       images.push({ name: file.replace(/\.png$/i, ''), group, ...img });
     } catch (e) {
       console.log(`skipped ${file}: ${e.message}`);
@@ -72,6 +79,19 @@ if (!flag('--no-synthetic')) {
 const flat = (grid) => grid.flat();
 const shownFrom = (grid, palette) =>
   grid.map((row) => row.map((v) => (v === 0 ? WHITE : palette[v])));
+
+/** Shown colors for a 0/1 grid: each side drawn in the mean source color of its cells. */
+function meanShown(grid, cells) {
+  const sums = [0, 1].map(() => ({ rgb: [0, 0, 0], n: 0 }));
+  grid.forEach((row, r) =>
+    row.forEach((v, c) => {
+      sums[v].n++;
+      cells[r][c].forEach((x, d) => (sums[v].rgb[d] += x));
+    }),
+  );
+  const color = sums.map((s) => (s.n ? s.rgb.map((x) => x / s.n) : WHITE));
+  return grid.map((row) => row.map((v) => color[v]));
+}
 
 /** Quantize cells to a palette. variant: w = white blank only; a = plus black as an ink; b = white and black both blank. */
 function quantize(cells, variant, k) {
@@ -115,6 +135,11 @@ function buildApproaches(img, n) {
 
   const mono = binarize(lum, otsu(lum.flat()));
   out['A mono'] = { layers: [mono], shown: shownFrom(mono, [null, BLACK]) };
+
+  // Same puzzle as A mono, drawn in the mean source color of its inked cells
+  // and the mean of its blank cells (white if a side is empty). A fair
+  // baseline for dE: pure black on white favors any approach that has a hue.
+  out['A mono-mean'] = { layers: [mono], shown: meanShown(mono, cells) };
 
   const dith = ditherFS(lum);
   out['F dither'] = { layers: [dith], shown: shownFrom(dith, [null, BLACK]) };
@@ -171,9 +196,28 @@ function layerStats(grid) {
   };
 }
 
+// A blank or all-filled grid is trivially "unique-line-solvable", so counting
+// it as fair would reward a puzzle with no picture. Two rules guard against it:
+// - A layer is trivial when every cell has the same value (all blank, or all
+//   one ink). Trivial layers are left out of every layer count.
+// - A puzzle is degenerate when it has no non-trivial layer, or when the cells
+//   inked in any layer cover less than MIN_INK of the grid, or all of it.
+// Degenerate puzzles are counted in their own column and left out of the
+// fair, line, layer-fair, clues, max/line and sweeps figures.
+const MIN_INK = 0.05;
+const isTrivial = (grid) => {
+  const [first, ...rest] = flat(grid);
+  return rest.every((v) => v === first);
+};
+
 function evaluate(build, cells) {
-  const layers = build.layers.map(layerStats);
-  const fairLayers = layers.filter((l) => l.status.startsWith('unique')).length;
+  const layers = build.layers.map((g) => ({ ...layerStats(g), trivial: isTrivial(g) }));
+  const real = layers.filter((l) => !l.trivial);
+  const total = cells.length * cells[0].length;
+  const flats = build.layers.map(flat);
+  const inked = flats.length ? flats[0].filter((_, i) => flats.some((f) => f[i] !== 0)).length : 0;
+  const share = inked / total;
+  const degenerate = real.length === 0 || share < MIN_INK || share === 1;
   const lab = (p) => rgbToLab(p);
   let sum = 0;
   cells.forEach((row, r) =>
@@ -183,20 +227,24 @@ function evaluate(build, cells) {
   );
   return {
     layers,
-    allFair: layers.every((l) => l.status.startsWith('unique')),
-    allLine: layers.every((l) => l.status === 'unique-line-solvable'),
-    layerFair: layers.length ? fairLayers / layers.length : 1,
+    degenerate,
+    inkShare: share,
+    allFair: !degenerate && real.every((l) => l.status.startsWith('unique')),
+    unknown: !degenerate && real.some((l) => l.status === 'unknown'),
+    allLine: !degenerate && real.every((l) => l.status === 'unique-line-solvable'),
+    nReal: real.length,
+    fairLayers: real.filter((l) => l.status.startsWith('unique')).length,
     clues: layers.reduce((s, l) => s + l.clues, 0),
     maxLine: Math.max(0, ...layers.map((l) => l.maxLine)),
     sweeps: layers.reduce((s, l) => s + l.sweeps, 0),
-    dE: sum / (cells.length * cells[0].length),
+    dE: sum / total,
   };
 }
 
 // results[group][approach][n] = [per-image metrics]
 const SHEET = ['A mono', 'F dither', 'E gray4', 'B1 k3w', 'B1 k4a', 'C rgb3'];
 /** Source and several finished puzzles side by side, one PNG per image. */
-function writeSheet(name, n, cells, out) {
+function writeSheet(group, name, n, cells, out) {
   const px = 10;
   const gap = 12;
   const panels = [cells, ...SHEET.map((k) => out[k].shown)];
@@ -219,7 +267,8 @@ function writeSheet(name, n, cells, out) {
   });
   const dir = join(ROOT, 'research', 'color', 'out');
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, `${name}-${n}.png`), encodePng(W, H, rgb));
+  const safe = `${group}-${name}`.replace(/[^\w.-]+/g, '_');
+  writeFileSync(join(dir, `${safe}-${n}.png`), encodePng(W, H, rgb));
 }
 
 const results = {};
@@ -230,14 +279,21 @@ for (const img of images) {
       const m = evaluate(build, cells);
       (((results[img.group] ??= {})[approach] ??= {})[n] ??= []).push({ image: img.name, ...m });
     }
-    if (preview && n === sizes[sizes.length - 1]) writeSheet(img.name, n, cells, out);
+    if (preview && n === sizes[sizes.length - 1]) writeSheet(img.group, img.name, n, cells, out);
   }
 }
 
 // ---- output -------------------------------------------------------------
 
 const mean = (xs) => xs.reduce((a, b) => a + b, 0) / xs.length;
-const pct = (xs, key) => `${Math.round(100 * mean(xs.map((x) => (x[key] ? 1 : 0))))}`;
+const live = (xs) => xs.filter((x) => !x.degenerate); // non-degenerate puzzles
+/** "n/d (p%)", or "-" when d is 0. */
+const frac = (n, d) => (d ? `${n}/${d} (${Math.round((100 * n) / d)}%)` : '-');
+const share = (xs, key) => frac(live(xs).filter((x) => x[key]).length, live(xs).length);
+const meanLive = (xs, key, d = 1) => {
+  const ok = live(xs);
+  return ok.length ? fix(mean(ok.map((x) => x[key])), d) : '-';
+};
 const fix = (v, d = 1) => v.toFixed(d);
 
 console.log(`# Color layering experiment`);
@@ -249,20 +305,31 @@ console.log(
     )}); grid sizes ${sizes.join(', ')}; solver budget ${BUDGET} nodes; k-means seed ${SEED}`,
 );
 console.log(`
-Approach keys. A mono: luminance + Otsu (current). F dither: Floyd-Steinberg on cell luminance.
+Approach keys. A mono: luminance + Otsu (current), drawn black on white. A mono-mean: the same puzzle
+drawn in the mean source color of its inked cells and of its blank cells (a fair dE baseline).
+F dither: Floyd-Steinberg on cell luminance.
 B1 kNx: one color puzzle, white blank + N colors. D kNx: same palette, one 0/1 layer per color.
 C rgb3: Otsu threshold per R, G, B channel, 3 layers, an inked cell removes that channel.
 E grayN: white blank + (N-1) gray shades, one color puzzle.
 Suffix x: w = white is the only anchor (black is just a candidate color); a = black is an extra
 always-present ink outside the N chosen colors (N+1 inks); b = white and black are both blank in
 every layer (N inks; black cells are lost and show as white).
-fair = unique solution (line-solvable or needs guessing). line = unique and line-solvable.
-For layer stacks, fair/line mean every layer passes. layers = non-empty layers (mean over images).
+Counts are shown as n/d (p%). d is the number of non-degenerate puzzles; - means d is 0.
+fair = a unique solution was found (line-solvable or needs guessing). line = unique and line-solvable.
+For layer stacks, fair/line mean every non-trivial layer passes. layerfair = fair non-trivial layers
+over all non-trivial layers of the non-degenerate puzzles. layers = non-trivial layers (mean over images).
+unk = non-degenerate puzzles where the solver budget ran out on some layer. They are not counted
+as fair, so the budget leans against an approach by at most this many puzzles.
+A layer is trivial when every cell has the same value (all blank or all one ink). A puzzle is
+degenerate (deg, a count) when it has no non-trivial layer, or its inked cells (any layer) cover
+under ${MIN_INK * 100}% of the grid or all of it. Degenerate puzzles are left out of fair, line, layerfair,
+unk, clues, max/line and sweeps. dE counts every puzzle.
 dE = mean CIE76 delta E between each cell's source color and the color the finished puzzle shows.
 `);
 
 const approachOrder = [
   'A mono',
+  'A mono-mean',
   'F dither',
   ...VARIANTS.flatMap((v) => KS.map((k) => `B1 k${k}${v}`)),
   'C rgb3',
@@ -278,9 +345,11 @@ for (const [group, byApproach] of Object.entries(results)) {
   const head = [
     'approach',
     'layers',
-    ...sizes.map((n) => `fair% ${n}`),
-    ...sizes.map((n) => `line% ${n}`),
-    ...sizes.map((n) => `layerfair% ${n}`),
+    ...sizes.map((n) => `fair ${n}`),
+    ...sizes.map((n) => `line ${n}`),
+    ...sizes.map((n) => `layerfair ${n}`),
+    ...sizes.map((n) => `unk ${n}`),
+    ...sizes.map((n) => `deg ${n}`),
     ...sizes.map((n) => `dE ${n}`),
     `clues ${mid}`,
     `max/line ${mid}`,
@@ -290,17 +359,25 @@ for (const [group, byApproach] of Object.entries(results)) {
   console.log(`|${head.map((_, i) => (i === 0 ? '---' : '---:')).join('|')}|`);
   for (const approach of approachOrder) {
     const per = byApproach[approach];
-    const layers = mean(sizes.flatMap((n) => per[n].map((x) => x.layers.length)));
+    const layers = mean(sizes.flatMap((n) => per[n].map((x) => x.nReal)));
     const row = [
       approach,
       fix(layers),
-      ...sizes.map((n) => pct(per[n], 'allFair')),
-      ...sizes.map((n) => pct(per[n], 'allLine')),
-      ...sizes.map((n) => `${Math.round(100 * mean(per[n].map((x) => x.layerFair)))}`),
+      ...sizes.map((n) => share(per[n], 'allFair')),
+      ...sizes.map((n) => share(per[n], 'allLine')),
+      ...sizes.map((n) => {
+        const ok = live(per[n]);
+        return frac(
+          ok.reduce((t, x) => t + x.fairLayers, 0),
+          ok.reduce((t, x) => t + x.nReal, 0),
+        );
+      }),
+      ...sizes.map((n) => per[n].filter((x) => x.unknown).length),
+      ...sizes.map((n) => per[n].filter((x) => x.degenerate).length),
       ...sizes.map((n) => fix(mean(per[n].map((x) => x.dE)))),
-      fix(mean(per[mid].map((x) => x.clues)), 0),
-      fix(mean(per[mid].map((x) => x.maxLine))),
-      fix(mean(per[mid].map((x) => x.sweeps))),
+      meanLive(per[mid], 'clues', 0),
+      meanLive(per[mid], 'maxLine'),
+      meanLive(per[mid], 'sweeps'),
     ];
     console.log(`| ${row.join(' | ')} |`);
   }
@@ -311,10 +388,11 @@ console.log(
 );
 for (const [group, byApproach] of Object.entries(results)) {
   console.log(`\n### ${group}\n`);
-  console.log('| approach | layers | L | G | M | ? | X |');
-  console.log('|---|---:|---:|---:|---:|---:|---:|');
+  console.log('| approach | layers | L | G | M | ? | X | trivial |');
+  console.log('|---|---:|---:|---:|---:|---:|---:|---:|');
   for (const approach of approachOrder) {
-    const layers = sizes.flatMap((n) => byApproach[approach][n].flatMap((x) => x.layers));
+    const all = sizes.flatMap((n) => byApproach[approach][n].flatMap((x) => x.layers));
+    const layers = all.filter((l) => !l.trivial);
     const count = (st) => layers.filter((l) => l.status === st).length;
     const row = [
       approach,
@@ -322,6 +400,7 @@ for (const [group, byApproach] of Object.entries(results)) {
       ...['unique-line-solvable', 'unique-needs-guessing', 'multiple', 'unknown', 'none'].map(
         count,
       ),
+      all.length - layers.length,
     ];
     console.log(`| ${row.join(' | ')} |`);
   }
@@ -336,16 +415,16 @@ if (detail) {
     none: 'X',
   };
   console.log(
-    `\n## Detail at grid size ${mid} (status per layer: L line-solvable, G needs guessing, M multiple, ? unknown, X none)\n`,
+    `\n## Detail at grid size ${mid} (status per layer: L line-solvable, G needs guessing, M multiple, ? unknown, X none, - trivial layer; ink = share of cells inked; deg = degenerate)\n`,
   );
-  console.log('| group | image | approach | statuses | clues | max/line | dE |');
-  console.log('|---|---|---|---|---:|---:|---:|');
+  console.log('| group | image | approach | statuses | ink% | deg | clues | max/line | dE |');
+  console.log('|---|---|---|---|---:|---|---:|---:|---:|');
   for (const [group, byApproach] of Object.entries(results)) {
     for (const approach of approachOrder) {
       for (const m of byApproach[approach][mid]) {
-        const st = m.layers.map((l) => short[l.status]).join(' ');
+        const st = m.layers.map((l) => (l.trivial ? '-' : short[l.status])).join(' ');
         console.log(
-          `| ${group} | ${m.image} | ${approach} | ${st} | ${m.clues} | ${m.maxLine} | ${fix(m.dE)} |`,
+          `| ${group} | ${m.image} | ${approach} | ${st} | ${Math.round(100 * m.inkShare)} | ${m.degenerate ? 'yes' : 'no'} | ${m.clues} | ${m.maxLine} | ${fix(m.dE)} |`,
         );
       }
     }

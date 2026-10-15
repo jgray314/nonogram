@@ -470,7 +470,7 @@ Each item has a trigger. Items marked **kill** are recorded only so they aren't 
 - The difficulty personas (D22) read run lengths only, so they'd mis-rate a color puzzle. Give them color-aware line techniques.
 
 **Trust (gate pass 2, L1):**
-- Hearts, mistake marks and hints trust an imported puzzle's `verdict`. A hand-edited verdict could switch hearts on for a puzzle with several solutions. Accepted for a personal tool. Trigger: sharing puzzles with other people; then re-solve on import.
+- **Done on branch public-prep.** Hearts, mistake marks and hints trusted an imported puzzle's `verdict`, so a hand-edited verdict could switch hearts on for a puzzle with several solutions. Library backup import and Import save now discard the verdict and re-solve each written puzzle with the solver worker (`rateImports`, `ratePlan`; the client is `src/solver-client.js`).
 
 **Solver:**
 - Search always guesses the first unresolved cell. Revisit if a real 25x25 puzzle you make hits `unknown`.
@@ -485,8 +485,8 @@ Each item has a trigger. Items marked **kill** are recorded only so they aren't 
 - D24's finished-set view is covered by unit tests on `tileFace` and `setProgress`, not by a UX check. Trigger: the set view changes again.
 
 **Trust (gate pass 3, L2), accepted for a personal tool:**
-- `validatePuzzle` lets unknown extra keys through, and the store keeps them. localStorage's quota bounds the size. Trigger: sharing puzzles with other people; then keep only `PUZZLE_KEYS` on import.
-- The `art` bound counts characters, not decoded pixels, so a crafted 200,000-character JPEG could declare a huge size and cost memory when revealed. It can't run script (it is only an `img` source). Same trigger.
+- **Done on branch public-prep.** `validatePuzzle` lets unknown extra keys through, and the store kept them. Both import paths now apply `pickKnown`, which keeps only `PUZZLE_KEYS`, `SAVE_KEYS` and `SET_KEYS`. `validatePuzzle` itself is unchanged, so stored records still load.
+- **Done on branch public-prep.** The `art` bound counted characters, not decoded pixels. `artSize` now reads the JPEG frame header, and imports drop `art` that isn't a parseable JPEG or has a side over `MAX_ART_SIDE` (320). The puzzle stays, without its picture reveal.
 - A 4x4 tile set can store 16 art strings, about 3.2M characters at worst, near the storage quota. Typical art is a few KB, and a failed save rolls back the whole set. Trigger: a quota error on save.
 
 **Owner's hands-on testing, 2026-10-08:** reset, hearts, per-number clues, print key hidden, and crossing empty lines at the start shipped as v1.1 (steps 14a to 17). Print preview itself worked as planned, so step 13's print check is done.

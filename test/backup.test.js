@@ -1,6 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildBackup, parseBackup, planImport, rateImports, ratePlan } from '../src/backup.js';
+import {
+  buildBackup,
+  parseBackup,
+  planImport,
+  rateImports,
+  ratePlan,
+  droppedArtCount,
+} from '../src/backup.js';
 import { ratePuzzleWith } from '../src/solver-client.js';
 import { solveAndRate } from '../src/personas.js';
 import { puzzleId, idMatches, ART_PREFIX } from '../src/format.js';
@@ -224,6 +231,35 @@ test('rateImports and ratePlan report progress once per puzzle', async () => {
     [1, 2],
     [2, 2],
   ]);
+});
+
+test('droppedArtCount counts only puzzles the plan writes', () => {
+  const parsed = parseBackup(
+    buildBackup({
+      puzzles: [
+        puzzle('a', { art: jpegHeader(900, 900) }),
+        puzzle('b', { art: jpegHeader(900, 900) }),
+        puzzle('c'),
+      ],
+    }),
+  );
+  assert.deepEqual(parsed.artDroppedIds, ['a', 'b']);
+  // 'b' already exists in the store, so its picture is not the import's loss.
+  const plan = planImport(parsed, { puzzles: ['b'] });
+  assert.equal(droppedArtCount(plan, parsed.artDroppedIds), 1);
+  assert.equal(droppedArtCount(planImport(parsed, none), parsed.artDroppedIds), 2);
+  assert.equal(droppedArtCount(plan, []), 0);
+});
+
+test('ratePlan rejects when the rater rejects, so the caller has nothing to write', async () => {
+  const plan = [
+    { kind: 'puzzle', record: puzzle('a') },
+    { kind: 'puzzle', record: puzzle('b') },
+  ];
+  const boom = async () => {
+    throw new Error('solver failed');
+  };
+  await assert.rejects(ratePlan(plan, boom), /solver failed/);
 });
 
 test('rateImports keeps every other field', async () => {

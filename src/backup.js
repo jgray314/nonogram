@@ -102,6 +102,15 @@ export function planImport(parsed, existingIds = {}) {
 }
 
 /**
+ * How many puzzles in `plan` lost their picture on import. Counts only puzzles
+ * the plan writes: an existing puzzle keeps its own art (gate pass 6, L13).
+ */
+export function droppedArtCount(plan, artDroppedIds) {
+  const dropped = new Set(artDroppedIds);
+  return plan.filter((w) => w.kind === 'puzzle' && dropped.has(w.record.id)).length;
+}
+
+/**
  * Copies of `puzzles` with each verdict replaced by `await rate(puzzle)`, one at
  * a time. An imported verdict is only a claim: hearts, mistake marks and hints
  * trust it, so imports recompute it with the solver (gate pass 3, L2).

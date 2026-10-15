@@ -97,6 +97,16 @@ test('import adds missing puzzle', () => {
   );
 });
 
+test('importWrites omits the puzzle when the store already has it', () => {
+  const store = createStore(memoryStorage());
+  store.put('puzzle', puzzle);
+  const writes = importWrites(parseSaveFile(serializeSaveFile(puzzle, save)), store);
+  assert.deepEqual(
+    writes.map((w) => w.kind),
+    ['save'],
+  );
+});
+
 test('save file import drops unknown keys', () => {
   const out = parseSaveFile(
     serializeSaveFile({ ...puzzle, junk: 1 }, { ...save, note: 'x', hearts: 2 }),

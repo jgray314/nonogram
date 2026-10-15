@@ -2,7 +2,7 @@
 import { idMatches } from '../format.js';
 import { createStore } from '../store.js';
 import { toWebpbn } from '../webpbn.js';
-import { buildBackup, parseBackup, planImport, ratePlan } from '../backup.js';
+import { buildBackup, parseBackup, planImport, ratePlan, droppedArtCount } from '../backup.js';
 import { createSolverClient, ratePuzzleWith } from '../solver-client.js';
 import { loadSamples } from '../samples.js';
 import { libraryModel, safeFilename, tileSolved, tileFace } from '../library-logic.js';
@@ -180,8 +180,7 @@ async function runImport(file, ui) {
     );
   }
   // Only puzzles this import wrote: an existing puzzle keeps its own art.
-  const dropped = new Set(parsed.artDroppedIds);
-  const n = plan.filter((w) => w.kind === 'puzzle' && dropped.has(w.record.id)).length;
+  const n = droppedArtCount(plan, parsed.artDroppedIds);
   if (n) {
     parts.push(`${n} picture${n === 1 ? '' : 's'} dropped (not a small JPEG)`);
   }

@@ -404,3 +404,70 @@ All quoted corpus numbers were checked against the code that prints them.
 4. **From the record: round 1 changed the mapping, not the personas.** The D22 structure absorbed the feedback with a table edit and one rule. **Noted only:** consistent with the owner's pass 4 read ("a very structured approach to start that can be adapted later").
 
 **Pass closed.**
+
+# Pass 6: slim gate on public prep and color research, 2026-10-14
+
+**Run:** 2026-10-14. **Scope:** `ac0dcdb..88e5fc7`: public-prep (MIT license, review docs moved to `docs/reviews/`, import trust hardening, CI, README) and color-research (hidden `?features=color` flag, `research/color/` experiment, `docs/color-research.md`). Both built by Sonnet lanes in parallel worktrees, then merged by the orchestrator. Run before the owner puts her own photos through the color experiment.
+**Prior runs:** passes 1 to 5 above. Neither reviewer was shown them.
+**Reviewers:** two read-only Explore subagents, cold.
+**Step 0, backlog prune.** Nine stale items, all dispositioned as proposed by the owner (`91c0a69`). The color group was re-sorted (left-clear and personas became decisions in `docs/color-research.md`; the `toWebpbn` limit killed as unreachable). The creator and player feel group, pass 1 L11's leftovers and the stray-row note were killed: their trigger ("about 5 puzzles played") fired and three hands-on rounds raised none of them. W2/W8 (PLAN appendix) and pass 1's retro lesson F were killed. W12 was re-deferred to the color UI build. Two fixed now: pass 1 L7 (its trigger fired when public-prep added a solver await to both import handlers) and the Otsu tie pin.
+
+## Lens 1: Adversarial
+
+No Critical or High.
+
+- **L1 (CONTRADICTS pass 3 L2 "done", Medium).** `pickKnown` is shallow: palette entries, the puzzle's `set` and the save's `rules` still carry unknown keys into storage (probe: a 1,000,000-character key survived both import paths, and `idMatches` still passed). The README's "only known fields are kept" and the PLAN backlog's "Done" overclaim. Root: the lane brief itself said "shallow copy".
+- **L2 (NEW, Medium).** Re-solving imports has no progress, cap or cancel, and the Import buttons stay enabled. One 25x25 noise grid took 4.7s; a crafted file of many could run for an hour.
+- **L3 (REPEAT-OF pass 1 L7, Medium).** Leaving the library mid-import throws on the cleared store and loses the import.
+- **L4 (REPEAT-OF pass 1 L7, Medium).** Leaving Play mid-import clears the next view's save hook and navigates the player back.
+- **L5 (NEW, Medium).** The research script counts empty or near-empty puzzles as fair (a blank 10x10 is `unique-line-solvable`; `[].every` is true for an empty layer stack). Dark photos under reading (b) would score 100%.
+- **L6 (NEW, Low).** Import save drops a picture silently; `artDropped` is computed and tested but unread. Cross-lens with W8.
+- **L7 (NEW, Low).** Duplicate ids inside one backup are solved twice and double-counted.
+- **L8 (NEW, Low).** `MAX_ART_SIDE` (format.js) and `ART_MAX_SIDE` (create-logic.js) can drift; no test ties them.
+- **L9 (NEW, Low).** The solver client is created outside the `try`; a synchronous Worker failure leaves "Checking…" up.
+- **L10 (NEW, Low).** Puzzles imported before this change keep their claimed verdicts; only new imports are re-solved.
+- **L11 (NEW, Low).** Any `?features=` list with no known names clears every flag, not only `none`. Cross-lens with W9.
+- **L12 (NEW, Low).** Research script: preview sheets with the same base name overwrite each other; `research/color/photos` passed as the image folder is counted twice; PNG `tRNS` for color types 0 and 2 and Display-P3 profiles are ignored.
+- **L13 (NEW, Low).** Untested glue: the dropped-picture count, a `ratePlan` rejection writing nothing, and Play re-rating only new puzzles.
+
+**Verified clean:** `jpegSize` on progressive frames, fill bytes, truncated and overlong segments, zero sizes and bad base64, and it stops at the first SOF as libjpeg does; Create's art never exceeds 320, so it is never dropped on re-import; the key lists cover every top-level field the app writes; forged ids are removed before planning, a solver failure aborts before any write, and every re-rated verdict passes `validatePuzzle`; `solver-client.js` is behavior-identical to the old Create code; the router keeps encoded ids intact and the flag param cannot throw; CI permissions, lockfile and Node version; the research script is seeded, writes only under `research/color/out/`, and skips unsupported PNGs with a message.
+
+## Lens 2: Outside-reviewer walkthrough
+
+Every data row in `docs/color-research.md` matches a fresh run of `node research/color/run.mjs` byte for byte.
+
+- **W1 (NEW, High).** README said the slow suite took "about 10s" and was "exhaustive 4x4 solver checks". It took about 60s, almost all in the persona corpus. PLAN claimed an exhaustive 5x5 check that was never built. The fast suite's "under 1s" was 1.2s.
+- **W2 (REPEAT-OF pass 1 W6, High).** Authorship: PLAN says AI agents wrote the code, the README disclosed AI only for samples, and a hook rejects co-author trailers. Pass 1 rejected the trailer as the owner's rule; going public changes the audience.
+- **W3 (NEW, Medium).** The color doc's recommendation says B "matches the photo's colors best" with no photos tested, and "the only approach fair in every run" is not true (gray shades were too; one B variant was not).
+- **W4 (NEW, Medium).** The color-error metric favors B by construction: mono is drawn in pure black, so any hue wins.
+- **W5 (NEW, Medium).** Percentages from n=6 with no counts beside them; budget-limited `unknown` counts as unfair, which leans against the rejected approaches.
+- **W6 (NEW, Medium).** Weak citations: an arXiv paper via a translation mirror, locale-specific links, a 1980 date for median cut (usually cited as 1982), and process notes ("returned 403") in the sources.
+- **W7 (NEW, Medium).** Stale "on branch" wording after the merges.
+- **W8 (NEW, Medium).** Same as L6.
+- **W9 (NEW, Low).** Same as L11, plus the unused `isEnabled` export.
+- **W10 (NEW, Low).** Small accuracy points in the color doc ("byte-identical" output includes the elapsed time; "failed" mixes fair and line-solvable; C equals A on two-color samples without saying why).
+- **W11 (NEW, Low).** Nothing in the README points to `research/` or the color doc.
+- **W12 (NEW, Low).** `difficulty-personas.md` stays at the root after the docs move.
+- **W13 (NEW, Low).** About 21 review ids ("gate pass 3, L2") in source comments.
+- **W14 (NEW, Low).** Commit timestamps bunched within minutes; mixed body wrapping; one message names a function the next commit renames.
+- **W15 (NEW, Low).** No Node or Python version stated; the CI comment implied a pre-commit hook the repo doesn't ship.
+
+## Disposition
+
+Owner, on the findings: "skip medium and lows for now", W1 as below, W2 option (a).
+
+| ID | Disposition |
+|---|---|
+| L3, L4 | **Fixed** `3b265b1` (as pass 1 L7, during this pass's step 0). **Proof, reproduction:** on unfixed `main` in the browser, leaving the library mid-import raised a TypeError and wrote nothing, and leaving Play mid-import dragged the player back; on the fix, neither happens and a normal import still opens the imported puzzle. `addSamples` got the same guard. |
+| W1 | **Fixed** `6b1df67`. Owner: "Persona corpus is an extended test that should not be part of standard CI. Appropriately pare back tests and get suites into target sizes." Three suites: `npm test` (CI, about 0.75s, 224 tests), `test:slow` (solver exhaustive 4x4 plus the 25x25 timing guard, about 11s), `test:extended` (persona corpus, about a minute). **Proof:** all three re-timed after the change; README, PLAN, the personas doc, the corpus test header and the CI comment updated to match (claim grep: no "about 10s" timing claim or 5x5 suite left outside the annotated original plan text). |
+| W2 | **Fixed** `d71134a`. Owner chose (a): one README line on how it was built; the hook stays ("trailers not needed"). |
+| W7 | **Fixed in part** `91c0a69`: PLAN and this doc now cite merge `a9ff17f`. The color doc's line 3 is deferred with the research items. |
+| L1, L2, L6/W8, L7, L8, L9, L11/W9, L13 | **Deferred.** Trigger: before the repo is made public. Until L1 lands, the README's "only known fields are kept" overstates the import check. |
+| L5, W3, W4, W5, W6, W10, L12 | **Deferred.** Trigger: before the photo-run results feed the color build plan. L5 matters most: dark photos can score as fair while nearly blank. Planned as one Sonnet lane over the script and the doc. |
+| W11, W12, W15 | **Deferred.** Trigger: before the repo is made public. |
+| L10 | **Accepted residual.** Only imports made before today, in a personal library, can carry a claimed verdict. |
+| W13, W14 | **Noted only.** Review ids are provenance; the history is accurate. |
+
+**Close checks:**
+- **Tests:** 224 fast, 3 slow and 1 extended pass. Lint and format clean.
+- **Browser:** UX checks 40/40 on both lane branches before the merge; the L7 fix checked before and after on fresh 127.0.0.1 origins.

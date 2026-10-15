@@ -470,4 +470,16 @@ Owner, on the findings: "skip medium and lows for now", W1 as below, W2 option (
 
 **Close checks:**
 - **Tests:** 224 fast, 3 slow and 1 extended pass. Lint and format clean.
-- **Browser:** UX checks 40/40 on both lane branches before the merge; the L7 fix checked before and after on fresh 127.0.0.1 origins.
+- **Browser:** UX checks 40/40 on both lane branches before the merge, and 40/40 on the pass 6 fixes; the L7 fix checked before and after on fresh 127.0.0.1 origins.
+
+## Retrospective
+
+**Owner, 2026-10-14 and 10-15:** "the more fine grade division into sub agents seems faster, but creates a number of smaller more isolated but disjointed feeling PRs." On whether that was the split or the reassembly: "disjointed feeling is both. maybe providing a summary when wrapping up would help but not sure." On color: "color run is interesting because I don't feel like there is a great consistent path there like with 2 tone. plan is to test and what feel is like and see if it can be adjusted from there as a cheep effort." The record-based draft was accepted as written.
+
+1. **The brief made the blind spot (L1).** The public-prep brief said "shallow copy", the lane built that, and the orchestrator marked the trust item Done. **Applied:** PLAN "Briefing rules for the orchestrator" and memory `feedback-lane-briefs`: a narrowed brief names what it leaves out, and the backlog marks done only what was done.
+2. **A backlog trigger fired inside a lane unnoticed (pass 1 L7).** **Applied:** same two places: grep backlog and gate-doc triggers on a lane's files before briefing it.
+3. **Timings are numbers too (W1).** The regenerate-from-code check held for data tables and missed a README timing for two phases. **Applied:** `/gate-review` Lens 2 now says to re-time run-time and size claims.
+4. **Many small lanes are fast but feel disjointed, in both the split and the reassembly.** The orchestrator still made four fixes after the two lanes before merging, and the gate found more. **Trial** (owner unsure it helps): after lanes merge, one combined summary of the round, and fewer, theme-sized lanes. Memory `feedback-round-summary`; revisit at the next gate and drop it if it doesn't help.
+5. **Color has no obvious consistent path the way two-tone did.** The owner's plan is a cheap feel test first, then adjust; the same lesson as pass 5's check 10. **Noted only:** the research items (L5, W3 to W6, W10, L12) stay deferred until the feel test says the photo numbers will drive a build plan.
+
+**Pass closed.**

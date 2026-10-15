@@ -25,3 +25,6 @@ jobs:
       - run: npm test
       - run: npm run lint
       - run: npm run format:check
+      # The feature list is checked here too, so skipping the pre-push hook with
+      # --no-verify cannot hide a hand-edited passing state or a second active feature.
+      - run: python3 scripts/features.py check

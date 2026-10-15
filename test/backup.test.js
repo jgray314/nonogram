@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildBackup, parseBackup, planImport } from '../src/backup.js';
-import { puzzleId, idMatches } from '../src/format.js';
+import { puzzleId, idMatches, ART_PREFIX } from '../src/format.js';
+import { jpegHeader } from './jpeg-fixture.js';
 
 const puzzle = (id, extra = {}) => ({
   v: 1,
@@ -135,4 +136,21 @@ test('backup import drops unknown keys', async () => {
   assert.deepEqual(parsed.saves, [save(p.id)]);
   assert.deepEqual(parsed.sets, [set]);
   assert.equal(await idMatches(parsed.puzzles[0]), true);
+});
+
+test('import drops oversized art and keeps the puzzle', () => {
+  const big = puzzle('a', { art: jpegHeader(321, 10) });
+  const notJpeg = puzzle('b', { art: `${ART_PREFIX}AAAA` });
+  const parsed = parseBackup(buildBackup({ puzzles: [big, notJpeg] }));
+  assert.equal(parsed.puzzles.length, 2);
+  assert.equal(parsed.artDropped, 2);
+  for (const p of parsed.puzzles) assert.equal('art' in p, false);
+  assert.equal(parsed.puzzles[0].title, 'T a');
+});
+
+test('import keeps art within the bound', () => {
+  const art = jpegHeader(320, 240);
+  const parsed = parseBackup(buildBackup({ puzzles: [puzzle('a', { art })] }));
+  assert.equal(parsed.puzzles[0].art, art);
+  assert.equal(parsed.artDropped, 0);
 });

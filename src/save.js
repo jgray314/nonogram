@@ -1,9 +1,9 @@
 // Pure save-file logic: bundle a puzzle with its save, parse and validate one,
 // and decide which store records an import writes. No DOM, never throws.
-import { validatePuzzle, validateSave, pickKnown } from './format.js';
+import { validatePuzzle, validateSave, pickKnown, boundArt } from './format.js';
 
 const KIND = 'nng-save';
-const fail = (error) => ({ ok: false, puzzle: null, save: null, error });
+const fail = (error) => ({ ok: false, puzzle: null, save: null, artDropped: 0, error });
 
 export function serializeSaveFile(puzzle, save) {
   return JSON.stringify({ kind: KIND, v: 1, puzzle, save });
@@ -28,10 +28,12 @@ export function parseSaveFile(text) {
     const s = validateSave(data.save, data.puzzle);
     if (!s.ok) return fail(`save: ${s.error}`);
     if (data.save.puzzleId !== data.puzzle.id) return fail('save belongs to a different puzzle');
+    const bounded = boundArt(pickKnown('puzzle', data.puzzle));
     return {
       ok: true,
-      puzzle: pickKnown('puzzle', data.puzzle),
+      puzzle: bounded.puzzle,
       save: pickKnown('save', data.save),
+      artDropped: bounded.dropped ? 1 : 0,
       error: null,
     };
   } catch (e) {

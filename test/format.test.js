@@ -4,6 +4,8 @@ import {
   puzzleId,
   idMatches,
   pickKnown,
+  artSize,
+  MAX_ART_SIDE,
   validatePuzzle,
   validateSave,
   validateSet,
@@ -16,6 +18,7 @@ import {
   MAX_SET_ID_CHARS,
   MAX_SWEEPS,
 } from '../src/format.js';
+import { jpegHeader } from './jpeg-fixture.js';
 import { MAX_HEARTS } from '../src/game.js';
 
 function makePuzzle(over = {}) {
@@ -403,4 +406,25 @@ test('pickKnown keeps optional keys that are present', () => {
   const save = makeSave({ hearts: 2, hints: 1 });
   assert.deepEqual(pickKnown('save', save), save);
   assert.equal('hearts' in pickKnown('save', makeSave()), false);
+});
+
+test('artSize reads SOF dimensions', () => {
+  assert.deepEqual(artSize(jpegHeader(320, 200)), { width: 320, height: 200 });
+  assert.deepEqual(artSize(jpegHeader(7, 9000, 0xc2)), { width: 7, height: 9000 });
+  assert.equal(MAX_ART_SIDE, 320);
+});
+
+test('artSize returns null for non-JPEG', () => {
+  assert.equal(artSize('data:image/png;base64,AAAA'), null);
+  assert.equal(artSize(`${ART_PREFIX}AAAA`), null);
+  assert.equal(artSize(`${ART_PREFIX}not base64!!`), null);
+  assert.equal(artSize(`${ART_PREFIX}`), null);
+  assert.equal(artSize(undefined), null);
+  // Starts as a JPEG but ends before any frame header.
+  assert.equal(
+    artSize(ART_PREFIX + Buffer.from([0xff, 0xd8, 0xff, 0xd9]).toString('base64')),
+    null,
+  );
+  // A DHT (C4) is not a frame header.
+  assert.equal(artSize(jpegHeader(10, 10, 0xc4)), null);
 });

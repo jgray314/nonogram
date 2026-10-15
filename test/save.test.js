@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { serializeSaveFile, parseSaveFile, importWrites } from '../src/save.js';
 import { createStore } from '../src/store.js';
+import { jpegHeader } from './jpeg-fixture.js';
 
 const puzzle = {
   v: 1,
@@ -102,4 +103,16 @@ test('save file import drops unknown keys', () => {
   assert.equal(out.ok, true);
   assert.deepEqual(out.puzzle, puzzle);
   assert.deepEqual(out.save, { ...save, hearts: 2 });
+});
+
+test('save file import drops oversized art and keeps the puzzle', () => {
+  const big = { ...puzzle, art: jpegHeader(900, 900) };
+  const out = parseSaveFile(serializeSaveFile(big, save));
+  assert.equal(out.ok, true);
+  assert.equal('art' in out.puzzle, false);
+  assert.equal(out.artDropped, 1);
+  const ok = { ...puzzle, art: jpegHeader(300, 300) };
+  const kept = parseSaveFile(serializeSaveFile(ok, save));
+  assert.equal(kept.puzzle.art, ok.art);
+  assert.equal(kept.artDropped, 0);
 });

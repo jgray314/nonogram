@@ -73,6 +73,19 @@ const flat = (grid) => grid.flat();
 const shownFrom = (grid, palette) =>
   grid.map((row) => row.map((v) => (v === 0 ? WHITE : palette[v])));
 
+/** Shown colors for a 0/1 grid: each side drawn in the mean source color of its cells. */
+function meanShown(grid, cells) {
+  const sums = [0, 1].map(() => ({ rgb: [0, 0, 0], n: 0 }));
+  grid.forEach((row, r) =>
+    row.forEach((v, c) => {
+      sums[v].n++;
+      cells[r][c].forEach((x, d) => (sums[v].rgb[d] += x));
+    }),
+  );
+  const color = sums.map((s) => (s.n ? s.rgb.map((x) => x / s.n) : WHITE));
+  return grid.map((row) => row.map((v) => color[v]));
+}
+
 /** Quantize cells to a palette. variant: w = white blank only; a = plus black as an ink; b = white and black both blank. */
 function quantize(cells, variant, k) {
   const pts = flat(cells).map(rgbToLab);
@@ -115,6 +128,11 @@ function buildApproaches(img, n) {
 
   const mono = binarize(lum, otsu(lum.flat()));
   out['A mono'] = { layers: [mono], shown: shownFrom(mono, [null, BLACK]) };
+
+  // Same puzzle as A mono, drawn in the mean source color of its inked cells
+  // and the mean of its blank cells (white if a side is empty). A fair
+  // baseline for dE: pure black on white favors any approach that has a hue.
+  out['A mono-mean'] = { layers: [mono], shown: meanShown(mono, cells) };
 
   const dith = ditherFS(lum);
   out['F dither'] = { layers: [dith], shown: shownFrom(dith, [null, BLACK]) };
@@ -279,7 +297,9 @@ console.log(
     )}); grid sizes ${sizes.join(', ')}; solver budget ${BUDGET} nodes; k-means seed ${SEED}`,
 );
 console.log(`
-Approach keys. A mono: luminance + Otsu (current). F dither: Floyd-Steinberg on cell luminance.
+Approach keys. A mono: luminance + Otsu (current), drawn black on white. A mono-mean: the same puzzle
+drawn in the mean source color of its inked cells and of its blank cells (a fair dE baseline).
+F dither: Floyd-Steinberg on cell luminance.
 B1 kNx: one color puzzle, white blank + N colors. D kNx: same palette, one 0/1 layer per color.
 C rgb3: Otsu threshold per R, G, B channel, 3 layers, an inked cell removes that channel.
 E grayN: white blank + (N-1) gray shades, one color puzzle.
@@ -301,6 +321,7 @@ dE = mean CIE76 delta E between each cell's source color and the color the finis
 
 const approachOrder = [
   'A mono',
+  'A mono-mean',
   'F dither',
   ...VARIANTS.flatMap((v) => KS.map((k) => `B1 k${k}${v}`)),
   'C rgb3',

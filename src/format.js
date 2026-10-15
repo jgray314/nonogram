@@ -70,7 +70,7 @@ const isSof = (m) => m >= 0xc0 && m <= 0xcf && m !== 0xc4 && m !== 0xc8 && m !==
  * Pixel size {width, height} a JPEG data URL declares in its frame header, or
  * null when it isn't a parseable JPEG. Reads the header only; it does not decode.
  */
-export function artSize(dataUrl) {
+export function jpegSize(dataUrl) {
   try {
     if (typeof dataUrl !== 'string' || !dataUrl.startsWith(ART_PREFIX)) return null;
     const bin = globalThis.atob(dataUrl.slice(ART_PREFIX.length));
@@ -113,7 +113,7 @@ export function artSize(dataUrl) {
  */
 export function boundArt(puzzle) {
   if (puzzle.art === undefined) return { puzzle, dropped: false };
-  const size = artSize(puzzle.art);
+  const size = jpegSize(puzzle.art);
   if (size && Math.max(size.width, size.height) <= MAX_ART_SIDE) return { puzzle, dropped: false };
   const rest = { ...puzzle };
   delete rest.art;

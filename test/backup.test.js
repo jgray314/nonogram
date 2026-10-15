@@ -155,6 +155,30 @@ test('backup import drops unknown keys inside palette, set and rules', async () 
   assert.equal(await idMatches(parsed.puzzles[0]), true);
 });
 
+test('a repeated id within one backup keeps the first record per kind', () => {
+  const first = puzzle('a', { title: 'first', art: jpegHeader(900, 900) });
+  const again = puzzle('a', { title: 'second', art: jpegHeader(900, 900) });
+  const save1 = { ...save('a'), elapsedMs: 1 };
+  const save2 = { ...save('a'), elapsedMs: 2 };
+  const parsed = parseBackup(
+    buildBackup({
+      puzzles: [first, again, puzzle('b')],
+      saves: [save1, save2],
+      sets: [set, { ...set, title: 'other' }],
+    }),
+  );
+  assert.deepEqual(
+    parsed.puzzles.map((p) => p.title),
+    ['first', 'T b'],
+  );
+  assert.deepEqual(parsed.artDroppedIds, ['a']);
+  assert.deepEqual(parsed.saves, [save1]);
+  assert.deepEqual(parsed.sets, [set]);
+  assert.deepEqual(parsed.skipped, []);
+  // The counts the library reports follow: 2 puzzles + 1 save + 1 set, no double count.
+  assert.equal(planImport(parsed, none).length, 4);
+});
+
 test('import drops oversized art and keeps the puzzle', () => {
   const big = puzzle('a', { art: jpegHeader(321, 10) });
   const notJpeg = puzzle('b', { art: `${ART_PREFIX}AAAA` });

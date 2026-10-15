@@ -14,7 +14,9 @@ const asArray = (x) => (Array.isArray(x) ? x : []);
  * Parse and validate a backup. Invalid records are skipped and reported in
  * `skipped` as {kind, id, error}. Art that is not a small JPEG is dropped from its
  * puzzle (the puzzle stays) and listed by id in `artDroppedIds`. A save is checked against its puzzle in the
- * file, else against `lookupPuzzle(id)` (e.g. the existing store). Never throws.
+ * file, else against `lookupPuzzle(id)` (e.g. the existing store). A repeated id
+ * within the file is dropped, per kind, and the first valid record wins (gate
+ * pass 6, L7); it is not reported as skipped. Never throws.
  */
 export function parseBackup(text, lookupPuzzle = () => null) {
   const empty = { ok: false, puzzles: [], saves: [], sets: [], skipped: [], artDroppedIds: [] };
@@ -36,22 +38,30 @@ export function parseBackup(text, lookupPuzzle = () => null) {
 
     const puzzles = [];
     const artDroppedIds = [];
+    const seenPuzzles = new Set();
     for (const p of asArray(data.puzzles)) {
       const v = validatePuzzle(p);
       if (v.ok) {
+        if (seenPuzzles.has(p.id)) continue;
+        seenPuzzles.add(p.id);
         const bounded = boundArt(pickKnown('puzzle', p));
         puzzles.push(bounded.puzzle);
         if (bounded.dropped) artDroppedIds.push(p.id);
       } else skip('puzzle', p, v.error);
     }
     const sets = [];
+    const seenSets = new Set();
     for (const s of asArray(data.sets)) {
       const v = validateSet(s);
-      if (v.ok) sets.push(pickKnown('set', s));
-      else skip('set', s, v.error);
+      if (v.ok) {
+        if (seenSets.has(s.setId)) continue;
+        seenSets.add(s.setId);
+        sets.push(pickKnown('set', s));
+      } else skip('set', s, v.error);
     }
     const inFile = new Map(puzzles.map((p) => [p.id, p]));
     const saves = [];
+    const seenSaves = new Set();
     for (const s of asArray(data.saves)) {
       const puzzle = inFile.get(s?.puzzleId) ?? lookupPuzzle(s?.puzzleId);
       if (!puzzle) {
@@ -59,8 +69,11 @@ export function parseBackup(text, lookupPuzzle = () => null) {
         continue;
       }
       const v = validateSave(s, puzzle);
-      if (v.ok) saves.push(pickKnown('save', s));
-      else skip('save', s, v.error);
+      if (v.ok) {
+        if (seenSaves.has(s.puzzleId)) continue;
+        seenSaves.add(s.puzzleId);
+        saves.push(pickKnown('save', s));
+      } else skip('save', s, v.error);
     }
     return { ok: true, puzzles, saves, sets, skipped, artDroppedIds };
   } catch (e) {

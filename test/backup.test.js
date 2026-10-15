@@ -1,6 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildBackup, parseBackup, planImport, rateImports, ratePlan } from '../src/backup.js';
+import {
+  buildBackup,
+  parseBackup,
+  planImport,
+  rateImports,
+  ratePlan,
+  droppedArtCount,
+} from '../src/backup.js';
 import { ratePuzzleWith } from '../src/solver-client.js';
 import { solveAndRate } from '../src/personas.js';
 import { puzzleId, idMatches, ART_PREFIX } from '../src/format.js';
@@ -140,6 +147,45 @@ test('backup import drops unknown keys', async () => {
   assert.equal(await idMatches(parsed.puzzles[0]), true);
 });
 
+test('backup import drops unknown keys inside palette, set and rules', async () => {
+  const clean = puzzle('', { set: { id: 's1', row: 0, col: 0 } });
+  clean.id = await puzzleId(clean);
+  const dirty = {
+    ...clean,
+    palette: [{ name: 'black', hex: '#000000', junk: 'x'.repeat(1000) }],
+    set: { id: 's1', row: 0, col: 0, junk: 1 },
+  };
+  const s = { ...save(clean.id), rules: { zen: true, autoCross: false, junk: 1 } };
+  const parsed = parseBackup(buildBackup({ puzzles: [dirty], saves: [s] }));
+  assert.deepEqual(parsed.puzzles, [clean]);
+  assert.deepEqual(parsed.saves[0].rules, { zen: true, autoCross: false });
+  assert.equal(await idMatches(parsed.puzzles[0]), true);
+});
+
+test('a repeated id within one backup keeps the first record per kind', () => {
+  const first = puzzle('a', { title: 'first', art: jpegHeader(900, 900) });
+  const again = puzzle('a', { title: 'second', art: jpegHeader(900, 900) });
+  const save1 = { ...save('a'), elapsedMs: 1 };
+  const save2 = { ...save('a'), elapsedMs: 2 };
+  const parsed = parseBackup(
+    buildBackup({
+      puzzles: [first, again, puzzle('b')],
+      saves: [save1, save2],
+      sets: [set, { ...set, title: 'other' }],
+    }),
+  );
+  assert.deepEqual(
+    parsed.puzzles.map((p) => p.title),
+    ['first', 'T b'],
+  );
+  assert.deepEqual(parsed.artDroppedIds, ['a']);
+  assert.deepEqual(parsed.saves, [save1]);
+  assert.deepEqual(parsed.sets, [set]);
+  assert.deepEqual(parsed.skipped, []);
+  // The counts the library reports follow: 2 puzzles + 1 save + 1 set, no double count.
+  assert.equal(planImport(parsed, none).length, 4);
+});
+
 test('import drops oversized art and keeps the puzzle', () => {
   const big = puzzle('a', { art: jpegHeader(321, 10) });
   const notJpeg = puzzle('b', { art: `${ART_PREFIX}AAAA` });
@@ -164,6 +210,56 @@ test('rateImports replaces the stored verdict', async () => {
   const [out] = await rateImports([claimed], fake);
   assert.deepEqual(out.verdict, { status: 'multiple', sweeps: 2 });
   assert.equal(claimed.verdict.status, 'unique-line-solvable'); // input not mutated
+});
+
+test('rateImports and ratePlan report progress once per puzzle', async () => {
+  const calls = [];
+  await rateImports([puzzle('a'), puzzle('b'), puzzle('c')], fake, (d, t) => calls.push([d, t]));
+  assert.deepEqual(calls, [
+    [1, 3],
+    [2, 3],
+    [3, 3],
+  ]);
+  const planCalls = [];
+  const plan = [
+    { kind: 'puzzle', record: puzzle('a') },
+    { kind: 'set', record: set },
+    { kind: 'puzzle', record: puzzle('b') },
+  ];
+  await ratePlan(plan, fake, (d, t) => planCalls.push([d, t]));
+  assert.deepEqual(planCalls, [
+    [1, 2],
+    [2, 2],
+  ]);
+});
+
+test('droppedArtCount counts only puzzles the plan writes', () => {
+  const parsed = parseBackup(
+    buildBackup({
+      puzzles: [
+        puzzle('a', { art: jpegHeader(900, 900) }),
+        puzzle('b', { art: jpegHeader(900, 900) }),
+        puzzle('c'),
+      ],
+    }),
+  );
+  assert.deepEqual(parsed.artDroppedIds, ['a', 'b']);
+  // 'b' already exists in the store, so its picture is not the import's loss.
+  const plan = planImport(parsed, { puzzles: ['b'] });
+  assert.equal(droppedArtCount(plan, parsed.artDroppedIds), 1);
+  assert.equal(droppedArtCount(planImport(parsed, none), parsed.artDroppedIds), 2);
+  assert.equal(droppedArtCount(plan, []), 0);
+});
+
+test('ratePlan rejects when the rater rejects, so the caller has nothing to write', async () => {
+  const plan = [
+    { kind: 'puzzle', record: puzzle('a') },
+    { kind: 'puzzle', record: puzzle('b') },
+  ];
+  const boom = async () => {
+    throw new Error('solver failed');
+  };
+  await assert.rejects(ratePlan(plan, boom), /solver failed/);
 });
 
 test('rateImports keeps every other field', async () => {

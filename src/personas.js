@@ -1,5 +1,5 @@
 /**
- * Difficulty personas (difficulty-personas.md). Each persona is a solver that
+ * Difficulty personas (docs/difficulty-personas.md). Each persona is a solver that
  * knows only some techniques; a puzzle's tier is the least skilled persona who
  * finishes it without guessing. Monochrome only: the line techniques read run
  * lengths and ignore color (color mode is backlog).

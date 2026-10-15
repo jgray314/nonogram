@@ -50,7 +50,7 @@ test('trimming a crossed end and gluing to an edge fill are Casual steps', () =>
   assert.deepEqual(casualLine(three, [0, 1, _, _, _]), [0, 1, 1, 1, 0]);
 });
 
-test('sample tiers and labels: two Easy, three Medium, six Hard (difficulty-personas.md)', async () => {
+test('sample tiers and labels: two Easy, three Medium, six Hard (docs/difficulty-personas.md)', async () => {
   const rated = Object.fromEntries(
     (await samplePuzzles()).map((p) => [
       p.title.replace('AI test sample: ', ''),

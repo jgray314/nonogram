@@ -10,7 +10,11 @@ A browser-only tool for turning a picture into a fair nonogram (picross) and pla
 
 **What is stored.** Puzzles, your progress on each, and a few preferences (theme, and the Zen and Auto-cross defaults). A puzzle made from an image also keeps a small JPEG of its crop (at most 320px) for the picture that appears when you solve it. That copy stays in this browser and is included in library backups.
 
-**Imports.** A library backup or a save file is treated as untrusted. Each imported puzzle is re-checked by the solver and its stored verdict discarded, only known fields are kept, and a picture that isn't a JPEG of 320px or less on its long side is dropped (the puzzle stays, without the solve picture).
+**Imports.** A library backup or a save file is treated as untrusted. Each imported puzzle is re-checked by the solver and its stored verdict discarded, only known fields are kept (including inside palette entries, a puzzle's set and a save's rules), and a picture that isn't a JPEG of 320px or less on its long side is dropped (the puzzle stays, without the solve picture).
+
+**Color research.** `docs/color-research.md` is a write-up of how color might be layered into puzzles, and `research/color/` holds the experiment scripts behind it. Neither is part of the app.
+
+**Requirements.** To play, a modern browser and Python 3 (only for the local server below). To develop, Node 24, which is what CI uses; the color research script needs Node 21 or later.
 
 ## Run
 
@@ -39,7 +43,7 @@ Run it from this folder, then open http://localhost:8123. Opening `index.html` a
 ```
 npm test              # fast suite, under 1s
 npm run test:slow     # solver: every 4x4 grid checked exhaustively, plus a 25x25 timing guard, about 11s
-npm run test:extended # difficulty persona corpus behind difficulty-personas.md, about 1 minute
+npm run test:extended # difficulty persona corpus behind docs/difficulty-personas.md, about 1 minute
 npm run lint
 npm run format:check
 ```

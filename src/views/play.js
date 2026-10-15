@@ -61,6 +61,10 @@ let cleanup = [];
 let persistNow = () => {};
 // Bumped by mount and unmount; async handlers check it before touching the page.
 let generation = 0;
+// One-shot notes for the next mount of a puzzle, by id. Import save remounts the
+// view, which wipes the toolbar message, so a note that must survive the remount
+// waits here (gate pass 6, L6). Never part of the save record.
+const pendingNotes = new Map();
 
 function showMissing(el_) {
   const box = el('section', 'nng-play');
@@ -138,6 +142,11 @@ export function mount(container, params = {}) {
   fileInput.accept = '.json,application/json';
   fileInput.hidden = true;
   const message = el('span', 'nng-msg');
+  const pending = pendingNotes.get(puzzle.id);
+  if (pending) {
+    message.textContent = pending;
+    pendingNotes.delete(puzzle.id);
+  }
   toolbar.append(exportBtn, importBtn, fileInput, message);
   const rulesBar = el('div', 'nng-rules');
   const toggles = {};
@@ -658,18 +667,21 @@ export function mount(container, params = {}) {
       return;
     }
     let writes = importWrites(parsed, store);
+    const addsPuzzle = writes[0].kind === 'puzzle';
     // The file's verdict is only a claim: re-solve a puzzle before it is stored.
     if (writes[0].kind === 'puzzle') {
       message.textContent = 'Checking the imported puzzle…';
-      const solver = createSolverClient();
+      // Created inside the try: `new Worker` can throw synchronously.
+      let solver;
       try {
+        solver = createSolverClient();
         const [rated] = await rateImports([writes[0].record], ratePuzzleWith(solver));
         writes = [{ kind: 'puzzle', record: rated }, ...writes.slice(1)];
       } catch {
         if (live()) message.textContent = 'Import failed: the solver could not check the puzzle';
         return;
       } finally {
-        solver.terminate();
+        solver?.terminate();
       }
     }
     // The replace was confirmed, so the import is written even if the player has
@@ -683,6 +695,13 @@ export function mount(container, params = {}) {
     if (!live()) return;
     // Drop the live state so unmount does not overwrite the imported save.
     persistNow = () => {};
+    // Only a puzzle this import added can have lost its picture: an existing one keeps its own.
+    if (addsPuzzle && parsed.artDropped) {
+      pendingNotes.set(
+        parsed.puzzle.id,
+        "The imported puzzle's picture was dropped (not a small JPEG).",
+      );
+    }
     const target = `#/play/${encodeURIComponent(parsed.puzzle.id)}`;
     if (location.hash === target) {
       unmount();

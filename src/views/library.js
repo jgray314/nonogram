@@ -2,7 +2,7 @@
 import { idMatches } from '../format.js';
 import { createStore } from '../store.js';
 import { toWebpbn } from '../webpbn.js';
-import { buildBackup, parseBackup, planImport, ratePlan } from '../backup.js';
+import { buildBackup, parseBackup, planImport, ratePlan, droppedArtCount } from '../backup.js';
 import { createSolverClient, ratePuzzleWith } from '../solver-client.js';
 import { loadSamples } from '../samples.js';
 import { libraryModel, safeFilename, tileSolved, tileFace } from '../library-logic.js';
@@ -11,6 +11,8 @@ let root = null;
 let store = null;
 let status = null;
 let listEl = null;
+// The toolbar's Export, Import and Load sample buttons; disabled while an import runs.
+let toolbarButtons = [];
 // Bumped by mount and unmount; async work checks it before touching the page.
 let generation = 0;
 
@@ -98,10 +100,26 @@ function forThisMount() {
   };
 }
 
+/**
+ * Imports re-solve every new puzzle, which can take a while, so the other
+ * toolbar actions stay off until it ends (gate pass 6, L2). Re-enabling goes
+ * through `ui`, so a later mount's fresh buttons are never touched.
+ */
 async function importLibrary(file) {
+  const ui = forThisMount();
+  for (const b of toolbarButtons) b.disabled = true;
+  try {
+    await runImport(file, ui);
+  } finally {
+    ui(() => {
+      for (const b of toolbarButtons) b.disabled = false;
+    });
+  }
+}
+
+async function runImport(file, ui) {
   // Keep this mount's store: unmount clears the module's `store`.
   const store0 = store;
-  const ui = forThisMount();
   const parsed = parseBackup(await file.text(), (id) => store0.get('puzzle', id));
   if (!parsed.ok) return ui(() => say(`Import failed: ${parsed.error}.`));
   // Reject puzzles whose id is not the hash of their content, and their saves.
@@ -121,16 +139,20 @@ async function importLibrary(file) {
   // An imported verdict is only a claim: re-solve each puzzle that will be written.
   const toCheck = plan.filter((w) => w.kind === 'puzzle').length;
   if (toCheck) {
-    ui(() => say(`Checking ${toCheck} imported puzzle${toCheck === 1 ? '' : 's'}…`));
-    const solver = createSolverClient();
+    const checking = (done) =>
+      ui(() => say(`Checking ${done} of ${toCheck} imported puzzle${toCheck === 1 ? '' : 's'}…`));
+    checking(0);
+    // Created inside the try: `new Worker` can throw synchronously.
+    let solver;
     try {
-      plan = await ratePlan(plan, ratePuzzleWith(solver));
+      solver = createSolverClient();
+      plan = await ratePlan(plan, ratePuzzleWith(solver), checking);
     } catch {
       return ui(() =>
         say('Import failed: the solver could not check the puzzles. Nothing was imported.'),
       );
     } finally {
-      solver.terminate();
+      solver?.terminate();
     }
   }
   let written = 0;
@@ -158,8 +180,7 @@ async function importLibrary(file) {
     );
   }
   // Only puzzles this import wrote: an existing puzzle keeps its own art.
-  const dropped = new Set(parsed.artDroppedIds);
-  const n = plan.filter((w) => w.kind === 'puzzle' && dropped.has(w.record.id)).length;
+  const n = droppedArtCount(plan, parsed.artDroppedIds);
   if (n) {
     parts.push(`${n} picture${n === 1 ? '' : 's'} dropped (not a small JPEG)`);
   }
@@ -358,12 +379,12 @@ export function mount(el0) {
     file.value = '';
     if (chosen) await importLibrary(chosen);
   });
-  toolbar.append(
+  toolbarButtons = [
     button('Export library', exportLibrary),
     button('Import library', () => file.click()),
     button('Load sample puzzles', addSamples),
-    file,
-  );
+  ];
+  toolbar.append(...toolbarButtons, file);
   status = el('p', 'nng-lib-status');
   status.setAttribute('role', 'status');
   listEl = el('div', 'nng-lib-content');
@@ -379,4 +400,5 @@ export function unmount() {
   store = null;
   status = null;
   listEl = null;
+  toolbarButtons = [];
 }

@@ -253,7 +253,7 @@ Owner's calls: "H1: start timer with first click", "rest clean up per your recom
 | W4 | **Fixed** (`19f4c00`). The seed adds a puzzle with art; new check `play-solve-reveal` (fade on a fresh solve, strip after it, no fade on reopening). |
 | W5, W6, W8 | **Fixed.** PLAN status, the reversed v1 line, lanes table, backlog; test renames; comments. |
 | W10 | **Noted only.** Not worth rewriting history. Next lane prompts give one subject style: `v<version> <step> (<lane>): ...`. |
-| W11 | **Deferred.** Trigger: before the repo is made public, move the review docs to `docs/reviews/` and update the links. |
+| W11 | **Fixed** on branch public-prep. The three review docs moved to `docs/reviews/` and the links were updated. `ux-checks.html` stays at the root, since it loads from the server root. |
 | D19 | **Done** (owner's request mid-pass). Auto-cross on by default, with crosses sweeping in along the line. New check `play-auto-cross-sweep`. |
 
 **Close checks (2026-10-09, after v1.3 merged):** 188 Node tests and 40 UX checks pass; lint and format clean. Claim grep: no "never stored", "Check mistakes", "Hints switch" or `createEditHistory` left as a current claim. Memory and the toolkit entry updated. **Pass closed.**

@@ -1,5 +1,5 @@
 // Lightweight UX checks, drawn from what the UX reviewer did by hand in UX
-// pass 1 (nonogram-ux-review.md). Each check drives the real app the same way
+// pass 1 (docs/reviews/nonogram-ux-review.md). Each check drives the real app the same way
 // and asserts what a player should see. A check tied to an open UX finding
 // carries `known: 'UX<n>'`: it shows as a known issue while it fails, and as
 // "fixed?" once it passes, which is the cue to drop the flag.

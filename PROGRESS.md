@@ -6,18 +6,20 @@ This is the verification ledger: check gates and controls, each with a command t
 It is not the product roadmap. What the product does and what is open lives in the README
 Status and the project plan.
 
-Commit: `8f073a2`  
-Full check: `npm test && npm run lint && npm run format:check`
+Commit: `b667627`  
+Full check: `npm test && npm run lint && npm run format:check && npm run typecheck`
 
 ## Done
 
 - **fast-suite**: The fast suite passes: solver, difficulty, import and player logic. (verified at `8f073a2`)
-- **lint-clean**: ESLint reports nothing on the whole tree. (verified at `8f073a2`)
-- **format-clean**: Prettier check passes on the whole tree. (verified at `8f073a2`)
-- **import-bounds-registry**: Every import entry point has a table-driven test for allow-listed keys at every depth, per-field length limits, count limits and duplicate ids, so a new field fails until it has a row. (verified at `8f073a2`)
-- **public-docs-denylist**: Source comments and public docs contain no review ids (gate pass N, finding ids), private workspace paths or third-person owner references; a test fails on any. (verified at `8f073a2`)
-- **encoding-guard**: Tracked JSON, Markdown and recordings contain no mojibake byte sequences, and .gitattributes pins text line endings. (verified at `8f073a2`)
+- **lint-clean**: ESLint reports nothing on the whole tree. (verified at `5366c91`)
+- **format-clean**: Prettier check passes on the whole tree. (verified at `5366c91`)
+- **import-bounds-registry**: Every import entry point has a table-driven test for allow-listed keys at every depth, per-field length limits, count limits and duplicate ids, so a new field fails until it has a row. (verified at `5366c91`)
+- **public-docs-denylist**: Source comments and public docs contain no review ids (gate pass N, finding ids), private workspace paths or third-person owner references; a test fails on any. (verified at `5366c91`)
+- **encoding-guard**: Tracked JSON, Markdown and recordings contain no mojibake byte sequences, and .gitattributes pins text line endings. (verified at `5366c91`)
 - **docs-claims-pinned**: Test counts, suite timings and case counts quoted in README and PLAN are asserted by a test against their source. (verified at `8f073a2`)
+- **typecheck-clean**: tsc --checkJs reports nothing on src, scripts and test; a suppression needs a stated reason. (verified at `5366c91`)
+- **ux-checks-headless**: ux-checks.html runs headless in Chrome and exits non-zero on any unmarked check failure; KNOWN issues are reported only. (verified at `5366c91`)
 
 ## In progress
 

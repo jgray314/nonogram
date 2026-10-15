@@ -294,7 +294,7 @@ export function mount(container) {
     ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
   }
 
-  /** Below 600px wide, size the cells so the grid fits the column (UX24). */
+  /** Below 600px wide, size the cells so the grid fits the column. */
   function fitCells(cols, clueCols) {
     if (window.matchMedia('(max-width: 599px)').matches) {
       const size = narrowCellSize(root.clientWidth, cols, clueCols);
@@ -457,7 +457,7 @@ export function mount(container) {
     try {
       const store = createStore();
       // The id is a hash of the grid: the same grid is the same puzzle. Never
-      // overwrite it, so a sample keeps its title, verdict and art (UX18).
+      // overwrite it, so a sample keeps its title, verdict and art.
       const have = existingPuzzle(store, puzzle.id);
       if (have !== null) {
         showSaveMessage(`This grid is already in your library as '${have}'.`, [

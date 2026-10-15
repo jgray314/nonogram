@@ -1,6 +1,6 @@
 # Difficulty personas (D22, 2026-10-09)
 
-The starting point for the difficulty labels, before the owner's calibration by play (PLAN.md step 13). Each persona is a solver that knows only certain techniques. A puzzle's rating is the least skilled persona who can finish it without guessing. Play then checks whether the personas match real people.
+The starting point for the difficulty labels, before the maintainer's calibration by play (PLAN.md step 13). Each persona is a solver that knows only certain techniques. A puzzle's rating is the least skilled persona who can finish it without guessing. Play then checks whether the personas match real people.
 
 ## The personas
 
@@ -28,7 +28,7 @@ Of these 511, 396 are fair (a unique solution).
 
 `test/personas.test.js` checks that the Newcomer and Casual techniques never deduce a wrong cell, on 3,000 random lines. A persona that did could "finish" a puzzle it can't.
 
-The Expert stops after 4,000 trials (`PROBE_BUDGET`), and the puzzle then counts as Very hard, so it errs harder, never easier. Its slowest corpus puzzle took about 2 s on the owner's laptop (a wall-clock time, so it varies by machine and run, unlike the seeded counts). That runs in the solver worker, so the page doesn't freeze.
+The Expert stops after 4,000 trials (`PROBE_BUDGET`), and the puzzle then counts as Very hard, so it errs harder, never easier. Its slowest corpus puzzle took about 2 s on the maintainer's laptop (a wall-clock time, so it varies by machine and run, unlike the seeded counts). That runs in the solver worker, so the page doesn't freeze.
 
 ## Results
 
@@ -46,13 +46,13 @@ The Expert stops after 4,000 trials (`PROBE_BUDGET`), and the puzzle then counts
 | Expert | 3 | 3 / 7 / 8 |
 | Nobody (needs real guessing) | 1 | 2 |
 
-**Picture-like grids**, the closest stand-in for the owner's puzzles, spread across tiers. At 10x10 and 15x15 they split roughly evenly between Newcomer, Casual and Regular. At 20x20 the Regular leads (17 of 39), and at 25x25 it takes about half (19 of 36) with the Newcomer almost gone (2). From 10x10 up, random grids almost all need the Regular (the `noise` lines), which matches how scattered pictures feel.
+**Picture-like grids**, the closest stand-in for the maintainer's puzzles, spread across tiers. At 10x10 and 15x15 they split roughly evenly between Newcomer, Casual and Regular. At 20x20 the Regular leads (17 of 39), and at 25x25 it takes about half (19 of 36) with the Newcomer almost gone (2). From 10x10 up, random grids almost all need the Regular (the `noise` lines), which matches how scattered pictures feel.
 
 **The Expert tier is rare but real.** Of 4 puzzles that need more than line logic, the one-cell trial solves 3. The old rule called all 4 "Hard".
 
 ## The rule
 
-D23 (2026-10-11) replaced D22's first mapping after the owner's play. The owner found Easy and Medium about right, but asked for the line-solvable range to split three ways and for the Expert to read Very hard.
+D23 (2026-10-11) replaced D22's first mapping after the maintainer's play. The maintainer found Easy and Medium about right, but asked for the line-solvable range to split three ways and for the Expert to read Very hard.
 
 | Label | First persona to finish |
 |---|---|
@@ -72,7 +72,7 @@ D23 (2026-10-11) replaced D22's first mapping after the owner's play. The owner 
 | 20x20 | 39 | 0 | 12 | 27 |
 | 25x25 | 36 | 0 | 2 | 34 |
 
-Without the step, Hard is just the Regular tier: 17 of 39 at 20x20 and 19 of 36 at 25x25, against the owner's expectation that most big puzzles should be Hard.
+Without the step, Hard is just the Regular tier: 17 of 39 at 20x20 and 19 of 36 at 25x25, against the maintainer's expectation that most big puzzles should be Hard.
 
 The verdict stores the tier, computed in the solver worker when Create checks a grid. The size step is applied when the label is shown, so it reaches every puzzle and nothing stored changes.
 
@@ -86,8 +86,8 @@ On the samples, Plus 5x5 and Castle 10x10 are Easy (added in D23, since no earli
 
 ## Limits
 
-- The personas are models of people, not people. The owner's play (step 13) tests them; the first round gave D23.
-- The personas never make a mistake. People do, and more often on big or dense grids, where one slip costs a heart and a long search. The owner: the personas didn't "entirely match the feel of playing, especially recognizing the human limits of not making mistakes". The D23 size step stands in for that; nothing models it directly.
-- The generated grids aren't the owner's art. Photo-derived puzzles may land differently, especially in the Expert tier.
+- The personas are models of people, not people. The maintainer's play (step 13) tests them; the first round gave D23.
+- The personas never make a mistake. People do, and more often on big or dense grids, where one slip costs a heart and a long search. The maintainer: the personas didn't "entirely match the feel of playing, especially recognizing the human limits of not making mistakes". The D23 size step stands in for that; nothing models it directly.
+- The generated grids aren't the maintainer's art. Photo-derived puzzles may land differently, especially in the Expert tier.
 - The Casual technique set is a judgment call. It's the part most likely to move after play.
 - Monochrome only: the techniques read run lengths and ignore color (PLAN.md backlog, color mode).

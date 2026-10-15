@@ -42,7 +42,7 @@ export function hasUnsavedWork(st, savedSig) {
   return (st.hasImage || hasFilledCell(st.grid)) && gridSig(st) !== savedSig;
 }
 
-/** The stored puzzle's title when `id` is already in the library, else null (UX18). */
+/** The stored puzzle's title when `id` is already in the library, else null. */
 export function existingPuzzle(store, id) {
   const found = store.get('puzzle', id);
   return found ? String(found.title ?? '') : null;
@@ -194,7 +194,7 @@ export const ART_ATTEMPTS = [
 /**
  * Size of a w x h source scaled to at most `maxSide` on the long side. A tiny
  * source (pixel art) is scaled up to ART_MIN_SIDE, in whole steps so each pixel
- * stays a crisp block (gate pass 3, L3); otherwise it is never upscaled.
+ * stays a crisp block; otherwise it is never upscaled.
  */
 export function artSize(w, h, maxSide = ART_MAX_SIDE) {
   const long = Math.max(w, h);
@@ -315,7 +315,7 @@ export function setWrites(set, puzzles) {
 /**
  * Which of a half-finished set save's writes to undo. Records that existed
  * before the save (a re-saved identical set reuses ids) are kept, along with
- * the progress saved against them (gate pass 1, M4).
+ * the progress saved against them.
  */
 export function rollbackTargets(written, existedBefore) {
   return written

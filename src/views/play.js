@@ -63,7 +63,7 @@ let persistNow = () => {};
 let generation = 0;
 // One-shot notes for the next mount of a puzzle, by id. Import save remounts the
 // view, which wipes the toolbar message, so a note that must survive the remount
-// waits here (gate pass 6, L6). Never part of the save record.
+// waits here. Never part of the save record.
 const pendingNotes = new Map();
 
 function showMissing(el_) {
@@ -94,7 +94,7 @@ export function mount(container, params = {}) {
   }
 
   root = el('section', 'nng-play');
-  // UX27 (D15): the name plus a badge, as in the library; the stored title keeps its prefix.
+  // D15: the name plus a badge, as in the library; the stored title keeps its prefix.
   const label = sampleLabel(puzzle.title || 'Untitled');
   const title = el('h1', undefined, label.name);
   if (label.ai) {
@@ -226,7 +226,7 @@ export function mount(container, params = {}) {
     'nng-rule-default',
     "Zen and Auto-cross also apply to puzzles you haven't started yet.",
   );
-  // The legend and the quiet Export / Import save buttons (UX28) share one row
+  // The legend and the quiet Export / Import save buttons share one row
   // under the grid, so the save buttons don't cost a 25x25 its fit at 1024x768.
   const belowRow = el('div', 'nng-below');
   belowRow.append(legend, toolbar);
@@ -264,12 +264,12 @@ export function mount(container, params = {}) {
   // A loaded save gets empty lines crossed too (v1 saves had none), and an
   // all-filled puzzle filled (D24), before the history, so they are not an
   // undo step. It does not mark the save dirty. A save that ran out of hearts
-  // is not filled: that would turn a lost game into a solve (gate pass 5, L2).
+  // is not filled: that would turn a lost game into a solve.
   cells = crossEmptyLines(cells, clues);
   const lost = loaded && rules.zen !== true && hearts === 0 && solvedAt === null;
   if (!lost) cells = fillFullPuzzle(cells, clues);
   // The clock starts with the first move, so opening or restarting a puzzle and
-  // looking at it leaves it "not started" in the library (gate pass 3, H1).
+  // looking at it leaves it "not started" in the library.
   let started = elapsedMs > 0 || !sameGrid(cells, restartCells(clues, puzzle.width, puzzle.height));
   let history = createHistory(cells);
   // A puzzle can be satisfied before any move: an all-blank or all-filled tile.
@@ -442,7 +442,7 @@ export function mount(container, params = {}) {
   function onPointer({ type, r, c, button }) {
     if (solvedAt !== null || outOfHearts()) return;
     if (type === 'down') {
-      startClock(); // the first click on the grid starts the timer (owner, gate pass 3)
+      startClock(); // the first click on the grid starts the timer
       drag = { button, path: [[r, c]] };
       preview();
     } else if (drag && type === 'enter' && r !== null) {
@@ -473,7 +473,7 @@ export function mount(container, params = {}) {
   });
   refresh();
 
-  // Cell size (UX15): the largest of 16..32px that fits the grid and its clue
+  // Cell size: the largest of 16..32px that fits the grid and its clue
   // gutters in the window below the header, and in the main column's width.
   // Smaller windows scroll inside the holder, where the clues stay put.
   function sizeGrid() {
@@ -489,7 +489,7 @@ export function mount(container, params = {}) {
       (outPanel.hidden ? 0 : outPanel.offsetHeight + 8) +
       (sizeNote.hidden ? 0 : sizeNote.offsetHeight + 8);
     // Room under the grid for the legend and the solved strip, so "Back to
-    // library" lands on screen after a solve (gate pass 3, M3).
+    // library" lands on screen after a solve.
     const below = belowRow.offsetHeight + 44;
     const avail =
       window.innerHeight -
@@ -645,7 +645,7 @@ export function mount(container, params = {}) {
       return;
     }
     // A player who leaves mid-import must not have this handler clear the next
-    // view's save hook or navigate them back (gate pass 1, L7).
+    // view's save hook or navigate them back.
     const gen = generation;
     const live = () => gen === generation;
     const parsed = parseSaveFile(await file.text());

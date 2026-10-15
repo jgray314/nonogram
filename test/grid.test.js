@@ -34,7 +34,7 @@ test('with zeroClues, an empty line shows a 0 clue, so it counts as gutter depth
 });
 
 test('without zeroClues (Create, Print), empty lines add no gutter', () => {
-  // Create passes all-empty lists for a tile set on purpose (gate pass 3, M1).
+  // Create passes all-empty lists for a tile set on purpose.
   const blank = { rows: [[], []], cols: [[], []] };
   assert.deepEqual(gutterSize(blank), { top: 0, left: 0 });
 });

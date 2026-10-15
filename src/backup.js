@@ -2,6 +2,9 @@
 import { validatePuzzle, validateSave, validateSet, pickKnown, boundArt } from './format.js';
 
 const KIND = 'nng-backup';
+// Most records of one kind a backup may carry. Each puzzle is re-solved on
+// import, so an unbounded list is unbounded work; far above any real library.
+export const MAX_BACKUP_RECORDS = 5000;
 const ID_FIELDS = { puzzle: 'id', save: 'puzzleId', set: 'setId' };
 
 export function buildBackup({ puzzles = [], saves = [], sets = [] } = {}) {
@@ -15,8 +18,8 @@ const asArray = (x) => (Array.isArray(x) ? x : []);
  * `skipped` as {kind, id, error}. Art that is not a small JPEG is dropped from its
  * puzzle (the puzzle stays) and listed by id in `artDroppedIds`. A save is checked against its puzzle in the
  * file, else against `lookupPuzzle(id)` (e.g. the existing store). A repeated id
- * within the file is dropped, per kind, and the first valid record wins (gate
- * pass 6, L7); it is not reported as skipped. Never throws.
+ * within the file is dropped, per kind, and the first valid record wins; it is
+ * not reported as skipped. Never throws.
  */
 export function parseBackup(text, lookupPuzzle = () => null) {
   const empty = { ok: false, puzzles: [], saves: [], sets: [], skipped: [], artDroppedIds: [] };
@@ -31,6 +34,11 @@ export function parseBackup(text, lookupPuzzle = () => null) {
       return { ...empty, error: 'not a Nonogram Studio backup' };
     }
     if (data.v !== 1) return { ...empty, error: 'unsupported backup version' };
+    for (const list of [data.puzzles, data.saves, data.sets]) {
+      if (asArray(list).length > MAX_BACKUP_RECORDS) {
+        return { ...empty, error: `more than ${MAX_BACKUP_RECORDS} records of one kind` };
+      }
+    }
 
     const skipped = [];
     const skip = (kind, record, error) =>
@@ -103,7 +111,7 @@ export function planImport(parsed, existingIds = {}) {
 
 /**
  * How many puzzles in `plan` lost their picture on import. Counts only puzzles
- * the plan writes: an existing puzzle keeps its own art (gate pass 6, L13).
+ * the plan writes: an existing puzzle keeps its own art.
  */
 export function droppedArtCount(plan, artDroppedIds) {
   const dropped = new Set(artDroppedIds);
@@ -113,7 +121,7 @@ export function droppedArtCount(plan, artDroppedIds) {
 /**
  * Copies of `puzzles` with each verdict replaced by `await rate(puzzle)`, one at
  * a time. An imported verdict is only a claim: hearts, mistake marks and hints
- * trust it, so imports recompute it with the solver (gate pass 3, L2).
+ * trust it, so imports recompute it with the solver.
  * `onProgress(done, total)`, if given, runs after each puzzle is rated.
  */
 export async function rateImports(puzzles, rate, onProgress) {
@@ -127,7 +135,7 @@ export async function rateImports(puzzles, rate, onProgress) {
 
 /**
  * `plan` (from planImport) with every puzzle record re-rated; other records pass
- * through. `onProgress(done, total)` counts puzzles only (gate pass 6, L2).
+ * through. `onProgress(done, total)` counts puzzles only.
  */
 export async function ratePlan(plan, rate, onProgress) {
   const puzzles = plan.filter((w) => w.kind === 'puzzle').map((w) => w.record);

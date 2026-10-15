@@ -8,29 +8,32 @@ import { TIERS } from './personas.js';
 const STATUSES = ['unique-line-solvable', 'unique-needs-guessing', 'multiple', 'none', 'unknown'];
 const HEX = /^#[0-9a-fA-F]{6}$/;
 // Largest tile set the creator makes (4x4). Bounding it keeps a hostile record
-// from making the library allocate rows*cols cells (gate pass 1, H1).
+// from making the library allocate rows*cols cells.
 export const MAX_SET_SIDE = 4;
 // Largest grid the creator offers, and the most colors the solver's bitmask
-// holds (it uses 1 << color). Same unbounded-number shape as H1.
+// holds (it uses 1 << color). Same unbounded-number shape as the set position bound.
 export const MAX_GRID_SIDE = 25;
 export const MAX_PALETTE = 30;
 // Optional source-crop image for the solve reveal (D14): a JPEG data URL of at
 // most 320px on the long side. Not part of the id hash.
 export const ART_PREFIX = 'data:image/jpeg;base64,';
 export const MAX_ART_CHARS = 200000;
-// Generous caps on imported text and counts (gate pass 3, L2). Far above
+// Generous caps on imported text and counts. Far above
 // anything the app writes, so no saved puzzle can fall outside them.
 export const MAX_TITLE_CHARS = 500;
 export const MAX_NAME_CHARS = 100;
 export const MAX_SET_ID_CHARS = 200;
 export const MAX_SWEEPS = 1000000;
+// Ids the app writes are 16 hex characters; this is a generous cap for a puzzle
+// id, a save's puzzleId and a set's tile ids, same as the set id cap.
+export const MAX_ID_CHARS = MAX_SET_ID_CHARS;
 
 const isObj = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
 const isInt = (x) => Number.isInteger(x);
 const fail = (error) => ({ ok: false, error });
 const OK = { ok: true };
 
-// The fields each record kind has. Imports keep only these (gate pass 3, L2), so
+// The fields each record kind has. Imports keep only these, so
 // a hand-edited file cannot carry extra data into the library. `set`, `art`,
 // `hearts` and `hints` are optional and stay absent when the record lacks them.
 export const PUZZLE_KEYS = [
@@ -49,7 +52,7 @@ export const SAVE_KEYS = ['puzzleId', 'cells', 'elapsedMs', 'rules', 'solvedAt',
 export const SET_KEYS = ['v', 'setId', 'title', 'rows', 'cols', 'tileIds'];
 const KEYS = { puzzle: PUZZLE_KEYS, save: SAVE_KEYS, set: SET_KEYS };
 
-// Known keys of the nested objects (gate pass 6, L1). Play writes exactly
+// Known keys of the nested objects. Play writes exactly
 // `rules.zen` and `rules.autoCross`. `verdict` is not listed: both import paths
 // replace it with a fresh solver result, so whatever it carries is discarded.
 export const PALETTE_ENTRY_KEYS = ['name', 'hex'];
@@ -89,7 +92,7 @@ export function pickKnown(kind, record) {
 
 // Longest side, in pixels, an imported `art` image may declare. Create scales
 // art to at most this (ART_MAX_SIDE in create-logic.js), and the character cap
-// alone would let a small, crafted JPEG declare a huge size (gate pass 3, L2).
+// alone would let a small, crafted JPEG declare a huge size.
 export const MAX_ART_SIDE = 320;
 
 // JPEG start-of-frame markers: SOF0 to SOF15, except DHT (C4), JPG (C8) and DAC (CC).
@@ -172,7 +175,7 @@ export async function puzzleId(puzzle) {
 
 /**
  * True when the record's id is the hash of its content. Imports check this so a
- * forged id cannot attach a save to a different puzzle (gate pass 1, M3).
+ * forged id cannot attach a save to a different puzzle.
  */
 export async function idMatches(puzzle) {
   try {
@@ -202,6 +205,7 @@ export function validatePuzzle(x) {
     if (!isObj(x)) return fail('puzzle must be an object');
     if (x.v !== 1) return fail('unsupported puzzle version');
     if (typeof x.id !== 'string' || x.id === '') return fail('id must be a non-empty string');
+    if (x.id.length > MAX_ID_CHARS) return fail('id is too long');
     if (typeof x.title !== 'string' || x.title.length > MAX_TITLE_CHARS) {
       return fail(`title must be a string of at most ${MAX_TITLE_CHARS} characters`);
     }
@@ -279,6 +283,7 @@ export function validateSave(x, puzzle) {
     }
     if (!isObj(x)) return fail('save must be an object');
     if (typeof x.puzzleId !== 'string') return fail('puzzleId must be a string');
+    if (x.puzzleId.length > MAX_ID_CHARS) return fail('puzzleId is too long');
     const g = gridError(x.cells, puzzle.width, puzzle.height, -1, puzzle.palette.length, 'cells');
     if (g) return fail(g);
     if (typeof x.elapsedMs !== 'number' || !Number.isFinite(x.elapsedMs) || x.elapsedMs < 0) {
@@ -325,7 +330,9 @@ export function validateSet(x) {
     if (!Array.isArray(x.tileIds) || x.tileIds.length !== x.rows * x.cols) {
       return fail('tileIds length must equal rows*cols');
     }
-    if (!x.tileIds.every((t) => typeof t === 'string')) return fail('tileIds must be strings');
+    if (!x.tileIds.every((t) => typeof t === 'string' && t.length <= MAX_ID_CHARS)) {
+      return fail(`tileIds must be strings of at most ${MAX_ID_CHARS} characters`);
+    }
     return OK;
   } catch (e) {
     return fail(`unexpected error: ${e && e.message}`);

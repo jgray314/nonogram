@@ -14,7 +14,7 @@ Color caveat: colors are read as sRGB. A PNG with an embedded color profile, suc
 
 ## The question
 
-The owner found that photos make weak puzzles. Most photos are not high contrast. With two shades (filled or blank) and heavy downsampling, the picture does not read. Average-per-cell sampling is fine; drawn puzzles were fine.
+The maintainer found that photos make weak puzzles. Most photos are not high contrast. With two shades (filled or blank) and heavy downsampling, the picture does not read. Average-per-cell sampling is fine; drawn puzzles were fine.
 
 Two ideas were proposed, and both are treated here as hypotheses:
 
@@ -49,7 +49,7 @@ About 15 pages were read or searched. Several are search-engine summaries, not f
 - *Thousands of Chroma* (Steam). Classic rules unchanged. One small puzzle per color, each no larger than 16x16. Solving one finishes one color layer and the preview image builds up. (snippet: [Steam listing](https://store.steampowered.com/app/4751060))
 - *Colour Cross* (DS). Multi-layered: you fill in about three grids to complete one picture. (snippet: [Games Asylum](https://www.gamesasylum.com/?p=1796))
 
-The pattern in all three: layers are separate puzzles, one per color, played independently, and the picture builds as layers finish. This is close to the owner's idea 2.
+The pattern in all three: layers are separate puzzles, one per color, played independently, and the picture builds as layers finish. This is close to the maintainer's idea 2.
 
 **Image to palette.**
 - Median cut (Heckbert, SIGGRAPH 1982) repeatedly splits the color box with the longest side at the median. It is simple and widely used. ([Microsoft Learn, archived devdev blog: Color quantization](https://learn.microsoft.com/en-us/archive/blogs/devdev/color-quantization))
@@ -68,7 +68,7 @@ Command, from the repo root:
 node research/color/run.mjs
 ```
 
-Optional flags: `--detail` (one row per image and approach), `--preview` (writes side-by-side PNG sheets to `research/color/out/`, gitignored), `--sizes=10,15,20`, `--no-synthetic`, and a first argument that is an image folder. The owner's own images go in `research/color/photos/` (gitignored); they are picked up as a separate group. See "How to run your own photos" above.
+Optional flags: `--detail` (one row per image and approach), `--preview` (writes side-by-side PNG sheets to `research/color/out/`, gitignored), `--sizes=10,15,20`, `--no-synthetic`, and a first argument that is an image folder. Your own images go in `research/color/photos/` (gitignored); they are picked up as a separate group. See "How to run your own photos" above.
 
 How it works:
 - It imports the real `src/clues.js`, `src/solver.js` and `src/image.js` (for approach A). Everything else (cell color averages, Lab, k-means, dithering, PNG decoding) is in `research/color/` and would move into `src/image.js` in a build.
@@ -81,15 +81,15 @@ How it works:
 Image groups:
 - **samples**: the 6 AI pixel-art PNGs in `sample-images/` (cat 10, 15, 20, 25; banana 10; spider 20).
 - **synthetic**: 6 images generated in code with fixed seeds. Soft landscape and soft portrait (low contrast, photo-like gradients). A 3-color flag. Colored shapes on a light ground. Textured terrain and textured clouds (fractal noise; busy, low contrast, the hard case).
-- **photos**: empty here. The owner's images go in this group.
+- **photos**: empty here. Your images go in this group.
 
 Approaches (the keys in the tables):
 - **A mono**: current luminance plus Otsu, drawn black on white.
 - **A mono-mean**: the same puzzle as A mono, drawn in the mean source color of its inked cells and of its blank cells. A fair baseline for color error, because pure black on white loses to any approach that has a hue.
 - **F dither**: Floyd-Steinberg on the cell luminance.
 - **B1 kNx**: one color puzzle, white blank plus N colors, colored clues.
-- **C rgb3**: owner idea 1. Otsu threshold per channel, 3 layers. An inked cell removes that channel from white paper, so the stack shows up to 8 colors.
-- **D kNx**: owner idea 2. Same palette as B1, but one 0/1 layer puzzle per color.
+- **C rgb3**: the maintainer's idea 1. Otsu threshold per channel, 3 layers. An inked cell removes that channel from white paper, so the stack shows up to 8 colors.
+- **D kNx**: the maintainer's idea 2. Same palette as B1, but one 0/1 layer puzzle per color.
 - **E grayN**: white blank plus N-1 gray shades as one color puzzle. This is B with a palette of grays; the gray shades are a choice of palette, not a separate method.
 - Suffix: `w` is white only as the fixed blank (black is just another candidate color). `a` is reading (a): black is an extra ink, so N+1 inks. `b` is reading (b): white and black are both blank, so N inks.
 
@@ -246,7 +246,7 @@ The 6 sample images are AI pixel art with exactly two colors each (dark ink on c
 
 The synthetic images are a stand-in for photos. They are generated gradients and fractal noise, and real photos have faces, edges and fine texture. No photos have been tested. Nothing in this doc is a claim about photos. "Fair" also does not measure whether the picture reads well. The `--preview` sheets let a person judge that.
 
-**The real test is the owner's own photos in `research/color/photos/`.** Run the script with 5 to 10 PNGs, read the `photos` tables, check the `deg` column first, and open the sheets from `--preview`.
+**The real test is your own photos in `research/color/photos/`.** Run the script with 5 to 10 PNGs, read the `photos` tables, check the `deg` column first, and open the sheets from `--preview`.
 
 ## The approaches, one by one
 
@@ -258,7 +258,7 @@ The synthetic images are a stand-in for photos. They are generated gradients and
 - **Clue rendering.** Colored numbers need readable contrast on the page background and in each theme. Colors should also be told apart without color vision (letter, pattern or number on the swatch). This is a gap that was not tested.
 - **Personas.** `src/personas.js` reads run lengths only and returns no tier for multi-color puzzles. B needs color-aware line techniques (already a backlog item), or a stopgap label such as "color, unrated". The solver verdict (fair, line-solvable) already works for color.
 - **Data model.** Fits as is. D2 already has `palette: [{name, hex}]` and an index grid, and `MAX_PALETTE` is 30. `src/clues.js`, `src/solver.js`, `src/webpbn.js` (color export) and `src/clue-progress.js` are color-aware. No new record kind.
-- **Blank cells.** With a fixed white blank, an image without white gets a full grid and no blank cell (see the first bullet under "What the numbers say"). A build needs a rule for the blank: take the most common cluster as blank, let the owner pick it, or allow full-grid color puzzles on purpose.
+- **Blank cells.** With a fixed white blank, an image without white gets a full grid and no blank cell (see the first bullet under "What the numbers say"). A build needs a rule for the blank: take the most common cluster as blank, let the user pick it, or allow full-grid color puzzles on purpose.
 - **Fairness and fidelity.** Fair in most non-degenerate runs, which are few (see above); the exception is reading (b) at k=2 on samples. Mean delta E 4.9, 2.5 and 1.7 for k=2, 3, 4 on samples and 8.5, 5.6 and 4.5 on synthetic at size 15, against 16.5 for A mono-mean and 44.2 for A mono on synthetic.
 - **Costs.** Palette picker and color painting in Play and Create; color clues in `src/views/grid.js`; color-aware personas; Create's cell editor needs a color brush; image creation needs the quantizer from `research/color/`. Tile sets share one palette in `src/tiles.js` (backlog); that works if the whole image is quantized once.
 
@@ -271,7 +271,7 @@ Same machinery as B with a palette of grays. It adds no code once B exists. Fide
 - **Play.** A stack of monochrome puzzles, solved one after another or switched between freely (as in Depixtion). Each layer is the current play UI with its own color. The combined picture appears as layers finish.
 - **Relation to tile sets.** Today a set groups puzzles that tile one picture side by side (`set: {id, row, col}`) and D24 reveals the combined photo when the set is finished. A layer stack has the same footprint stacked on top of each other, so tiling logic does not fit. It needs a new relation (for example `set.kind = 'layers'` with `layer` index) and a compositing reveal instead of a tiling one. The reveal code was not read in detail.
 - **Palette picker.** Not needed inside a layer. Needed only to show which layer is active.
-- **Hearts.** Per layer, or shared across the stack: an owner decision.
+- **Hearts.** Per layer, or shared across the stack: a decision for the maintainer.
 - **Clue rendering.** Existing, one color per layer.
 - **Personas.** Work unchanged per layer. A stack's tier would be the hardest layer's tier.
 - **Data model.** Layers could be ordinary 1-color puzzles with a palette of one color, grouped by a new set kind. Validators in `src/format.js` and the store's record kinds need to learn the new kind.
@@ -296,7 +296,7 @@ B is still the first candidate to build, but with less certainty than the first 
 
 What changed: B is not "the only approach that stayed fair". Gray shades (E gray4) were fair in every non-degenerate sample puzzle (4/4, 4/4 and 2/2 at sizes 10, 15, 20), and mono was fair in 6/6 sample puzzles at size 15. The earlier B fairness figures also counted full grids with no blank cell, so B has been tested on few puzzles that have a real blank. The gray shades are a palette choice of B, so this is a result about one variant of B, not a different method. No claim is made about photos, since none were tested.
 
-What must be settled before a build: the blank rule. A fixed white blank gives full grids on images without a white background, which is most photos. Choose one of: the most common cluster is the blank; the owner picks the blank in Create; full-grid color puzzles are allowed on purpose. Then re-run the experiment on photos and check that the `deg` column is low.
+What must be settled before a build: the blank rule. A fixed white blank gives full grids on images without a white background, which is most photos. Choose one of: the most common cluster is the blank; the user picks the blank in Create; full-grid color puzzles are allowed on purpose. Then re-run the experiment on photos and check that the `deg` column is low.
 
 Drop RGB threshold layers (C), drop dithering (F), and do not use reading (b).
 
@@ -304,7 +304,7 @@ Treat palette layers (D) as an optional second stage. They follow a real pattern
 
 ## Risks
 
-- **Weak evidence for photos.** No photos were tested. The photo-like images here are synthetic, and most of their color-palette puzzles are degenerate. Run on the owner's photos first.
+- **Weak evidence for photos.** No photos were tested. The photo-like images here are synthetic, and most of their color-palette puzzles are degenerate. Run on real photos first.
 - **Tiny counts.** Every group has 6 images, and after degenerate puzzles are removed many cells rest on 1 to 3 puzzles. Percentages from them are not stable.
 - **Fair does not mean pleasant.** More colors means more clues per line (max per line at size 15 on the samples is 9.0 for B1 k4w and 2.8 for A mono). The per-puzzle effort for a player is higher than the fair figures suggest.
 - **Palette legibility.** k-means can pick colors that are close in Lab or hard to tell apart for some players. A minimum distance between palette colors and a non-color cue is not built or measured.
@@ -313,16 +313,16 @@ Treat palette layers (D) as an optional second stage. They follow a real pattern
 - **Solver budget.** 300 nodes left almost no `unknown` here (see the `unk` column). Larger color puzzles (25x25, 5 colors) are not tested.
 - **Scope of the flag.** `?features=color` stores a pref in this browser only and reveals nothing in the UI. Nothing reads it yet.
 
-## Decisions for the owner before a build plan
+## Decisions for the maintainer before a build plan
 
 1. Is B (one color puzzle) the first build, with layers (D) deferred?
-2. How is the blank cell chosen: the most common cluster, picked by the owner, or no blank on purpose? This comes before the build plan.
+2. How is the blank cell chosen: the most common cluster, picked by the user, or no blank on purpose? This comes before the build plan.
 3. How many colors by default and at most per puzzle: 2 to 4 plus white, as researched, or more? (webpbn caps at 5 counting white; the format here allows 30.)
 4. Black: reading (a), an extra ink that is always available. Confirm, and confirm reading (b) is out.
-5. Is the palette chosen automatically from the image with a short editor in Create, or must the owner pick it by hand?
+5. Is the palette chosen automatically from the image with a short editor in Create, or must the user pick it by hand?
 6. Difficulty for color puzzles: build color-aware personas first, or ship with a stopgap label?
 7. Hearts and mistakes: is a wrong color a mistake like a wrong fill?
 8. Color-blind support: add a letter or pattern on swatches and clues now, or later?
 9. Left-clear rule in Play (backlog): does clearing remove any color or only the start cell's color?
-10. Run the experiment on 5 to 10 of the owner's photos before the build plan is written?
+10. Run the experiment on 5 to 10 real photos before the build plan is written?
 11. Layers (D): drop, or revisit after B has been used?

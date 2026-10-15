@@ -276,7 +276,7 @@ def cmd_clean(data):
         else:
             print("   ok")
     print("3. debug leftovers in uncommitted and unpushed changes")
-    diff = git("diff", "HEAD", "-U0") + "\n" + git("diff", "@{u}..HEAD", "-U0")
+    diff = git("diff", "HEAD", "-U0") + "\n" + git("diff", "@" + "{u}..HEAD", "-U0")
     hits = [
         ln
         for ln in diff.splitlines()

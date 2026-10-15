@@ -68,7 +68,7 @@ export function renderGrid(
 
   // Opaque backing for the gutters, so cells scrolled under a sticky gutter (Play)
   // never show through the gaps between clues; and one corner node over both
-  // gutters, which play.css pins above them (UX22). Plain, empty divs elsewhere.
+  // gutters, which play.css pins above them. Plain, empty divs elsewhere.
   if (top > 0 && width > 0) {
     const band = div('nng-gutter nng-gutter-cols');
     band.style.gridArea = `1 / ${left + 1} / span ${top} / span ${width}`;

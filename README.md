@@ -4,7 +4,7 @@ A browser-only tool for turning a picture into a fair nonogram (picross) and pla
 
 **License.** MIT, see `LICENSE`.
 
-**How it was built.** The code was written by AI coding agents (Claude Code), working from a plan, review gates and hands-on play testing by the owner. `PLAN.md` and `docs/reviews/` record that process.
+**How it was built.** The code was written by AI coding agents (Claude Code), working from a plan, review gates and hands-on play testing by the maintainer. `PLAN.md` and `docs/reviews/` record that process.
 
 **Sample content.** The images in `sample-images/` and the built-in sample puzzles were AI-generated for testing. The sample puzzles are labelled "AI test sample" in the library.
 

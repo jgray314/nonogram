@@ -45,29 +45,57 @@
       "id": "import-bounds-registry",
       "behavior": "Every import entry point has a table-driven test for allow-listed keys at every depth, per-field length limits, count limits and duplicate ids, so a new field fails until it has a row.",
       "verify": "node --test test/import_bounds.test.js",
-      "state": "not_started",
-      "source": "harness-history analysis 2026-10-15, item 3: untrusted import fixed four times across three gate passes"
+      "state": "passing",
+      "source": "harness-history analysis 2026-10-15, item 3: untrusted import fixed four times across three gate passes",
+      "evidence": {
+        "commit": "f0fac5ff80ddc4446ceb5cd4d26d8746e08f9edb",
+        "dirty": true,
+        "at": "2026-10-15T21:02:36Z",
+        "exit_code": 0,
+        "seal": "c12bd5f540ef3bc7"
+      }
     },
     {
       "id": "public-docs-denylist",
       "behavior": "Source comments and public docs contain no review ids (gate pass N, finding ids), private workspace paths or third-person owner references; a test fails on any.",
       "verify": "node --test test/public_docs.test.js",
-      "state": "not_started",
-      "source": "harness-history analysis item 2: pass 6 W13 found about 21 review ids in comments and only noted them"
+      "state": "passing",
+      "source": "harness-history analysis item 2: pass 6 W13 found about 21 review ids in comments and only noted them",
+      "evidence": {
+        "commit": "f0fac5ff80ddc4446ceb5cd4d26d8746e08f9edb",
+        "dirty": true,
+        "at": "2026-10-15T21:08:08Z",
+        "exit_code": 0,
+        "seal": "ced0925859feb382"
+      }
     },
     {
       "id": "encoding-guard",
       "behavior": "Tracked JSON, Markdown and recordings contain no mojibake byte sequences, and .gitattributes pins text line endings.",
       "verify": "node --test test/encoding.test.js",
-      "state": "not_started",
-      "source": "harness-history analysis item 11: shell-written text corrupted twice in JSCC, same class noted in nonogram retro"
+      "state": "passing",
+      "source": "harness-history analysis item 11: shell-written text corrupted twice in JSCC, same class noted in nonogram retro",
+      "evidence": {
+        "commit": "f53357b126ca1cf0b4938a0b8959832afa8708e5",
+        "dirty": true,
+        "at": "2026-10-15T21:09:19Z",
+        "exit_code": 0,
+        "seal": "570312c860246c64"
+      }
     },
     {
       "id": "docs-claims-pinned",
       "behavior": "Test counts, suite timings and case counts quoted in README and PLAN are asserted by a test against their source.",
       "verify": "node --test test/docs_claims.test.js",
-      "state": "not_started",
-      "source": "harness-history analysis 2026-10-15, item 1: README timing and PLAN claims stale in passes 2, 3, 5 and 6"
+      "state": "passing",
+      "source": "harness-history analysis 2026-10-15, item 1: README timing and PLAN claims stale in passes 2, 3, 5 and 6",
+      "evidence": {
+        "commit": "f0fac5ff80ddc4446ceb5cd4d26d8746e08f9edb",
+        "dirty": true,
+        "at": "2026-10-15T21:06:26Z",
+        "exit_code": 0,
+        "seal": "3664592bfca183c3"
+      }
     }
   ]
 }

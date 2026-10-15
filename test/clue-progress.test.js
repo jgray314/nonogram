@@ -40,7 +40,7 @@ test('scan from the start skips leading crosses', () => {
 });
 
 test('one filled run never marks two numbers', () => {
-  // Gate pass 2, M1: with no unknown cells both scans crossed the whole line
+  // With no unknown cells both scans crossed the whole line
   // and matched the same run from each end. A wrong cross is free in hearts
   // mode, so this line is reachable in play.
   assert.deepEqual(row([1, -1, -1], 1, 1), [true, false]);

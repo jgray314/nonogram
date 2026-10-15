@@ -91,7 +91,7 @@ function exportLibrary() {
 /**
  * Runs `fn` only while the mount that started an async task is still live, so a
  * task that outlives the view (the player navigated away mid-import) still
- * finishes its writes but never touches a torn-down page (gate pass 1, L7).
+ * finishes its writes but never touches a torn-down page.
  */
 function forThisMount() {
   const gen = generation;
@@ -102,7 +102,7 @@ function forThisMount() {
 
 /**
  * Imports re-solve every new puzzle, which can take a while, so the other
- * toolbar actions stay off until it ends (gate pass 6, L2). Re-enabling goes
+ * toolbar actions stay off until it ends. Re-enabling goes
  * through `ui`, so a later mount's fresh buttons are never touched.
  */
 async function importLibrary(file) {

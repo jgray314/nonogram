@@ -469,7 +469,7 @@ test('hasFilledCell is false for a blank grid and true once a cell is filled', (
 });
 
 // format.js cannot import create-logic.js, so the two 320s are tied here: art
-// Create makes must never exceed what import accepts (gate pass 6, L8).
+// Create makes must never exceed what import accepts.
 test('the art side Create makes fits the side import accepts', () => {
   assert.ok(ART_MAX_SIDE <= MAX_ART_SIDE);
 });

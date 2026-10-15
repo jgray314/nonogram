@@ -149,7 +149,7 @@ function expertFinishes(problem, budget) {
  * the Regular persona), so only needs-guessing puzzles pay for the Expert.
  * `probeBudget` caps the Expert's trials (PROBE_BUDGET by default). Also null
  * for a puzzle with more than one color: the line techniques assume a gap
- * between runs, which different colors don't need (gate pass 4, M1).
+ * between runs, which different colors don't need.
  */
 export function personaTier(problem, status, { probeBudget = PROBE_BUDGET } = {}) {
   const lines = [...problem.rows, ...problem.cols];

@@ -18,7 +18,7 @@
   margin-bottom: 8px;
 }
 
-/* A flat status badge, not a button-like pill (UX25): no heavy border or drop shadow. */
+/* A flat status badge, not a button-like pill: no heavy border or drop shadow. */
 .nng-solved {
   display: inline-block;
   font-size: 0.9em;
@@ -30,7 +30,7 @@
   animation: nng-banner 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* The AI-sample badge in the header, styled as in the library (UX27). */
+/* The AI-sample badge in the header, styled as in the library. */
 .nng-play .nng-badge {
   border-radius: 999px;
   padding: 0 8px;
@@ -165,7 +165,7 @@
   margin-bottom: 8px;
 }
 
-/* Save file buttons: secondary, below the grid, lighter than Restart (UX28). They share
+/* Save file buttons: secondary, below the grid, lighter than Restart. They share
    a row with the legend, so they cost no extra height under the grid. */
 .nng-below {
   display: flex;

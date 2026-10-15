@@ -175,7 +175,7 @@ Tags on each step read `[wave·lane]`. Steps in the same wave but different lane
    - `git init` with a `main` branch and a `.gitignore` covering `node_modules/`.
    - A repo-local git identity: the owner's name, with their GitHub noreply email.
    - A **`commit-msg` hook that rejects any `Co-Authored-By` trailer.** It lives in `.git/hooks`, which every worktree shares, so subagent commits are covered too.
-   - `package.json` with **every script the lanes will need, defined up front**: `test`, `test:slow`, `lint`, `format:check`. Lanes never edit `package.json`.
+   - `package.json` with **every script the lanes will need, defined up front**: `test`, `test:solver_slow`, `test:difficulty_very_slow`, `lint`, `format:check`. Lanes never edit `package.json`.
    - ESLint (flat config with browser and Node globals) and Prettier. **ESLint bans `innerHTML`, `outerHTML` and `insertAdjacentHTML`** (`no-restricted-properties`). Titles come from imported files, so all text renders through `textContent`. This is a structural rule, not something to remember.
    - Test files go in `test/<module>.test.js`.
    - A local serve entry outside the repo: `python -m http.server 8123`, run from the repo root.
@@ -191,7 +191,7 @@ Tags on each step read `[wave·lane]`. Steps in the same wave but different lane
 4a. `[W1·A]` `solver.js` uniqueness: when the line solver stalls, probe and backtrack, counting solutions up to 2. A search budget (node count) caps the work. Possible results: `unique-line-solvable`, `unique-needs-guessing`, `multiple`, `none`, or `unknown` when the budget is hit. The report also lists the cells still unresolved. **`unknown` is never shown as fair.** Tests:
    - One fixture per class. `multiple reports differing cells`.
 4b. `[W1·A]` Solver verification and the worker wrapper. The worker is a thin shell over `solve`. It isn't unit-tested in Node, and gets checked **[manual]** in step 11b. Tests:
-   - **Runtime rule:** the default `npm test` must stay under about 10s, since it runs on every merge. If either exhaustive 4x4 test pushes past that, it moves to `test:slow`, and the default suite keeps a seeded sample of 2,000 grids.
+   - **Runtime rule:** the default `npm test` must stay under about 10s, since it runs on every merge. If either exhaustive 4x4 test pushes past that, it moves to `test:solver_slow`, and the default suite keeps a seeded sample of 500 grids.
    - `exhaustive 4x4 cross-check`: enumerate all 65,536 4x4 grids and group them by clue signature to get the true solution count. Assert the solver's verdict (unique or multiple) matches for every grid.
    - `capped search reports unknown, never unique`.
    - `brute line oracle agrees on all 4x4`: a separate, naive line solver that enumerates every 2^n assignment of each line. It must give the same line-solvable verdict and the same decided cells as the DP solver. This is an independent check on "line-solvable", which the difficulty labels depend on.

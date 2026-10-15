@@ -14,7 +14,7 @@ import { samplePuzzles } from '../src/samples.js';
 
 const ROOT = new URL('../', import.meta.url);
 const read = (rel) => readFileSync(new URL(rel, ROOT), 'utf8');
-const DOCS = ['README.md', 'PLAN.md', 'CLAUDE.md', 'docs/difficulty-personas.md'];
+const DOCS = ['README.md', 'PLAN.md', 'AGENTS.md', 'docs/difficulty-personas.md'];
 const pkg = JSON.parse(read('package.json'));
 const FULL_CHECK = JSON.parse(read('FEATURES.json')).check_command;
 

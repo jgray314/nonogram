@@ -51,6 +51,17 @@
   gap: 6px;
 }
 
+/* A file input has an intrinsic width (its button plus the chosen file name) that a wider
+   fallback font stretches past a 375px screen; let it shrink to the row instead. */
+.nng-create-controls label {
+  max-width: 100%;
+}
+
+.nng-create-controls input[type='file'] {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .nng-create-controls button,
 .nng-create-edit-bar button {
   font: inherit;

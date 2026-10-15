@@ -126,9 +126,11 @@ const text = (s) =>
     .replace(/&amp;/g, '&')
     .replace(/&#39;/g, "'");
 const summary = text(/id="summary"[^>]*>(.*?)<\/p>/s.exec(dom)?.[1] ?? '');
-const lines = [...dom.matchAll(/<li><span class="(fail|known)">(.*?)<\/span>/gs)].map((m) =>
-  text(m[2]),
-);
+const lines = [
+  ...dom.matchAll(
+    /<li><span class="(fail|known)">(.*?)<\/span>(?:<span class="why">(.*?)<\/span>)?/gs,
+  ),
+].map((m) => text(m[2]) + text(m[3] ?? ''));
 const out = (line) =>
   process.stdout.write(`${line}
 `);

@@ -537,6 +537,12 @@ export const CHECKS = [
     async run(app) {
       await app.open('#/create', 375);
       const grid = await waitFor(() => app.$('.nng-create .nng-grid'), 'the grid');
+      // Text width depends on the machine's fonts: the Linux runner falls back to a wider face
+      // than Windows or macOS and pushed the file input past 375px. Force a wide one here so
+      // the check does not depend on which machine runs it.
+      const wide = app.doc().createElement('style');
+      wide.textContent = '* { font-family: Verdana, "DejaVu Sans", sans-serif !important; }';
+      app.doc().head.append(wide);
       await pause(100);
       const right = grid.getBoundingClientRect().right;
       assert(right <= app.win().innerWidth, `grid reaches ${Math.round(right)}px of 375`);

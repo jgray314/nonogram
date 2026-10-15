@@ -1,11 +1,13 @@
 // Color layering experiment. Usage:
 //   node research/color/run.mjs [imageDir] [--detail] [--sizes=10,15,20] [--no-synthetic] [--preview]
-// Default image dir is sample-images/. PNG only (8-bit, non-interlaced).
+// Default image dir is sample-images/. PNG only (8-bit, non-interlaced). Colors are read
+// as sRGB; an embedded color profile is ignored with a warning. With --preview, sheets go
+// to research/color/out/ as <group>-<image>-<size>.png.
 // Own images: put PNGs in research/color/photos/ (gitignored); they are picked
 // up automatically as the "photos" group. An explicit imageDir is the "user" group.
 // Imports the real clue and solver code from src/; everything else is local.
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { puzzleClues } from '../../src/clues.js';
 import { solve } from '../../src/solver.js';
@@ -44,12 +46,17 @@ const started = Date.now();
 // ---- load images --------------------------------------------------------
 
 const images = []; // {name, group, width, height, rgba}
+const loadedDirs = new Set();
 function loadDir(dir, group) {
-  if (!existsSync(dir)) return;
+  // A folder passed as the image folder that is also the photos folder loads once.
+  const key = resolve(dir).toLowerCase();
+  if (!existsSync(dir) || loadedDirs.has(key)) return;
+  loadedDirs.add(key);
   for (const file of readdirSync(dir).sort()) {
     if (!file.toLowerCase().endsWith('.png')) continue;
     try {
-      const img = decodePng(readFileSync(join(dir, file)));
+      const { warnings, ...img } = decodePng(readFileSync(join(dir, file)));
+      for (const w of warnings) console.log(`warning ${file}: ${w}`);
       images.push({ name: file.replace(/\.png$/i, ''), group, ...img });
     } catch (e) {
       console.log(`skipped ${file}: ${e.message}`);
@@ -237,7 +244,7 @@ function evaluate(build, cells) {
 // results[group][approach][n] = [per-image metrics]
 const SHEET = ['A mono', 'F dither', 'E gray4', 'B1 k3w', 'B1 k4a', 'C rgb3'];
 /** Source and several finished puzzles side by side, one PNG per image. */
-function writeSheet(name, n, cells, out) {
+function writeSheet(group, name, n, cells, out) {
   const px = 10;
   const gap = 12;
   const panels = [cells, ...SHEET.map((k) => out[k].shown)];
@@ -260,7 +267,8 @@ function writeSheet(name, n, cells, out) {
   });
   const dir = join(ROOT, 'research', 'color', 'out');
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, `${name}-${n}.png`), encodePng(W, H, rgb));
+  const safe = `${group}-${name}`.replace(/[^\w.-]+/g, '_');
+  writeFileSync(join(dir, `${safe}-${n}.png`), encodePng(W, H, rgb));
 }
 
 const results = {};
@@ -271,7 +279,7 @@ for (const img of images) {
       const m = evaluate(build, cells);
       (((results[img.group] ??= {})[approach] ??= {})[n] ??= []).push({ image: img.name, ...m });
     }
-    if (preview && n === sizes[sizes.length - 1]) writeSheet(img.name, n, cells, out);
+    if (preview && n === sizes[sizes.length - 1]) writeSheet(img.group, img.name, n, cells, out);
   }
 }
 

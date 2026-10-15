@@ -1,5 +1,8 @@
 // Minimal PNG decoder for the color research script. Non-interlaced, 8-bit
 // grayscale / gray+alpha / RGB / RGBA / palette only; anything else throws.
+// Transparency (alpha, tRNS) is returned as alpha and composited over white by
+// the caller. An embedded color profile (iCCP) is not applied: colors are read
+// as sRGB. Both that and an out-of-range palette index come back as warnings.
 import { deflateSync, inflateSync } from 'node:zlib';
 
 const SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -14,13 +17,14 @@ function paeth(a, b, c) {
   return pb <= pc ? b : c;
 }
 
-/** Decode a PNG buffer to {width, height, rgba: Uint8ClampedArray}. */
+/** Decode a PNG buffer to {width, height, rgba: Uint8ClampedArray, warnings: string[]}. */
 export function decodePng(buf) {
   if (buf.length < 8 || !buf.subarray(0, 8).equals(SIGNATURE)) throw new Error('not a PNG file');
   let pos = 8;
   let header = null;
   let palette = null;
   let trns = null;
+  const warnings = [];
   const idat = [];
   while (pos + 8 <= buf.length) {
     const len = buf.readUInt32BE(pos);
@@ -37,7 +41,11 @@ export function decodePng(buf) {
       };
     } else if (type === 'PLTE') palette = data;
     else if (type === 'tRNS') trns = data;
-    else if (type === 'IDAT') idat.push(data);
+    else if (type === 'iCCP') {
+      warnings.push(
+        'has an embedded color profile (iCCP); colors are read as sRGB, so wide-gamut images (for example Display-P3 phone exports) will shift',
+      );
+    } else if (type === 'IDAT') idat.push(data);
     else if (type === 'IEND') break;
   }
   if (!header) throw new Error('PNG has no IHDR chunk');
@@ -72,15 +80,31 @@ export function decodePng(buf) {
     }
   }
 
+  // Color-key transparency (tRNS for color types 0 and 2): samples are 16-bit
+  // big-endian; at 8 bits per sample the value is in the low byte.
+  const key =
+    colorType === 0 && trns && trns.length >= 2
+      ? [trns.readUInt16BE(0)]
+      : colorType === 2 && trns && trns.length >= 6
+        ? [trns.readUInt16BE(0), trns.readUInt16BE(2), trns.readUInt16BE(4)]
+        : null;
+  const palSize = palette ? Math.floor(palette.length / 3) : 0;
+  let badIndex = false;
   const rgba = new Uint8ClampedArray(width * height * 4);
   for (let i = 0; i < width * height; i++) {
     const o = i * 4;
     const s = i * bpp;
     if (colorType === 0) {
-      rgba.set([px[s], px[s], px[s], 255], o);
+      rgba.set([px[s], px[s], px[s], key && px[s] === key[0] ? 0 : 255], o);
     } else if (colorType === 2) {
-      rgba.set([px[s], px[s + 1], px[s + 2], 255], o);
+      const hit = key && px[s] === key[0] && px[s + 1] === key[1] && px[s + 2] === key[2];
+      rgba.set([px[s], px[s + 1], px[s + 2], hit ? 0 : 255], o);
     } else if (colorType === 3) {
+      if (px[s] >= palSize) {
+        badIndex = true;
+        rgba.set([0, 0, 0, 255], o);
+        continue;
+      }
       const p = px[s] * 3;
       rgba.set(
         [
@@ -97,7 +121,12 @@ export function decodePng(buf) {
       rgba.set([px[s], px[s + 1], px[s + 2], px[s + 3]], o);
     }
   }
-  return { width, height, rgba };
+  if (badIndex) {
+    warnings.push(
+      `has palette indexes past the end of PLTE (PLTE has ${palSize}); those pixels are read as black`,
+    );
+  }
+  return { width, height, rgba, warnings };
 }
 
 // ---- encoder (for the --preview contact sheets) --------------------------

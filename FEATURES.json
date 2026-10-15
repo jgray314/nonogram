@@ -115,8 +115,15 @@
       "id": "ux-checks-headless",
       "behavior": "ux-checks.html runs headless in Chrome and exits non-zero on any unmarked check failure; KNOWN issues are reported only.",
       "verify": "npm run test:ux",
-      "state": "active",
-      "source": "harness follow-up 2026-10-15: UX checks were manual-only and not in CI"
+      "state": "passing",
+      "source": "harness follow-up 2026-10-15: UX checks were manual-only and not in CI",
+      "evidence": {
+        "commit": "0301beb797aa8b612fb5e15baa836fe53e8a3590",
+        "dirty": true,
+        "at": "2026-10-15T22:38:31Z",
+        "exit_code": 0,
+        "seal": "hbjkkhcmjahgebia"
+      }
     }
   ]
 }

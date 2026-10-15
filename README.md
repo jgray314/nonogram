@@ -4,6 +4,8 @@ A browser-only tool for turning a picture into a fair nonogram (picross) and pla
 
 **License.** MIT, see `LICENSE`.
 
+**How it was built.** The code was written by AI coding agents (Claude Code), working from a plan, review gates and hands-on play testing by the owner. `PLAN.md` and `docs/reviews/` record that process.
+
 **Sample content.** The images in `sample-images/` and the built-in sample puzzles were AI-generated for testing. The sample puzzles are labelled "AI test sample" in the library.
 
 **What is stored.** Puzzles, your progress on each, and a few preferences (theme, and the Zen and Auto-cross defaults). A puzzle made from an image also keeps a small JPEG of its crop (at most 320px) for the picture that appears when you solve it. That copy stays in this browser and is included in library backups.
@@ -35,13 +37,14 @@ Run it from this folder, then open http://localhost:8123. Opening `index.html` a
 ## Develop
 
 ```
-npm test           # fast suite, under 1s
-npm run test:slow  # exhaustive 4x4 solver checks, about 10s
+npm test              # fast suite, under 1s
+npm run test:slow     # solver: every 4x4 grid checked exhaustively, plus a 25x25 timing guard, about 11s
+npm run test:extended # difficulty persona corpus behind difficulty-personas.md, about 1 minute
 npm run lint
 npm run format:check
 ```
 
-CI (`.github/workflows/ci.yml`) runs `npm test`, lint and the format check on every push to `main` and every pull request. The slow checks and the UX checks run locally only.
+CI (`.github/workflows/ci.yml`) runs `npm test`, lint and the format check on every push to `main` and every pull request. Run `test:slow` after solver changes and `test:extended` after persona or difficulty changes. Those two and the UX checks run locally only.
 
 **UX checks.** With the server running, open http://127.0.0.1:8123/ux-checks.html. It drives the real app in a frame and checks what a player should see: hearts, mistakes, restart, Zen, hints, the solve reveal, clue numbers, Create, the library, print, narrow layout and basic labels. It resets the app's data, so it only runs on `127.0.0.1`, which keeps its own storage, and refuses to run on `localhost`, where your library lives. A check marked KNOWN is tied to an open finding in `docs/reviews/nonogram-ux-review.md`. When one shows FIXED?, drop its `known` flag in `test/ux/checks.js`. Add `?only=<check id>` to run a single check.
 

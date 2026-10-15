@@ -8,6 +8,7 @@ import { createHistory } from '../game.js';
 import { puzzleId, validatePuzzle, validateSet } from '../format.js';
 import { tileGrid, tileFlags, makeSet } from '../tiles.js';
 import { createStore } from '../store.js';
+import { createSolverClient } from '../solver-client.js';
 import { isFair } from '../difficulty.js';
 import {
   SIZES,
@@ -79,36 +80,6 @@ function sizeSelect(value, values = SIZES) {
   for (const s of values) sel.append(el('option', { value: String(s), text: String(s) }));
   sel.value = String(value);
   return sel;
-}
-
-/** Thin promise wrapper over the solver Web Worker. */
-function createSolverClient() {
-  const worker = new Worker(new URL('../solver.worker.js', import.meta.url), { type: 'module' });
-  const waiting = new Map();
-  let nextId = 0;
-  worker.onmessage = (e) => {
-    const entry = waiting.get(e.data.id);
-    waiting.delete(e.data.id);
-    entry?.resolve(e.data.result);
-  };
-  worker.onerror = () => {
-    for (const entry of waiting.values()) entry.reject(new Error('solver failed'));
-    waiting.clear();
-  };
-  return {
-    solve(input) {
-      const id = ++nextId;
-      return new Promise((resolve, reject) => {
-        waiting.set(id, { resolve, reject });
-        worker.postMessage({ id, input, opts: {} });
-      });
-    },
-    terminate() {
-      worker.terminate();
-      for (const entry of waiting.values()) entry.reject(new Error('cancelled'));
-      waiting.clear();
-    },
-  };
 }
 
 /** Decode a File into a canvas capped at 1024px on the long side. */

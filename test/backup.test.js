@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildBackup, parseBackup, planImport } from '../src/backup.js';
+import { buildBackup, parseBackup, planImport, rateImports, ratePlan } from '../src/backup.js';
+import { ratePuzzleWith } from '../src/solver-client.js';
+import { solveAndRate } from '../src/personas.js';
 import { puzzleId, idMatches, ART_PREFIX } from '../src/format.js';
 import { jpegHeader } from './jpeg-fixture.js';
 
@@ -153,4 +155,47 @@ test('import keeps art within the bound', () => {
   const parsed = parseBackup(buildBackup({ puzzles: [puzzle('a', { art })] }));
   assert.equal(parsed.puzzles[0].art, art);
   assert.equal(parsed.artDropped, 0);
+});
+
+const fake = async (p) => ({ status: 'multiple', sweeps: p.width });
+
+test('rateImports replaces the stored verdict', async () => {
+  const claimed = puzzle('a', { verdict: { status: 'unique-line-solvable', sweeps: 1 } });
+  const [out] = await rateImports([claimed], fake);
+  assert.deepEqual(out.verdict, { status: 'multiple', sweeps: 2 });
+  assert.equal(claimed.verdict.status, 'unique-line-solvable'); // input not mutated
+});
+
+test('rateImports keeps every other field', async () => {
+  const p = puzzle('a', { set: { id: 's1', row: 0, col: 1 }, art: 'data:image/jpeg;base64,x' });
+  const [out] = await rateImports([p, puzzle('b')], fake);
+  assert.deepEqual({ ...out, verdict: null }, { ...p, verdict: null });
+});
+
+test('ratePlan re-rates puzzles in place and passes other records through', async () => {
+  const plan = [
+    { kind: 'puzzle', record: puzzle('a') },
+    { kind: 'set', record: set },
+    { kind: 'save', record: save('a') },
+    { kind: 'puzzle', record: puzzle('b') },
+  ];
+  const out = await ratePlan(plan, fake);
+  assert.deepEqual(
+    out.map((w) => w.kind),
+    ['puzzle', 'set', 'save', 'puzzle'],
+  );
+  assert.equal(out[0].record.verdict.status, 'multiple');
+  assert.equal(out[1].record, set);
+  assert.equal(out[3].record.id, 'b');
+});
+
+test('a claimed unique verdict on a two-solution grid is re-rated multiple', async () => {
+  // 2x2 diagonal: [[1,0],[0,1]] and [[0,1],[1,0]] share the clues, so it is not unique.
+  const lie = puzzle('a', {
+    verdict: { status: 'unique-line-solvable', sweeps: 1, tier: 'newcomer' },
+  });
+  const rate = ratePuzzleWith({ solve: async (input) => solveAndRate(input, {}) });
+  const [out] = await rateImports([lie], rate);
+  assert.equal(out.verdict.status, 'multiple');
+  assert.equal('tier' in out.verdict, false);
 });

@@ -87,3 +87,22 @@ export function planImport(parsed, existingIds = {}) {
   add('save', parsed.saves, 'puzzleId', have('saves'));
   return out;
 }
+
+/**
+ * Copies of `puzzles` with each verdict replaced by `await rate(puzzle)`, one at
+ * a time. An imported verdict is only a claim: hearts, mistake marks and hints
+ * trust it, so imports recompute it with the solver (gate pass 3, L2).
+ */
+export async function rateImports(puzzles, rate) {
+  const out = [];
+  for (const puzzle of puzzles) out.push({ ...puzzle, verdict: await rate(puzzle) });
+  return out;
+}
+
+/** `plan` (from planImport) with every puzzle record re-rated; other records pass through. */
+export async function ratePlan(plan, rate) {
+  const puzzles = plan.filter((w) => w.kind === 'puzzle').map((w) => w.record);
+  const rated = await rateImports(puzzles, rate);
+  let next = 0;
+  return plan.map((w) => (w.kind === 'puzzle' ? { kind: 'puzzle', record: rated[next++] } : w));
+}

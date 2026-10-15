@@ -12,7 +12,7 @@ Browser nonogram maker and player: turns an image into a fair puzzle, then plays
 
 ## Where things are
 
-- `FEATURES.json` is the scope surface. `PROGRESS.md` is generated from it. Read both first.
+- `FEATURES.json` is the verification ledger: each entry is a check gate with a command that proves it. `PROGRESS.md` is generated from it and lists those gates only. What the product does and what is open is in `README.md` and the backlog in `PLAN.md`.
 - `PLAN.md` holds decisions D1 to D24, contracts and the backlog. `docs/` holds research and review records.
 
 ## Rules

@@ -6,20 +6,20 @@ This is the verification ledger: check gates and controls, each with a command t
 It is not the product roadmap. What the product does and what is open lives in the README
 Status and the project plan.
 
-Commit: `d9a9f96`  
+Commit: `3682959`  
 Full check: `npm test && npm run lint && npm run format:check && npm run typecheck`
 
 ## Done
 
-- **fast-suite**: The fast suite passes: solver, difficulty, import and player logic. (verified at `3bf77bf`)
-- **lint-clean**: ESLint reports nothing on the whole tree. (verified at `3bf77bf`)
-- **format-clean**: Prettier check passes on the whole tree. (verified at `3bf77bf`)
-- **import-bounds-registry**: Every import entry point has a table-driven test for allow-listed keys at every depth, per-field length limits, count limits and duplicate ids, so a new field fails until it has a row. (verified at `3bf77bf`)
-- **public-docs-denylist**: Source comments and public docs contain no review ids (gate pass N, finding ids), private workspace paths or third-person owner references; a test fails on any. (verified at `3bf77bf`)
-- **encoding-guard**: Tracked JSON, Markdown and recordings contain no mojibake byte sequences, and .gitattributes pins text line endings. (verified at `3bf77bf`)
-- **docs-claims-pinned**: Test counts, suite timings and case counts quoted in README and PLAN are asserted by a test against their source. (verified at `3bf77bf`)
-- **typecheck-clean**: tsc --checkJs reports nothing on src, scripts and test; a suppression needs a stated reason. (verified at `3bf77bf`)
-- **ux-checks-headless**: ux-checks.html runs headless in Chrome and exits non-zero on any unmarked check failure; KNOWN issues are reported only. (verified at `3bf77bf`)
+- **fast-suite**: The fast suite passes: solver, difficulty, import and player logic. (verified at `3682959`)
+- **lint-clean**: ESLint reports nothing on the whole tree. (verified at `3682959`)
+- **format-clean**: Prettier check passes on the whole tree. (verified at `3682959`)
+- **import-bounds-registry**: Every import entry point has a table-driven test for allow-listed keys at every depth, per-field length limits, count limits and duplicate ids, so a new field fails until it has a row. (verified at `3682959`)
+- **public-docs-denylist**: Source comments and public docs contain no review ids (gate pass N, finding ids), private workspace paths or third-person owner references; a test fails on any. (verified at `3682959`)
+- **encoding-guard**: Tracked JSON, Markdown and recordings contain no mojibake byte sequences, and .gitattributes pins text line endings. (verified at `3682959`)
+- **docs-claims-pinned**: Test counts, suite timings and case counts quoted in README and PLAN are asserted by a test against their source. (verified at `3682959`)
+- **typecheck-clean**: tsc --checkJs reports nothing on src, scripts and test; a suppression needs a stated reason. (verified at `3682959`)
+- **ux-checks-headless**: ux-checks.html runs headless in Chrome and exits non-zero on any unmarked check failure; KNOWN issues are reported only. (verified at `3682959`)
 
 ## In progress
 

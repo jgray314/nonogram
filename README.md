@@ -10,7 +10,7 @@ A browser-only tool for turning a picture into a fair nonogram (picross) and pla
 
 **What is stored.** Puzzles, your progress on each, and a few preferences (theme, and the Zen and Auto-cross defaults). A puzzle made from an image also keeps a small JPEG of its crop (at most 320px) for the picture that appears when you solve it. That copy stays in this browser and is included in library backups.
 
-**Imports.** A library backup or a save file is treated as untrusted. Each imported puzzle is re-checked by the solver and its stored verdict discarded, only known fields are kept, and a picture that isn't a JPEG of 320px or less on its long side is dropped (the puzzle stays, without the solve picture).
+**Imports.** A library backup or a save file is treated as untrusted. Each imported puzzle is re-checked by the solver and its stored verdict discarded, only known fields are kept (including inside palette entries, a puzzle's set and a save's rules), and a picture that isn't a JPEG of 320px or less on its long side is dropped (the puzzle stays, without the solve picture).
 
 ## Run
 

@@ -49,11 +49,40 @@ export const SAVE_KEYS = ['puzzleId', 'cells', 'elapsedMs', 'rules', 'solvedAt',
 export const SET_KEYS = ['v', 'setId', 'title', 'rows', 'cols', 'tileIds'];
 const KEYS = { puzzle: PUZZLE_KEYS, save: SAVE_KEYS, set: SET_KEYS };
 
-/** Shallow copy of `record` with only the known keys of `kind` ('puzzle', 'save' or 'set'). */
-export function pickKnown(kind, record) {
+// Known keys of the nested objects (gate pass 6, L1). Play writes exactly
+// `rules.zen` and `rules.autoCross`. `verdict` is not listed: both import paths
+// replace it with a fresh solver result, so whatever it carries is discarded.
+export const PALETTE_ENTRY_KEYS = ['name', 'hex'];
+export const PUZZLE_SET_KEYS = ['id', 'row', 'col'];
+export const RULES_KEYS = ['zen', 'autoCross'];
+
+function pickKeys(keys, obj) {
   const out = {};
-  for (const key of KEYS[kind]) {
-    if (Object.hasOwn(record, key)) out[key] = record[key];
+  for (const key of keys) {
+    if (Object.hasOwn(obj, key)) out[key] = obj[key];
+  }
+  return out;
+}
+
+const isPlainObject = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
+
+/**
+ * Copy of `record` with only the known keys of `kind` ('puzzle', 'save' or
+ * 'set'), and inside it only the known keys of palette entries, the puzzle's
+ * `set` and the save's `rules`. Validate first: a nested value that is not an
+ * object is passed through unchanged.
+ */
+export function pickKnown(kind, record) {
+  const out = pickKeys(KEYS[kind], record);
+  if (kind === 'puzzle') {
+    if (Array.isArray(out.palette)) {
+      out.palette = out.palette.map((p) =>
+        isPlainObject(p) ? pickKeys(PALETTE_ENTRY_KEYS, p) : p,
+      );
+    }
+    if (isPlainObject(out.set)) out.set = pickKeys(PUZZLE_SET_KEYS, out.set);
+  } else if (kind === 'save' && isPlainObject(out.rules)) {
+    out.rules = pickKeys(RULES_KEYS, out.rules);
   }
   return out;
 }

@@ -140,6 +140,21 @@ test('backup import drops unknown keys', async () => {
   assert.equal(await idMatches(parsed.puzzles[0]), true);
 });
 
+test('backup import drops unknown keys inside palette, set and rules', async () => {
+  const clean = puzzle('', { set: { id: 's1', row: 0, col: 0 } });
+  clean.id = await puzzleId(clean);
+  const dirty = {
+    ...clean,
+    palette: [{ name: 'black', hex: '#000000', junk: 'x'.repeat(1000) }],
+    set: { id: 's1', row: 0, col: 0, junk: 1 },
+  };
+  const s = { ...save(clean.id), rules: { zen: true, autoCross: false, junk: 1 } };
+  const parsed = parseBackup(buildBackup({ puzzles: [dirty], saves: [s] }));
+  assert.deepEqual(parsed.puzzles, [clean]);
+  assert.deepEqual(parsed.saves[0].rules, { zen: true, autoCross: false });
+  assert.equal(await idMatches(parsed.puzzles[0]), true);
+});
+
 test('import drops oversized art and keeps the puzzle', () => {
   const big = puzzle('a', { art: jpegHeader(321, 10) });
   const notJpeg = puzzle('b', { art: `${ART_PREFIX}AAAA` });

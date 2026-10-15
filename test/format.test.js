@@ -408,6 +408,25 @@ test('pickKnown keeps optional keys that are present', () => {
   assert.equal('hearts' in pickKnown('save', makeSave()), false);
 });
 
+test('pickKnown drops unknown keys inside palette entries, set and rules', () => {
+  const p = pickKnown(
+    'puzzle',
+    makePuzzle({
+      palette: [{ name: 'black', hex: '#000000', junk: 1 }],
+      set: { id: 's', row: 0, col: 1, junk: 2 },
+    }),
+  );
+  assert.deepEqual(p.palette, [{ name: 'black', hex: '#000000' }]);
+  assert.deepEqual(p.set, { id: 's', row: 0, col: 1 });
+  const s = pickKnown('save', makeSave({ rules: { zen: true, autoCross: false, junk: 3 } }));
+  assert.deepEqual(s.rules, { zen: true, autoCross: false });
+  // Absent optional rule keys stay absent.
+  assert.deepEqual(pickKnown('save', makeSave({ rules: { junk: 1 } })).rules, {});
+  // The verdict is left alone: imports replace it.
+  const v = { status: 'multiple', sweeps: 1, extra: 1 };
+  assert.deepEqual(pickKnown('puzzle', makePuzzle({ verdict: v })).verdict, v);
+});
+
 test('jpegSize reads SOF dimensions', () => {
   assert.deepEqual(jpegSize(jpegHeader(320, 200)), { width: 320, height: 200 });
   assert.deepEqual(jpegSize(jpegHeader(7, 9000, 0xc2)), { width: 7, height: 9000 });

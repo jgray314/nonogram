@@ -485,7 +485,7 @@ Each item has a trigger. Items marked **kill** are recorded only so they aren't 
 - D24's finished-set view is covered by unit tests on `tileFace` and `setProgress`, not by a UX check. Trigger: the set view changes again.
 
 **Trust (gate pass 3, L2), accepted for a personal tool:**
-- **Done (merged `a9ff17f`).** `validatePuzzle` lets unknown extra keys through, and the store kept them. Both import paths now apply `pickKnown`, which keeps only `PUZZLE_KEYS`, `SAVE_KEYS` and `SET_KEYS`. `validatePuzzle` itself is unchanged, so stored records still load.
+- **Done (merged `a9ff17f`).** `validatePuzzle` lets unknown extra keys through, and the store kept them. Both import paths now apply `pickKnown`, which keeps only `PUZZLE_KEYS`, `SAVE_KEYS` and `SET_KEYS`, and (gate pass 6, L1) only the known keys inside palette entries, the puzzle's `set` and the save's `rules`. `verdict` is replaced on import, so it is not filtered. `validatePuzzle` itself is unchanged, so stored records still load.
 - **Done (merged `a9ff17f`).** The `art` bound counted characters, not decoded pixels. `jpegSize` (in `format.js`) now reads the JPEG frame header, and imports drop `art` that isn't a parseable JPEG or has a side over `MAX_ART_SIDE` (320). The puzzle stays, without its picture reveal.
 - A 4x4 tile set can store 16 art strings, about 3.2M characters at worst, near the storage quota. Typical art is a few KB, and a failed save rolls back the whole set. Trigger: a quota error on save.
 

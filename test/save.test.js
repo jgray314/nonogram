@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { serializeSaveFile, parseSaveFile, importWrites } from '../src/save.js';
+import { puzzleId, idMatches } from '../src/format.js';
 import { createStore } from '../src/store.js';
 import { jpegHeader } from './jpeg-fixture.js';
 
@@ -24,7 +25,7 @@ const save = {
     [0, 0],
   ],
   elapsedMs: 1234,
-  rules: { check: false, hint: false, autoCross: true },
+  rules: { zen: false, autoCross: true },
   solvedAt: null,
 };
 
@@ -103,6 +104,30 @@ test('save file import drops unknown keys', () => {
   assert.equal(out.ok, true);
   assert.deepEqual(out.puzzle, puzzle);
   assert.deepEqual(out.save, { ...save, hearts: 2 });
+});
+
+test('save file import drops unknown keys inside palette, set and rules', async () => {
+  const p = {
+    ...puzzle,
+    palette: [{ name: 'Black', hex: '#000000', junk: 'x'.repeat(1000) }],
+    set: { id: 's', row: 0, col: 1, junk: 1 },
+  };
+  const clean = {
+    ...p,
+    palette: [{ name: 'Black', hex: '#000000' }],
+    set: { id: 's', row: 0, col: 1 },
+  };
+  const id = await puzzleId(clean);
+  const out = parseSaveFile(
+    serializeSaveFile(
+      { ...p, id },
+      { ...save, puzzleId: id, rules: { zen: true, autoCross: false, junk: 1 } },
+    ),
+  );
+  assert.equal(out.ok, true);
+  assert.deepEqual(out.puzzle, { ...clean, id });
+  assert.deepEqual(out.save.rules, { zen: true, autoCross: false });
+  assert.equal(await idMatches(out.puzzle), true);
 });
 
 test('save file import drops oversized art and keeps the puzzle', () => {

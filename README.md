@@ -12,6 +12,10 @@ A browser-only tool for turning a picture into a fair nonogram (picross) and pla
 
 **Imports.** A library backup or a save file is treated as untrusted. Each imported puzzle is re-checked by the solver and its stored verdict discarded, only known fields are kept (including inside palette entries, a puzzle's set and a save's rules), and a picture that isn't a JPEG of 320px or less on its long side is dropped (the puzzle stays, without the solve picture).
 
+**Color research.** `docs/color-research.md` is a write-up of how color might be layered into puzzles, and `research/color/` holds the experiment scripts behind it. Neither is part of the app.
+
+**Requirements.** To play, a modern browser and Python 3 (only for the local server below). To develop, Node 24, which is what CI uses; the color research script needs Node 21 or later.
+
 ## Run
 
 ```

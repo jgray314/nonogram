@@ -353,7 +353,7 @@ Lane rules from v1 apply unchanged: stop after 2 failures, never edit a contract
 
 ## v1.2: UX pass 1 fixes (2026-10-08)
 
-**Source:** `nonogram-ux-review.md` UX pass 1. **Owner's calls:** "1, 2a, 3, 4a, 6, minors as recommended. On 5 when complete fade to original image crop including original color palette. Back to library strip below the image appears once fade is complete." So UX1, UX2 (keep the draft), UX3, UX4 (continue in Zen), UX6, UX7 to UX15 as recommended (option 1 each), and UX5 replaced by the solve reveal (D14). Later the same day: "1, add a hint counter per puzzle, do polish items too if they are easy, go", so D14 option 1, D18, and UX16 polish joined. Not in scope: UX17 taste, and UX5's status strip and sticky header.
+**Source:** `docs/reviews/nonogram-ux-review.md` UX pass 1. **Owner's calls:** "1, 2a, 3, 4a, 6, minors as recommended. On 5 when complete fade to original image crop including original color palette. Back to library strip below the image appears once fade is complete." So UX1, UX2 (keep the draft), UX3, UX4 (continue in Zen), UX6, UX7 to UX15 as recommended (option 1 each), and UX5 replaced by the solve reveal (D14). Later the same day: "1, add a hint counter per puzzle, do polish items too if they are easy, go", so D14 option 1, D18, and UX16 polish joined. Not in scope: UX17 taste, and UX5's status strip and sticky header.
 
 **Done means:** each finding's KNOWN UX check in `test/ux/checks.js` flips to passing and loses its flag, plus new checks where noted. Node tests cover the pure helpers. Steps are review units per the 2026-10-08 sizing rule.
 
@@ -414,13 +414,13 @@ v1 lane rules apply.
 21e. `[L]` Polish. The theme switch no longer flashes (no color transition while a theme is being applied), and the auto label names what it resolved to: "Theme: auto (evening)". Test: `auto theme label names the resolved theme`. **[manual]** switch themes and watch for a flash.
 22. `[seq]` Orchestrator. The `art` and `hints` contracts in `format.js` first (done before the lanes), then merges, flipping the KNOWN flags, the full UX check run (all pass, none KNOWN except the out-of-scope items), the manual reveal check in both themes, a slim `/gate-review` and a `/ux-gate-review` pass 2 on the result.
 
-**Done 2026-10-09.** Prep `05796c4` (the `art` and `hints` contracts). Lanes merged `--no-ff`: L `3c48608`, C `b98b755`, P `990db9f` (P's agent hit a usage limit after committing all 8 steps; verified from the branch). Step 22 checks `e10193a` (33 pass, 0 known). The solve reveal was checked by hand in evening and day, including reopening. Gate pass 3 (`nonogram-gate.md`) found 1 High and 3 Medium; fixes and D19 landed on branch `gate3-fixes`, and the UX checks went to 35 pass. UX pass 2 is in `nonogram-ux-review.md`, with its new findings waiting on the owner.
+**Done 2026-10-09.** Prep `05796c4` (the `art` and `hints` contracts). Lanes merged `--no-ff`: L `3c48608`, C `b98b755`, P `990db9f` (P's agent hit a usage limit after committing all 8 steps; verified from the branch). Step 22 checks `e10193a` (33 pass, 0 known). The solve reveal was checked by hand in evening and day, including reopening. Gate pass 3 (`docs/reviews/nonogram-gate.md`) found 1 High and 3 Medium; fixes and D19 landed on branch `gate3-fixes`, and the UX checks went to 35 pass. UX pass 2 is in `docs/reviews/nonogram-ux-review.md`, with its new findings waiting on the owner.
 
 ---
 
 ## v1.3: UX pass 2 fixes (2026-10-09)
 
-**Source:** `nonogram-ux-review.md` UX pass 2. **Owner's calls:** "do ux18, ux19 undo is fine, ux20 update message, ux21 do it, ux22 do it but add warning to puzzles unlikely to render well due to size, ux23 give cross and fill selectors for mobile, ux24 do it, do polish, explain ux28". So UX18 option 1, UX19 accepted as is, UX20 option 2 (copy), UX21, UX22 option 1 plus a size warning (D20), UX23 a Fill/Cross selector (D21), UX24, UX25 to UX27. UX28 is explained to the owner, not changed.
+**Source:** `docs/reviews/nonogram-ux-review.md` UX pass 2. **Owner's calls:** "do ux18, ux19 undo is fine, ux20 update message, ux21 do it, ux22 do it but add warning to puzzles unlikely to render well due to size, ux23 give cross and fill selectors for mobile, ux24 do it, do polish, explain ux28". So UX18 option 1, UX19 accepted as is, UX20 option 2 (copy), UX21, UX22 option 1 plus a size warning (D20), UX23 a Fill/Cross selector (D21), UX24, UX25 to UX27. UX28 is explained to the owner, not changed.
 
 ### Decisions
 - **D20 size warning.** A puzzle is "large for this screen" when Play's fitted cell size hits its 16px floor and the grid still doesn't fit the holder. Play then shows a note above the grid: "This puzzle is big for this screen, so the grid scrolls. It's easiest on a wider window." In the library, below 600px wide, a row whose width or height is 20 or more shows a small "Best on a big screen" badge. Rejected: blocking large puzzles on small screens.
@@ -470,7 +470,7 @@ Each item has a trigger. Items marked **kill** are recorded only so they aren't 
 - The difficulty personas (D22) read run lengths only, so they'd mis-rate a color puzzle. Give them color-aware line techniques.
 
 **Trust (gate pass 2, L1):**
-- Hearts, mistake marks and hints trust an imported puzzle's `verdict`. A hand-edited verdict could switch hearts on for a puzzle with several solutions. Accepted for a personal tool. Trigger: sharing puzzles with other people; then re-solve on import.
+- **Done on branch public-prep.** Hearts, mistake marks and hints trusted an imported puzzle's `verdict`, so a hand-edited verdict could switch hearts on for a puzzle with several solutions. Library backup import and Import save now discard the verdict and re-solve each written puzzle with the solver worker (`rateImports`, `ratePlan`; the client is `src/solver-client.js`).
 
 **Solver:**
 - Search always guesses the first unresolved cell. Revisit if a real 25x25 puzzle you make hits `unknown`.
@@ -485,8 +485,8 @@ Each item has a trigger. Items marked **kill** are recorded only so they aren't 
 - D24's finished-set view is covered by unit tests on `tileFace` and `setProgress`, not by a UX check. Trigger: the set view changes again.
 
 **Trust (gate pass 3, L2), accepted for a personal tool:**
-- `validatePuzzle` lets unknown extra keys through, and the store keeps them. localStorage's quota bounds the size. Trigger: sharing puzzles with other people; then keep only `PUZZLE_KEYS` on import.
-- The `art` bound counts characters, not decoded pixels, so a crafted 200,000-character JPEG could declare a huge size and cost memory when revealed. It can't run script (it is only an `img` source). Same trigger.
+- **Done on branch public-prep.** `validatePuzzle` lets unknown extra keys through, and the store kept them. Both import paths now apply `pickKnown`, which keeps only `PUZZLE_KEYS`, `SAVE_KEYS` and `SET_KEYS`. `validatePuzzle` itself is unchanged, so stored records still load.
+- **Done on branch public-prep.** The `art` bound counted characters, not decoded pixels. `jpegSize` (in `format.js`) now reads the JPEG frame header, and imports drop `art` that isn't a parseable JPEG or has a side over `MAX_ART_SIDE` (320). The puzzle stays, without its picture reveal.
 - A 4x4 tile set can store 16 art strings, about 3.2M characters at worst, near the storage quota. Typical art is a few KB, and a failed save rolls back the whole set. Trigger: a quota error on save.
 
 **Owner's hands-on testing, 2026-10-08:** reset, hearts, per-number clues, print key hidden, and crossing empty lines at the start shipped as v1.1 (steps 14a to 17). Print preview itself worked as planned, so step 13's print check is done.
@@ -566,4 +566,4 @@ What isn't on this list (contract shapes, ownership, dependency order) was revie
 **2026-10-09. Gate pass 3 calls.**
 - H1 The play timer starts with the first click on the grid (or a first hint), not on open or restart. Owner: "start timer with first click". So a puzzle you only opened, or restarted and looked at, stays "not started". Rejected: comparing cells only in the library (the timer would still show time that was never played).
 - D19 Auto-cross is on by default, and its crosses sweep in along the line. Owner: "when all fill is done for a row or column quickly add in the applied xs when you cross out the final number in the key". In hearts and Zen mode the last number crosses out exactly when the line's fills are complete, which is when auto-cross fires. The switch stays, and turning it off is remembered as the default (D16). Saves made before this keep their own setting. Rejected: removing the switch (some players like to cross by hand).
-- Everything else in gate pass 3: the reviewers' recommendations, per the owner ("rest clean up per your recommendation"). The dispositions are in `nonogram-gate.md`.
+- Everything else in gate pass 3: the reviewers' recommendations, per the owner ("rest clean up per your recommendation"). The dispositions are in `docs/reviews/nonogram-gate.md`.

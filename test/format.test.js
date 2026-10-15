@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import {
   puzzleId,
   idMatches,
+  pickKnown,
+  jpegSize,
+  MAX_ART_SIDE,
   validatePuzzle,
   validateSave,
   validateSet,
@@ -15,6 +18,7 @@ import {
   MAX_SET_ID_CHARS,
   MAX_SWEEPS,
 } from '../src/format.js';
+import { jpegHeader } from './jpeg-fixture.js';
 import { MAX_HEARTS } from '../src/game.js';
 
 function makePuzzle(over = {}) {
@@ -381,4 +385,46 @@ test('non-boolean zen rejected', () => {
   for (const zen of [1, 'true', null]) {
     assert.equal(validateSave(makeSave({ rules: { zen } }), makePuzzle()).ok, false, String(zen));
   }
+});
+
+test('pickKnown drops unknown keys', () => {
+  const p = makePuzzle({ extra: 'x' });
+  assert.deepEqual(pickKnown('puzzle', p), makePuzzle());
+  assert.deepEqual(pickKnown('save', { ...makeSave(), note: 'hi' }), makeSave());
+  const set = { v: 1, setId: 's', title: 'S', rows: 1, cols: 1, tileIds: ['a'] };
+  assert.deepEqual(pickKnown('set', { ...set, junk: [1] }), set);
+});
+
+test('pickKnown keeps optional keys that are present', () => {
+  const full = makePuzzle({
+    set: { id: 's', row: 0, col: 1 },
+    art: `${ART_PREFIX}AAAA`,
+  });
+  assert.deepEqual(pickKnown('puzzle', full), full);
+  assert.equal('set' in pickKnown('puzzle', makePuzzle()), false);
+  assert.equal('art' in pickKnown('puzzle', makePuzzle()), false);
+  const save = makeSave({ hearts: 2, hints: 1 });
+  assert.deepEqual(pickKnown('save', save), save);
+  assert.equal('hearts' in pickKnown('save', makeSave()), false);
+});
+
+test('jpegSize reads SOF dimensions', () => {
+  assert.deepEqual(jpegSize(jpegHeader(320, 200)), { width: 320, height: 200 });
+  assert.deepEqual(jpegSize(jpegHeader(7, 9000, 0xc2)), { width: 7, height: 9000 });
+  assert.equal(MAX_ART_SIDE, 320);
+});
+
+test('jpegSize returns null for non-JPEG', () => {
+  assert.equal(jpegSize('data:image/png;base64,AAAA'), null);
+  assert.equal(jpegSize(`${ART_PREFIX}AAAA`), null);
+  assert.equal(jpegSize(`${ART_PREFIX}not base64!!`), null);
+  assert.equal(jpegSize(`${ART_PREFIX}`), null);
+  assert.equal(jpegSize(undefined), null);
+  // Starts as a JPEG but ends before any frame header.
+  assert.equal(
+    jpegSize(ART_PREFIX + Buffer.from([0xff, 0xd8, 0xff, 0xd9]).toString('base64')),
+    null,
+  );
+  // A DHT (C4) is not a frame header.
+  assert.equal(jpegSize(jpegHeader(10, 10, 0xc4)), null);
 });

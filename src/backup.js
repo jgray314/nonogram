@@ -1,5 +1,5 @@
 // Library backup: one JSON file holding every puzzle, save and set. Pure.
-import { validatePuzzle, validateSave, validateSet } from './format.js';
+import { validatePuzzle, validateSave, validateSet, pickKnown, boundArt } from './format.js';
 
 const KIND = 'nng-backup';
 const ID_FIELDS = { puzzle: 'id', save: 'puzzleId', set: 'setId' };
@@ -12,11 +12,12 @@ const asArray = (x) => (Array.isArray(x) ? x : []);
 
 /**
  * Parse and validate a backup. Invalid records are skipped and reported in
- * `skipped` as {kind, id, error}. A save is checked against its puzzle in the
+ * `skipped` as {kind, id, error}. Art that is not a small JPEG is dropped from its
+ * puzzle (the puzzle stays) and listed by id in `artDroppedIds`. A save is checked against its puzzle in the
  * file, else against `lookupPuzzle(id)` (e.g. the existing store). Never throws.
  */
 export function parseBackup(text, lookupPuzzle = () => null) {
-  const empty = { ok: false, puzzles: [], saves: [], sets: [], skipped: [] };
+  const empty = { ok: false, puzzles: [], saves: [], sets: [], skipped: [], artDroppedIds: [] };
   try {
     let data;
     try {
@@ -34,15 +35,19 @@ export function parseBackup(text, lookupPuzzle = () => null) {
       skipped.push({ kind, id: String(record?.[ID_FIELDS[kind]] ?? '?'), error });
 
     const puzzles = [];
+    const artDroppedIds = [];
     for (const p of asArray(data.puzzles)) {
       const v = validatePuzzle(p);
-      if (v.ok) puzzles.push(p);
-      else skip('puzzle', p, v.error);
+      if (v.ok) {
+        const bounded = boundArt(pickKnown('puzzle', p));
+        puzzles.push(bounded.puzzle);
+        if (bounded.dropped) artDroppedIds.push(p.id);
+      } else skip('puzzle', p, v.error);
     }
     const sets = [];
     for (const s of asArray(data.sets)) {
       const v = validateSet(s);
-      if (v.ok) sets.push(s);
+      if (v.ok) sets.push(pickKnown('set', s));
       else skip('set', s, v.error);
     }
     const inFile = new Map(puzzles.map((p) => [p.id, p]));
@@ -54,10 +59,10 @@ export function parseBackup(text, lookupPuzzle = () => null) {
         continue;
       }
       const v = validateSave(s, puzzle);
-      if (v.ok) saves.push(s);
+      if (v.ok) saves.push(pickKnown('save', s));
       else skip('save', s, v.error);
     }
-    return { ok: true, puzzles, saves, sets, skipped };
+    return { ok: true, puzzles, saves, sets, skipped, artDroppedIds };
   } catch (e) {
     return { ...empty, error: `unexpected error: ${e && e.message}` };
   }
@@ -81,4 +86,23 @@ export function planImport(parsed, existingIds = {}) {
   add('set', parsed.sets, 'setId', have('sets'));
   add('save', parsed.saves, 'puzzleId', have('saves'));
   return out;
+}
+
+/**
+ * Copies of `puzzles` with each verdict replaced by `await rate(puzzle)`, one at
+ * a time. An imported verdict is only a claim: hearts, mistake marks and hints
+ * trust it, so imports recompute it with the solver (gate pass 3, L2).
+ */
+export async function rateImports(puzzles, rate) {
+  const out = [];
+  for (const puzzle of puzzles) out.push({ ...puzzle, verdict: await rate(puzzle) });
+  return out;
+}
+
+/** `plan` (from planImport) with every puzzle record re-rated; other records pass through. */
+export async function ratePlan(plan, rate) {
+  const puzzles = plan.filter((w) => w.kind === 'puzzle').map((w) => w.record);
+  const rated = await rateImports(puzzles, rate);
+  let next = 0;
+  return plan.map((w) => (w.kind === 'puzzle' ? { kind: 'puzzle', record: rated[next++] } : w));
 }

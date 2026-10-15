@@ -2,7 +2,8 @@
 import { idMatches } from '../format.js';
 import { createStore } from '../store.js';
 import { toWebpbn } from '../webpbn.js';
-import { buildBackup, parseBackup, planImport } from '../backup.js';
+import { buildBackup, parseBackup, planImport, ratePlan } from '../backup.js';
+import { createSolverClient, ratePuzzleWith } from '../solver-client.js';
 import { loadSamples } from '../samples.js';
 import { libraryModel, safeFilename, tileSolved, tileFace } from '../library-logic.js';
 
@@ -95,11 +96,24 @@ async function importLibrary(file) {
     for (const id of forged)
       parsed.skipped.push({ kind: 'puzzle', id, error: 'id does not match content' });
   }
-  const plan = planImport(parsed, {
+  let plan = planImport(parsed, {
     puzzles: store.list('puzzle').records.map((p) => p.id),
     saves: store.list('save').records.map((s) => s.puzzleId),
     sets: store.list('set').records.map((s) => s.setId),
   });
+  // An imported verdict is only a claim: re-solve each puzzle that will be written.
+  const toCheck = plan.filter((w) => w.kind === 'puzzle').length;
+  if (toCheck) {
+    say(`Checking ${toCheck} imported puzzle${toCheck === 1 ? '' : 's'}…`);
+    const solver = createSolverClient();
+    try {
+      plan = await ratePlan(plan, ratePuzzleWith(solver));
+    } catch {
+      return say('Import failed: the solver could not check the puzzles. Nothing was imported.');
+    } finally {
+      solver.terminate();
+    }
+  }
   let written = 0;
   try {
     for (const { kind, record } of plan) {
@@ -121,6 +135,12 @@ async function importLibrary(file) {
     parts.push(
       `${parsed.skipped.length} invalid skipped (${why}${parsed.skipped.length > 3 ? '; ...' : ''})`,
     );
+  }
+  // Only puzzles this import wrote: an existing puzzle keeps its own art.
+  const dropped = new Set(parsed.artDroppedIds);
+  const n = plan.filter((w) => w.kind === 'puzzle' && dropped.has(w.record.id)).length;
+  if (n) {
+    parts.push(`${n} picture${n === 1 ? '' : 's'} dropped (not a small JPEG)`);
   }
   render();
   say(`${parts.join(', ')}.`);

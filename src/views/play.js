@@ -24,6 +24,8 @@ import { sampleLabel, puzzleMeta } from '../library-logic.js';
 import { createStore } from '../store.js';
 import { validatePuzzle, validateSave, idMatches } from '../format.js';
 import { serializeSaveFile, parseSaveFile, importWrites } from '../save.js';
+import { rateImports } from '../backup.js';
+import { createSolverClient, ratePuzzleWith } from '../solver-client.js';
 
 const CSS_HREF = 'css/play.css';
 const PREF_KEYS = { zen: 'play.zen', autoCross: 'play.autoCross' };
@@ -645,8 +647,23 @@ export function mount(container, params = {}) {
     ) {
       return;
     }
+    let writes = importWrites(parsed, store);
+    // The file's verdict is only a claim: re-solve a puzzle before it is stored.
+    if (writes[0].kind === 'puzzle') {
+      message.textContent = 'Checking the imported puzzle…';
+      const solver = createSolverClient();
+      try {
+        const [rated] = await rateImports([writes[0].record], ratePuzzleWith(solver));
+        writes = [{ kind: 'puzzle', record: rated }, ...writes.slice(1)];
+      } catch {
+        message.textContent = 'Import failed: the solver could not check the puzzle';
+        return;
+      } finally {
+        solver.terminate();
+      }
+    }
     try {
-      for (const w of importWrites(parsed, store)) store.put(w.kind, w.record);
+      for (const w of writes) store.put(w.kind, w.record);
     } catch {
       message.textContent = 'Import failed: could not write to storage';
       return;

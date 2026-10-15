@@ -1,5 +1,6 @@
-# Runs the same checks as a local commit: tests, lint and formatting.
-# The slow solver checks (npm run test:slow) stay local; they aren't part of the green gate.
+# Runs the fast suite, lint and the format check. The area suites (npm run
+# test:slow for the solver, test:extended for the persona corpus) run locally
+# after changes in those areas; they aren't part of the green gate.
 name: CI
 
 on:

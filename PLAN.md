@@ -155,6 +155,10 @@ Tags on each step read `[wave·lane]`. Steps in the same wave but different lane
 - **Commit messages:** what changed in the subject, why in the body. No AI co-author trailer.
 - **Local only.** Pushing to GitHub isn't in scope unless you ask.
 
+**Briefing rules for the orchestrator** (added at gate pass 6, 2026-10-14):
+- Before briefing a lane, grep the Backlog and the gate doc's deferred dispositions for triggers on the files the lane owns ("the next time those handlers are touched"). Put any trigger that fires into the brief. Public-prep fired pass 1 L7's trigger and made that bug worse, unnoticed until the next gate.
+- When a brief narrows a fix ("shallow", "only the top level"), name what is left out in the brief, and mark the backlog item done only for the part that was done. Public-prep's "shallow copy" brief left nested keys open while the backlog said Done (gate pass 6, L1).
+
 **Lane rules** (every lane prompt includes them):
 - **Lane subagents run on Sonnet** (`model: "sonnet"`, which is Sonnet 5.5), at the owner's request on 2026-10-08. The orchestrator (Opus) merges, runs the manual checks and holds the contracts. **Upgrade rule:** if a Sonnet lane hits the two-failure stop, the orchestrator takes that step over on Opus. It doesn't relaunch Sonnet on the same step.
 - Only touch the files your lane owns. If a contract seems wrong, stop and report back. Never edit a contract or another lane's file.
@@ -196,7 +200,7 @@ Tags on each step read `[wave·lane]`. Steps in the same wave but different lane
      - a seeded random-noise 25x25, the worst case, which has to hit the budget and return `unknown` inside 1s
 
      An easy fixture alone would pass without testing anything.
-   - `npm run test:slow` (optional, not part of the green gate): an exhaustive 5x5 cross-check covering 33.5M grids.
+   - `npm run test:slow` (optional, not part of the green gate): an exhaustive 5x5 cross-check covering 33.5M grids. *(Never built. As built since gate pass 6: three suites. `npm test` runs on every merge and in CI, target under 1s, with seeded 4x4 samples of 500. `test:slow` holds the solver's exhaustive 4x4 checks and the 25x25 noise timing guard, about 11s. `test:extended` holds the persona corpus, about a minute.)*
 5. `[W1·C]` `format.js`: puzzle JSON (D2). The id is the SHA-256 (`crypto.subtle`, available in both browser and Node) of canonical JSON `{width, height, palette hexes, solution, set}`, where `set` is included only when present. Truncated to 16 hex characters. The title is excluded. Save `cells` encoding: `0` unknown, `-1` crossed, `k>=1` filled with palette color k. `validatePuzzle(x)`, `validateSave(x, puzzle)` and `validateSet(x)` check shape, `v === 1`, grid dimensions and value ranges. They return `{ok, error}` and never throw. Tests: `json round-trip`, `validate rejects malformed and wrong-version records`, `id stable across title change`, `id excludes verdict`, `id changes when a cell changes`, `id includes set position`.
 
 5x. `[W2·C]` `webpbn.js`: webpbn XML export. It was split out of step 5 because it needs `clues.js`, which lane C's worktree wouldn't have during W1. Test: `xml matches spec 2x2 example`.
@@ -463,39 +467,33 @@ v1 lane rules apply.
 
 Each item has a trigger. Items marked **kill** are recorded only so they aren't re-raised.
 
-**Color mode (all deferred to the trigger "color mode starts"):**
-- Left-clear removes any filled color, not just the start cell's color (`play-state.js`). Decide the rule when color lands.
-- `makeSet` shares one palette array across tiles, and `tileFlags` treats any non-zero cell as filled. Fine for monochrome.
-- `toWebpbn` throws when a palette needs more than about 60 distinct characters.
-- The difficulty personas (D22) read run lengths only, so they'd mis-rate a color puzzle. Give them color-aware line techniques.
+**Color mode (re-sorted at gate pass 6, 2026-10-14, once color research started):**
+- Left-clear rule and color-aware personas are now owner decisions 8 and 5 in `docs/color-research.md`, settled before the color build plan.
+- `makeSet` shares one palette array across tiles, and `tileFlags` treats any non-zero cell as filled. Fine for monochrome. Trigger: the color build plan.
+- **Kill:** `toWebpbn` throwing past about 60 distinct characters. Unreachable: `MAX_PALETTE` is 30 and the export has 61 fallback characters.
 
 **Trust (gate pass 2, L1):**
-- **Done on branch public-prep.** Hearts, mistake marks and hints trusted an imported puzzle's `verdict`, so a hand-edited verdict could switch hearts on for a puzzle with several solutions. Library backup import and Import save now discard the verdict and re-solve each written puzzle with the solver worker (`rateImports`, `ratePlan`; the client is `src/solver-client.js`).
+- **Done (merged `a9ff17f`).** Hearts, mistake marks and hints trusted an imported puzzle's `verdict`, so a hand-edited verdict could switch hearts on for a puzzle with several solutions. Library backup import and Import save now discard the verdict and re-solve each written puzzle with the solver worker (`rateImports`, `ratePlan`; the client is `src/solver-client.js`).
 
 **Solver:**
 - Search always guesses the first unresolved cell. Revisit if a real 25x25 puzzle you make hits `unknown`.
 - `solve` doesn't validate that clue counts match the dimensions. Callers always derive clues from a grid. Revisit if clues ever arrive from imports.
 
-**Creator and player feel (revisit after you've played about 5 puzzles):**
-- In the editor, clues update on stroke release, not during the drag.
-- There's no way back to the source image after pressing "Blank grid".
-- Opening an already-solved puzzle replays the solve glow once. (The picture reveal itself doesn't replay; checked by `play-solve-reveal`.)
-- Below a 16px cell the play grid scrolls rather than shrinking (20f fits 16 to 32px). Desktop is the target (D4).
+**Creator and player feel:**
+- **Kill (gate pass 6):** clues updating on stroke release, no way back to the source after "Clear to blank", the solve glow replaying on reopen, the play grid scrolling below 16px, and gate pass 1 L11's elapsed time on close and leave-Create warning. Their trigger was "after about 5 puzzles played"; three hands-on rounds later, none came up.
 - A set 4 tiles wide (4 x 96px) is wider than a phone screen in the library, whether finished or not (noticed 2026-10-11, D24). Trigger: you play sets on the phone.
 - D24's finished-set view is covered by unit tests on `tileFace` and `setProgress`, not by a UX check. Trigger: the set view changes again.
 
 **Trust (gate pass 3, L2), accepted for a personal tool:**
-- **Done on branch public-prep.** `validatePuzzle` lets unknown extra keys through, and the store kept them. Both import paths now apply `pickKnown`, which keeps only `PUZZLE_KEYS`, `SAVE_KEYS` and `SET_KEYS`. `validatePuzzle` itself is unchanged, so stored records still load.
-- **Done on branch public-prep.** The `art` bound counted characters, not decoded pixels. `jpegSize` (in `format.js`) now reads the JPEG frame header, and imports drop `art` that isn't a parseable JPEG or has a side over `MAX_ART_SIDE` (320). The puzzle stays, without its picture reveal.
+- **Done (merged `a9ff17f`).** `validatePuzzle` lets unknown extra keys through, and the store kept them. Both import paths now apply `pickKnown`, which keeps only `PUZZLE_KEYS`, `SAVE_KEYS` and `SET_KEYS`. `validatePuzzle` itself is unchanged, so stored records still load.
+- **Done (merged `a9ff17f`).** The `art` bound counted characters, not decoded pixels. `jpegSize` (in `format.js`) now reads the JPEG frame header, and imports drop `art` that isn't a parseable JPEG or has a side over `MAX_ART_SIDE` (320). The puzzle stays, without its picture reveal.
 - A 4x4 tile set can store 16 art strings, about 3.2M characters at worst, near the storage quota. Typical art is a few KB, and a failed save rolls back the whole set. Trigger: a quota error on save.
 
 **Owner's hands-on testing, 2026-10-08:** reset, hearts, per-number clues, print key hidden, and crossing empty lines at the start shipped as v1.1 (steps 14a to 17). Print preview itself worked as planned, so step 13's print check is done.
 
 **Kill (harmless):**
 - With reduced motion on, a stray `nng-pop` class can stay on a cell. The animation is off, so nothing shows.
-
-**Unreproduced:**
-- One stray filled row appeared during a browser session after a viewport resize. It wasn't reproducible from a fresh load. Watch for it in real play, and if it recurs, capture the steps.
+- (Gate pass 6) One stray filled row seen once after a viewport resize on 2026-10-08. Never reproduced, and it didn't recur in three hands-on rounds.
 
 ## Limits of plan-only review
 
@@ -521,9 +519,9 @@ What isn't on this list (contract shapes, ownership, dependency order) was revie
 ## Decisions log
 **2026-10-11. D24 finished sets and all-filled tiles.** Owner: "For a titled set, show full combined photo if all puzzles have been solved. Also treat the trivial case of all filled as trivially solved the same way you do for all empty." A set whose every tile is solved shows "✓ complete" and draws each tile's stored crop (`art`) flush, with no gaps and tiles at their own aspect, so the mosaic reads as the source photo. A tile without a crop (a set made before v1.2 or from a blank grid) keeps its solution cells. An all-filled puzzle starts filled (`fillFullPuzzle` in `restartCells` and on load), so it is solved on open, like an all-blank one. In the set view, tiles that start solved also count as solved without being opened (`tileSolved`, display only, no save written); otherwise a set with a blank sky tile could never complete until the player opened it. "Starts solved" is one rule, shared with Play (`startsSolved`: the starting grid already satisfies the clues), so a multi-color tile with no blank cells but two runs in a row doesn't count (gate pass 5, M1). A save that ran out of hearts is not filled on reopen, so a loss stays a loss (L2). A single puzzle that starts solved still shows "not started" in the library until opened; only set tiles count unopened, because only a set waits on them (L4). Rejected: pre-filling every full-width line in ordinary puzzles, which would give away real (if easy) moves; only the whole-grid case was asked for.
 
-**2026-10-11. D23 labels after the first play round.** Owner: Easy and Medium "feel relatively correct for a first pass", but "hard should be very hard and the current easy / medium split should become a 3 way split"; "I would expect most 5x5s to be easy and most 20x20s and 25x25 puzzles to be hard"; chose the size step ("A, no bump for very hard"); and "also list the puzzle difficulty in the page with the puzzle itself". Now: Newcomer is Easy, Casual Medium, Regular Hard, Expert and nobody both Very hard (the tier keeps them apart). A grid 20 or more on its longer side steps Easy and Medium up one, at display time, the same threshold as D20. Without it only about half of picture-like 20x20 and 25x25 grids read Hard; with it 27 of 39 and 34 of 36 do (`npm run test:slow`). Two Newcomer samples (Plus 5x5, Castle 10x10) were added, because no sample was Easy under the new mapping. The play header shows "W x H · label" inline next to the title, so the header doesn't grow and the grid's fit is unchanged. A needs-guessing puzzle without a stored tier now reads Very hard, which also closes gate pass 4's L2 mismatch. Rejected: splitting the Regular tier by solver effort (a new threshold to tune; revisit if the persona split feels wrong in play); a fifth label for "nobody" (about 1 in 400 fair puzzles). Touchpad fill/cross surprises were traced to Windows right-click gestures; the owner chose no change.
+**2026-10-11. D23 labels after the first play round.** Owner: Easy and Medium "feel relatively correct for a first pass", but "hard should be very hard and the current easy / medium split should become a 3 way split"; "I would expect most 5x5s to be easy and most 20x20s and 25x25 puzzles to be hard"; chose the size step ("A, no bump for very hard"); and "also list the puzzle difficulty in the page with the puzzle itself". Now: Newcomer is Easy, Casual Medium, Regular Hard, Expert and nobody both Very hard (the tier keeps them apart). A grid 20 or more on its longer side steps Easy and Medium up one, at display time, the same threshold as D20. Without it only about half of picture-like 20x20 and 25x25 grids read Hard; with it 27 of 39 and 34 of 36 do (`npm run test:extended`). Two Newcomer samples (Plus 5x5, Castle 10x10) were added, because no sample was Easy under the new mapping. The play header shows "W x H · label" inline next to the title, so the header doesn't grow and the grid's fit is unchanged. A needs-guessing puzzle without a stored tier now reads Very hard, which also closes gate pass 4's L2 mismatch. Rejected: splitting the Regular tier by solver effort (a new threshold to tune; revisit if the persona split feels wrong in play); a fifth label for "nobody" (about 1 in 400 fair puzzles). Touchpad fill/cross surprises were traced to Windows right-click gestures; the owner chose no change.
 
-**2026-10-09. D22 difficulty by persona.** (Label mapping and the no-tier "Hard" fallback superseded by D23.) Owner: "create a 3-5 simple player personas and use them to level set initial difficulty ratings", then "make the changes". Four personas (Newcomer, Casual, Regular, Expert) are solvers limited to certain techniques (`src/personas.js`, `difficulty-personas.md`). The label is the least skilled persona who finishes: Newcomer or Casual is Easy, Regular is Medium, Expert (one-cell trials) is Hard, and nobody (deeper guessing) is Very hard. The verdict stores the result as an optional `tier`, computed in the solver worker. Line-solvable puzzles saved earlier get a tier for display only, never written back. A needs-guessing one without a tier keeps "Hard". The verdict isn't hashed, so ids don't change. Rejected: retuning the sweep threshold. Over 394 fair puzzles, the full line solver's sweep count didn't separate Casual from Regular (Casual puzzles take at most 3 sweeps, and Regular ones a median of 3), so the old rule called almost everything Easy. The corpus is reproducible with `npm run test:slow`. Step 13's play now tests the personas instead of setting thresholds from scratch.
+**2026-10-09. D22 difficulty by persona.** (Label mapping and the no-tier "Hard" fallback superseded by D23.) Owner: "create a 3-5 simple player personas and use them to level set initial difficulty ratings", then "make the changes". Four personas (Newcomer, Casual, Regular, Expert) are solvers limited to certain techniques (`src/personas.js`, `difficulty-personas.md`). The label is the least skilled persona who finishes: Newcomer or Casual is Easy, Regular is Medium, Expert (one-cell trials) is Hard, and nobody (deeper guessing) is Very hard. The verdict stores the result as an optional `tier`, computed in the solver worker. Line-solvable puzzles saved earlier get a tier for display only, never written back. A needs-guessing one without a tier keeps "Hard". The verdict isn't hashed, so ids don't change. Rejected: retuning the sweep threshold. Over 394 fair puzzles, the full line solver's sweep count didn't separate Casual from Regular (Casual puzzles take at most 3 sweeps, and Regular ones a median of 3), so the old rule called almost everything Easy. The corpus is reproducible with `npm run test:extended` (moved from `test:slow` at gate pass 6). Step 13's play now tests the personas instead of setting thresholds from scratch.
 **2026-10-08. D1 to D5 closed, all recommendations.** Owner: "intended for web browser use."
 - D1 Stack: static web app, plain JS ES modules, no runtime dependencies. Node is dev-only (tests, ESLint, Prettier). Served with `python -m http.server`. Rejected a Python plus JS split (two languages, solver written twice) and browser-only tests without Node (no lint, clunky). Reversing it means rewriting the core.
 - D2 Data model: color-ready puzzle JSON (palette plus index grid, 0 is background). Clues are derived, not stored. Saves are separate, keyed by puzzle id. Rejected a boolean grid because every saved puzzle would need migrating once color lands.

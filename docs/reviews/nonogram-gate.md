@@ -81,22 +81,22 @@
 | M4 | **Fixed** `bc3d580`. `rollbackTargets` spares records that existed before the save (test red, then green). |
 | L5 | **Fixed** `a38a332`. Export reports how many corrupt records were left out. |
 | L6 | **Fixed** `bc3d580`. A bad escape falls back to the library route. |
-| L7 | **Deferred.** Trigger: any error report from navigating during an import, or the next time those handlers are touched. Fix shape: a per-mount generation token, checked after each await. Real but needs a mid-read navigation, and the worst case is a console error or a leaked listener, not data loss. |
+| L7 | **Deferred.** Trigger: any error report from navigating during an import, or the next time those handlers are touched. Fix shape: a per-mount generation token, checked after each await. Real but needs a mid-read navigation, and the worst case is a console error or a leaked listener, not data loss. **Gate pass 6:** the trigger fired (public-prep added a solver await to both handlers); fixed, see pass 6. |
 | L8 | **Fixed** `bc3d580`. Control characters are dropped before escaping (test added). |
 | L9 | **Noted only.** It matches how auto-cross works in other games: it reasons from the clues, not the answer. Auto-cross is off by default, and Check exists for this. |
 | L10 | Bitmask part **fixed** by the palette cap in `6fca7ac`. 25x25 timing at the real budget is **fixed** in `efecb74` (nine seeded noise grids at `DEFAULT_BUDGET`, each under 1s). Structured worst cases stay under the "Limits" table item until real 25x25 puzzles exist. |
-| L11 | `e.key` **fixed** in `6fca7ac`. The rest are **noted only**, since they're minor UX for a single-user tool. Elapsed-time-on-close and leave-Create-warning join the backlog's "after about 5 puzzles played" trigger. |
-| Weak tests | Smoke test **deleted**. Three tests **renamed** to say what they assert (`efecb74`). Noise timing **replaced** with a real-budget test. The Otsu tie pin and the create stale-race test are **deferred**: the race is guarded in code (verified clean above), and testing it needs DOM wiring this repo doesn't unit-test. |
+| L11 | `e.key` **fixed** in `6fca7ac`. The rest are **noted only**, since they're minor UX for a single-user tool. Elapsed-time-on-close and leave-Create-warning join the backlog's "after about 5 puzzles played" trigger. **Gate pass 6:** killed with that group (no hands-on round raised them). |
+| Weak tests | Smoke test **deleted**. Three tests **renamed** to say what they assert (`efecb74`). Noise timing **replaced** with a real-budget test. The Otsu tie pin and the create stale-race test are **deferred**: the race is guarded in code (verified clean above), and testing it needs DOM wiring this repo doesn't unit-test. **Gate pass 6:** Otsu tie pin fixed; stale-race test killed (guarded in code, no DOM harness). |
 | W1 | **Fixed** `efecb74`. README added with what it is, how to run it, the routes, dev commands and doc pointers. |
-| W2 | **Partly fixed.** The status line is now an as-built summary. Moving the lane machinery to an appendix is **deferred** until the next plan edit. It's an accurate record of how this was built, just long. |
+| W2 | **Partly fixed.** The status line is now an as-built summary. Moving the lane machinery to an appendix is **deferred** until the next plan edit. It's an accurate record of how this was built, just long. **Gate pass 6:** killed; skipped at every plan edit since, and the as-built record is accurate. |
 | W3 | **Fixed** `bc3d580`. Demo route removed. Samples cover the use. |
 | W4 | **Fixed** `efecb74` (the backlog committed). |
 | W5 | **Fixed** `6fca7ac`. Q6 and step 10 now state the as-built rule. |
 | W6 | **Rejected.** The owner's standing rule is no AI co-author trailer in their personal repos, and the commit hook enforces it. The session's default convention doesn't override the owner's instruction. |
 | W7 | **Fixed** `6fca7ac` (no hard-coded count) and `efecb74` (the test now matches its description). |
-| W8 | **Deferred** with W2, to the next plan edit. |
+| W8 | **Deferred** with W2, to the next plan edit. **Gate pass 6:** killed with W2. |
 | W9 to W11 | **Fixed** `efecb74`. |
-| W12 | **Deferred.** Trigger: the next change touching two or more views. Extract `src/views/dom.js`, a shared download helper, and one CSS-loading convention then. Duplication beats premature reuse until a change has to touch all copies. |
+| W12 | **Deferred.** Trigger: the next change touching two or more views. Extract `src/views/dom.js`, a shared download helper, and one CSS-loading convention then. Duplication beats premature reuse until a change has to touch all copies. **Gate pass 6:** the trigger fired with public-prep, which didn't touch the duplicated pieces. Re-deferred to the color UI build (create, play and grid). |
 | W13 | **Noted only.** Most are test seams. Un-exporting would force tests through views. |
 | W14 | **Fixed** `6fca7ac`. |
 | W15 | Plan-review doc: **kept**, and the README now points to it. Worktrees: **pending the owner**. They're merged and safe to remove, but deleting needs the owner's OK. |
@@ -142,7 +142,7 @@
 - **Draft 6 and D** (Sonnet enough; Opus orchestrates): *noted only.* This matched the expectation and is already the standing rule in the owner's notes on subagent models.
 - **B** (parallelization worked, at a planning cost): *noted only.* The planning iterations on dependencies are the price, and no cheaper method is in view.
 - **Draft 7 and E** (shell mangling): *applied.* JSCC had the same class of bug: PowerShell text steps without a UTF-8 flag caused mojibake twice, and PowerShell 5.1 redirects write UTF-16. Added a general rule to the owner's coding preferences and cross-session notes: file content goes through the file editor, and any shell text step sets its encoding explicitly.
-- **F** (how it extends and ages): *deferred.* Trigger: the first change after v1, whether color mode or a backlog item. Check then whether the frozen contracts and tests made the change easy or got in the way.
+- **F** (how it extends and ages): *deferred.* Trigger: the first change after v1, whether color mode or a backlog item. Check then whether the frozen contracts and tests made the change easy or got in the way. **Gate pass 6:** killed. It was never answered, and five passes of retrospectives have since covered how changes landed.
 
 # Pass 2: slim gate on v1.1, 2026-10-08
 
@@ -253,7 +253,7 @@ Owner's calls: "H1: start timer with first click", "rest clean up per your recom
 | W4 | **Fixed** (`19f4c00`). The seed adds a puzzle with art; new check `play-solve-reveal` (fade on a fresh solve, strip after it, no fade on reopening). |
 | W5, W6, W8 | **Fixed.** PLAN status, the reversed v1 line, lanes table, backlog; test renames; comments. |
 | W10 | **Noted only.** Not worth rewriting history. Next lane prompts give one subject style: `v<version> <step> (<lane>): ...`. |
-| W11 | **Fixed** on branch public-prep. The three review docs moved to `docs/reviews/` and the links were updated. `ux-checks.html` stays at the root, since it loads from the server root. |
+| W11 | **Fixed** (merged `a9ff17f`). The three review docs moved to `docs/reviews/` and the links were updated. `ux-checks.html` stays at the root, since it loads from the server root. |
 | D19 | **Done** (owner's request mid-pass). Auto-cross on by default, with crosses sweeping in along the line. New check `play-auto-cross-sweep`. |
 
 **Close checks (2026-10-09, after v1.3 merged):** 188 Node tests and 40 UX checks pass; lint and format clean. Claim grep: no "never stored", "Check mistakes", "Hints switch" or `createEditHistory` left as a current claim. Memory and the toolkit entry updated. **Pass closed.**
@@ -402,5 +402,84 @@ All quoted corpus numbers were checked against the code that prints them.
 2. **Play surfaces what no review asked for.** Round 1 produced the label on the play page, the finished-set photo and the all-filled case; none came from four gates or two UX passes. **Noted only:** it's check 10's lesson again, from the other side; small rounds after hands-on use stay the plan.
 3. **From the record: one fact was decided in two places.** D24's "all filled" was written once in Play and once in the set view, with different rules, and both lenses found it. **Noted only:** the existing "problems rhyme" technique covers it; the fix shares one predicate.
 4. **From the record: round 1 changed the mapping, not the personas.** The D22 structure absorbed the feedback with a table edit and one rule. **Noted only:** consistent with the owner's pass 4 read ("a very structured approach to start that can be adapted later").
+
+**Pass closed.**
+
+# Pass 6: slim gate on public prep and color research, 2026-10-14
+
+**Run:** 2026-10-14. **Scope:** `ac0dcdb..88e5fc7`: public-prep (MIT license, review docs moved to `docs/reviews/`, import trust hardening, CI, README) and color-research (hidden `?features=color` flag, `research/color/` experiment, `docs/color-research.md`). Both built by Sonnet lanes in parallel worktrees, then merged by the orchestrator. Run before the owner puts her own photos through the color experiment.
+**Prior runs:** passes 1 to 5 above. Neither reviewer was shown them.
+**Reviewers:** two read-only Explore subagents, cold.
+**Step 0, backlog prune.** Nine stale items, all dispositioned as proposed by the owner (`91c0a69`). The color group was re-sorted (left-clear and personas became decisions in `docs/color-research.md`; the `toWebpbn` limit killed as unreachable). The creator and player feel group, pass 1 L11's leftovers and the stray-row note were killed: their trigger ("about 5 puzzles played") fired and three hands-on rounds raised none of them. W2/W8 (PLAN appendix) and pass 1's retro lesson F were killed. W12 was re-deferred to the color UI build. Two fixed now: pass 1 L7 (its trigger fired when public-prep added a solver await to both import handlers) and the Otsu tie pin.
+
+## Lens 1: Adversarial
+
+No Critical or High.
+
+- **L1 (CONTRADICTS pass 3 L2 "done", Medium).** `pickKnown` is shallow: palette entries, the puzzle's `set` and the save's `rules` still carry unknown keys into storage (probe: a 1,000,000-character key survived both import paths, and `idMatches` still passed). The README's "only known fields are kept" and the PLAN backlog's "Done" overclaim. Root: the lane brief itself said "shallow copy".
+- **L2 (NEW, Medium).** Re-solving imports has no progress, cap or cancel, and the Import buttons stay enabled. One 25x25 noise grid took 4.7s; a crafted file of many could run for an hour.
+- **L3 (REPEAT-OF pass 1 L7, Medium).** Leaving the library mid-import throws on the cleared store and loses the import.
+- **L4 (REPEAT-OF pass 1 L7, Medium).** Leaving Play mid-import clears the next view's save hook and navigates the player back.
+- **L5 (NEW, Medium).** The research script counts empty or near-empty puzzles as fair (a blank 10x10 is `unique-line-solvable`; `[].every` is true for an empty layer stack). Dark photos under reading (b) would score 100%.
+- **L6 (NEW, Low).** Import save drops a picture silently; `artDropped` is computed and tested but unread. Cross-lens with W8.
+- **L7 (NEW, Low).** Duplicate ids inside one backup are solved twice and double-counted.
+- **L8 (NEW, Low).** `MAX_ART_SIDE` (format.js) and `ART_MAX_SIDE` (create-logic.js) can drift; no test ties them.
+- **L9 (NEW, Low).** The solver client is created outside the `try`; a synchronous Worker failure leaves "Checking…" up.
+- **L10 (NEW, Low).** Puzzles imported before this change keep their claimed verdicts; only new imports are re-solved.
+- **L11 (NEW, Low).** Any `?features=` list with no known names clears every flag, not only `none`. Cross-lens with W9.
+- **L12 (NEW, Low).** Research script: preview sheets with the same base name overwrite each other; `research/color/photos` passed as the image folder is counted twice; PNG `tRNS` for color types 0 and 2 and Display-P3 profiles are ignored.
+- **L13 (NEW, Low).** Untested glue: the dropped-picture count, a `ratePlan` rejection writing nothing, and Play re-rating only new puzzles.
+
+**Verified clean:** `jpegSize` on progressive frames, fill bytes, truncated and overlong segments, zero sizes and bad base64, and it stops at the first SOF as libjpeg does; Create's art never exceeds 320, so it is never dropped on re-import; the key lists cover every top-level field the app writes; forged ids are removed before planning, a solver failure aborts before any write, and every re-rated verdict passes `validatePuzzle`; `solver-client.js` is behavior-identical to the old Create code; the router keeps encoded ids intact and the flag param cannot throw; CI permissions, lockfile and Node version; the research script is seeded, writes only under `research/color/out/`, and skips unsupported PNGs with a message.
+
+## Lens 2: Outside-reviewer walkthrough
+
+Every data row in `docs/color-research.md` matches a fresh run of `node research/color/run.mjs` byte for byte.
+
+- **W1 (NEW, High).** README said the slow suite took "about 10s" and was "exhaustive 4x4 solver checks". It took about 60s, almost all in the persona corpus. PLAN claimed an exhaustive 5x5 check that was never built. The fast suite's "under 1s" was 1.2s.
+- **W2 (REPEAT-OF pass 1 W6, High).** Authorship: PLAN says AI agents wrote the code, the README disclosed AI only for samples, and a hook rejects co-author trailers. Pass 1 rejected the trailer as the owner's rule; going public changes the audience.
+- **W3 (NEW, Medium).** The color doc's recommendation says B "matches the photo's colors best" with no photos tested, and "the only approach fair in every run" is not true (gray shades were too; one B variant was not).
+- **W4 (NEW, Medium).** The color-error metric favors B by construction: mono is drawn in pure black, so any hue wins.
+- **W5 (NEW, Medium).** Percentages from n=6 with no counts beside them; budget-limited `unknown` counts as unfair, which leans against the rejected approaches.
+- **W6 (NEW, Medium).** Weak citations: an arXiv paper via a translation mirror, locale-specific links, a 1980 date for median cut (usually cited as 1982), and process notes ("returned 403") in the sources.
+- **W7 (NEW, Medium).** Stale "on branch" wording after the merges.
+- **W8 (NEW, Medium).** Same as L6.
+- **W9 (NEW, Low).** Same as L11, plus the unused `isEnabled` export.
+- **W10 (NEW, Low).** Small accuracy points in the color doc ("byte-identical" output includes the elapsed time; "failed" mixes fair and line-solvable; C equals A on two-color samples without saying why).
+- **W11 (NEW, Low).** Nothing in the README points to `research/` or the color doc.
+- **W12 (NEW, Low).** `difficulty-personas.md` stays at the root after the docs move.
+- **W13 (NEW, Low).** About 21 review ids ("gate pass 3, L2") in source comments.
+- **W14 (NEW, Low).** Commit timestamps bunched within minutes; mixed body wrapping; one message names a function the next commit renames.
+- **W15 (NEW, Low).** No Node or Python version stated; the CI comment implied a pre-commit hook the repo doesn't ship.
+
+## Disposition
+
+Owner, on the findings: "skip medium and lows for now", W1 as below, W2 option (a).
+
+| ID | Disposition |
+|---|---|
+| L3, L4 | **Fixed** `3b265b1` (as pass 1 L7, during this pass's step 0). **Proof, reproduction:** on unfixed `main` in the browser, leaving the library mid-import raised a TypeError and wrote nothing, and leaving Play mid-import dragged the player back; on the fix, neither happens and a normal import still opens the imported puzzle. `addSamples` got the same guard. |
+| W1 | **Fixed** `6b1df67`. Owner: "Persona corpus is an extended test that should not be part of standard CI. Appropriately pare back tests and get suites into target sizes." Three suites: `npm test` (CI, about 0.75s, 224 tests), `test:slow` (solver exhaustive 4x4 plus the 25x25 timing guard, about 11s), `test:extended` (persona corpus, about a minute). **Proof:** all three re-timed after the change; README, PLAN, the personas doc, the corpus test header and the CI comment updated to match (claim grep: no "about 10s" timing claim or 5x5 suite left outside the annotated original plan text). |
+| W2 | **Fixed** `d71134a`. Owner chose (a): one README line on how it was built; the hook stays ("trailers not needed"). |
+| W7 | **Fixed in part** `91c0a69`: PLAN and this doc now cite merge `a9ff17f`. The color doc's line 3 is deferred with the research items. |
+| L1, L2, L6/W8, L7, L8, L9, L11/W9, L13 | **Deferred.** Trigger: before the repo is made public. Until L1 lands, the README's "only known fields are kept" overstates the import check. |
+| L5, W3, W4, W5, W6, W10, L12 | **Deferred.** Trigger: before the photo-run results feed the color build plan. L5 matters most: dark photos can score as fair while nearly blank. Planned as one Sonnet lane over the script and the doc. |
+| W11, W12, W15 | **Deferred.** Trigger: before the repo is made public. |
+| L10 | **Accepted residual.** Only imports made before today, in a personal library, can carry a claimed verdict. |
+| W13, W14 | **Noted only.** Review ids are provenance; the history is accurate. |
+
+**Close checks:**
+- **Tests:** 224 fast, 3 slow and 1 extended pass. Lint and format clean.
+- **Browser:** UX checks 40/40 on both lane branches before the merge, and 40/40 on the pass 6 fixes; the L7 fix checked before and after on fresh 127.0.0.1 origins.
+
+## Retrospective
+
+**Owner, 2026-10-14 and 10-15:** "the more fine grade division into sub agents seems faster, but creates a number of smaller more isolated but disjointed feeling PRs." On whether that was the split or the reassembly: "disjointed feeling is both. maybe providing a summary when wrapping up would help but not sure." On color: "color run is interesting because I don't feel like there is a great consistent path there like with 2 tone. plan is to test and what feel is like and see if it can be adjusted from there as a cheep effort." The record-based draft was accepted as written.
+
+1. **The brief made the blind spot (L1).** The public-prep brief said "shallow copy", the lane built that, and the orchestrator marked the trust item Done. **Applied:** PLAN "Briefing rules for the orchestrator" and memory `feedback-lane-briefs`: a narrowed brief names what it leaves out, and the backlog marks done only what was done.
+2. **A backlog trigger fired inside a lane unnoticed (pass 1 L7).** **Applied:** same two places: grep backlog and gate-doc triggers on a lane's files before briefing it.
+3. **Timings are numbers too (W1).** The regenerate-from-code check held for data tables and missed a README timing for two phases. **Applied:** `/gate-review` Lens 2 now says to re-time run-time and size claims.
+4. **Many small lanes are fast but feel disjointed, in both the split and the reassembly.** The orchestrator still made four fixes after the two lanes before merging, and the gate found more. **Trial** (owner unsure it helps): after lanes merge, one combined summary of the round, and fewer, theme-sized lanes. Memory `feedback-round-summary`; revisit at the next gate and drop it if it doesn't help.
+5. **Color has no obvious consistent path the way two-tone did.** The owner's plan is a cheap feel test first, then adjust; the same lesson as pass 5's check 10. **Noted only:** the research items (L5, W3 to W6, W10, L12) stay deferred until the feel test says the photo numbers will drive a build plan.
 
 **Pass closed.**

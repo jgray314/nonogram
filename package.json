@@ -6,6 +6,7 @@
   "scripts": {
     "test": "node --test \"test/*.test.js\"",
     "test:slow": "node --test \"test/slow/*.test.js\"",
+    "test:extended": "node --test \"test/extended/*.test.js\"",
     "lint": "eslint .",
     "format:check": "prettier --check ."
   },

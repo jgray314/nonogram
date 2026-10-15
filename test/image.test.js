@@ -121,3 +121,8 @@ test('uniform input gives 128', () => {
   assert.equal(otsu([77, 77, 77, 77]), 128);
   assert.equal(otsu([]), 128);
 });
+
+test('otsu breaks a tie toward the smallest threshold', () => {
+  // Every t in 11..20 splits {10} from {20} with the same variance.
+  assert.equal(otsu([10, 10, 20, 20]), 11);
+});

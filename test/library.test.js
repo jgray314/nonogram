@@ -350,7 +350,9 @@ test('loadSamples skips existing puzzles', async () => {
 
 test('image-based samples match their art source', async () => {
   const { readFile } = await import('node:fs/promises');
-  const art = JSON.parse(await readFile(new URL('../sample-images/art.json', import.meta.url)));
+  const art = JSON.parse(
+    await readFile(new URL('../sample-images/art.json', import.meta.url), 'utf8'),
+  );
   const samples = await samplePuzzles();
   for (const { title, rows } of art) {
     const p = samples.find((s) => s.title === `AI test sample: ${title}`);

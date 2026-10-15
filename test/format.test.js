@@ -71,8 +71,10 @@ test('validate rejects malformed and wrong-version records', () => {
   assert.deepEqual(validateSave(makeSave({ solvedAt: 123 }), makePuzzle()), { ok: true });
   assert.deepEqual(validateSet(makeSet()), { ok: true });
 
-  const bad = (r) =>
-    assert.equal(r.ok, false, JSON.stringify(r)) || assert.equal(typeof r.error, 'string');
+  const bad = (r) => {
+    assert.equal(r.ok, false, JSON.stringify(r));
+    assert.equal(typeof r.error, 'string');
+  };
 
   // null / garbage never throw
   for (const g of [null, undefined, 'str', 42, [], {}]) {

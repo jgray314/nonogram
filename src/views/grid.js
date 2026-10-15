@@ -34,6 +34,8 @@ function div(className, text) {
  *     (down, enter and up), else null. Presses with other buttons are ignored.
  *   touchButton: () => 'left' | 'right', read at the start of each touch or pen
  *     stroke (the mouse always uses its own buttons). Default: 'left'.
+ * @param {HTMLElement} container
+ * @param {{ width: number, height: number, clues: any, cells: any, onPointer?: (event: any) => void, zeroClues?: boolean, touchButton?: () => 'left' | 'right' }} options
  *   The grid also holds one corner node (nng-grid-corner) over both gutters.
  * Returns {update(cells), setClueDone({rows, cols}), setOverlay(node | null),
  *   setWrong([r, c][]), setHighlight([r, c][]), sweep([r, c][]), destroy()}.
@@ -214,7 +216,9 @@ export function renderGrid(
   }
 
   const cellOf = (target) => {
-    const node = target instanceof Element ? target.closest('.nng-cell') : null;
+    const node = /** @type {HTMLElement | null} */ (
+      target instanceof Element ? target.closest('.nng-cell') : null
+    );
     return node && root.contains(node)
       ? { r: Number(node.dataset.r), c: Number(node.dataset.c) }
       : null;

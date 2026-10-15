@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "check_command": "npm test && npm run lint && npm run format:check",
+  "check_command": "npm test && npm run lint && npm run format:check && npm run typecheck",
   "features": [
     {
       "id": "fast-suite",
@@ -96,6 +96,27 @@
         "exit_code": 0,
         "seal": "lbbdnoiancmgggpn"
       }
+    },
+    {
+      "id": "typecheck-clean",
+      "behavior": "tsc --checkJs reports nothing on src, scripts and test; a suppression needs a stated reason.",
+      "verify": "npm run typecheck",
+      "state": "passing",
+      "source": "harness follow-up 2026-10-15: light type checking in the pre-push hook and CI",
+      "evidence": {
+        "commit": "7eea00538cf4c72214fcca5da2b29861a0bead01",
+        "dirty": true,
+        "at": "2026-10-15T22:38:02Z",
+        "exit_code": 0,
+        "seal": "kplpflepcjjmhkho"
+      }
+    },
+    {
+      "id": "ux-checks-headless",
+      "behavior": "ux-checks.html runs headless in Chrome and exits non-zero on any unmarked check failure; KNOWN issues are reported only.",
+      "verify": "npm run test:ux",
+      "state": "active",
+      "source": "harness follow-up 2026-10-15: UX checks were manual-only and not in CI"
     }
   ]
 }

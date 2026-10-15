@@ -65,6 +65,7 @@ const baseSave = () => ({
   hints: 1,
 });
 const baseSet = () => ({ v: 1, setId: 's1', title: 'S', rows: 1, cols: 2, tileIds: ['a', 'b'] });
+/** @type {Record<string, () => any>} */
 const BASE = { puzzle: basePuzzle, save: baseSave, set: baseSet };
 
 // A save that fits a puzzle of any (even invalid) size, so a size row tests the puzzle.
@@ -83,6 +84,7 @@ const fromBackup = (parsed, kind) => {
   };
 };
 
+/** @type {Record<string, { kinds: string[], run: (kind: string, record: any) => any }>} */
 const ENTRY_POINTS = {
   'library backup': {
     kinds: ['puzzle', 'save', 'set'],
@@ -146,6 +148,7 @@ const resizeSet = (rows, cols) => (r) => {
   return r;
 };
 
+/** @type {{ field: string, kind: string, cases: [string, (record: any) => any, string][] }[]} */
 const REGISTRY = [
   // puzzle
   {
@@ -481,6 +484,7 @@ for (const [entryName, entry] of Object.entries(ENTRY_POINTS)) {
 }
 
 // Unknown keys are dropped at every depth the formats have.
+/** @type {[string, string, (record: any, key: string) => any][]} */
 const UNKNOWN_KEY_SITES = [
   ['puzzle', 'puzzle top level', (r, k) => set(r, k, 1)],
   ['puzzle', 'palette entry', (r, k) => set(r, `palette.0.${k}`, 1)],

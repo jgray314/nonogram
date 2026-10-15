@@ -10,6 +10,7 @@ function checkKind(kind) {
   if (!Object.hasOwn(ID_FIELDS, kind)) throw new Error(`unknown record kind: ${kind}`);
 }
 
+/** @param {Pick<Storage, 'getItem' | 'setItem' | 'removeItem' | 'key' | 'length'>} [storage] */
 export function createStore(storage = globalThis.localStorage) {
   /** Parsed record, or null when missing, unparsable or storage throws. */
   function read(key) {

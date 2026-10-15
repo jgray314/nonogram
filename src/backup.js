@@ -20,6 +20,10 @@ const asArray = (x) => (Array.isArray(x) ? x : []);
  * file, else against `lookupPuzzle(id)` (e.g. the existing store). A repeated id
  * within the file is dropped, per kind, and the first valid record wins; it is
  * not reported as skipped. Never throws.
+ * @typedef {{ ok: boolean, puzzles: any[], saves: any[], sets: any[], skipped: any[], artDroppedIds: any[], error?: string }} BackupResult
+ * @param {string} text
+ * @param {(id: any) => any} [lookupPuzzle]
+ * @returns {BackupResult}
  */
 export function parseBackup(text, lookupPuzzle = () => null) {
   const empty = { ok: false, puzzles: [], saves: [], sets: [], skipped: [], artDroppedIds: [] };

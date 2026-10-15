@@ -8,12 +8,16 @@
     "test:solver_slow": "node --test \"test/solver_slow/*.test.js\"",
     "test:difficulty_very_slow": "node --test \"test/difficulty_very_slow/*.test.js\"",
     "lint": "eslint .",
+    "typecheck": "tsc -p .",
+    "test:ux": "node scripts/ux-checks-headless.mjs",
     "format:check": "prettier --check ."
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
+    "@types/node": "^24.19.2",
     "eslint": "^9.39.5",
     "globals": "^17.13.0",
-    "prettier": "^3.9.9"
+    "prettier": "^3.9.9",
+    "typescript": "^5.9.3"
   }
 }

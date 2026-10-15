@@ -6,7 +6,17 @@ import { puzzleId } from './format.js';
  * Binarize the whole crop once, then slice. A single threshold over the whole
  * image is deliberate: a threshold per tile would show seams in the mosaic.
  */
-export function tileGrid(rgba, imgW, imgH, crop, tileW, tileH, R, C, { threshold, invert } = {}) {
+export function tileGrid(
+  rgba,
+  imgW,
+  imgH,
+  crop,
+  tileW,
+  tileH,
+  R,
+  C,
+  { threshold, invert } = /** @type {{ threshold?: number, invert?: boolean }} */ ({}),
+) {
   const lum = cellLuminance(rgba, imgW, imgH, crop, C * tileW, R * tileH);
   const t = threshold ?? otsu(lum.flat());
   const full = binarize(lum, t, invert);

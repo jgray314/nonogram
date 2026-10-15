@@ -44,7 +44,9 @@ function render() {
   main.replaceChildren();
   current = ROUTES[route.name].view;
   current.mount(main, route.params);
-  for (const a of document.querySelectorAll('.nng-nav a')) {
+  for (const a of /** @type {NodeListOf<HTMLElement>} */ (
+    document.querySelectorAll('.nng-nav a')
+  )) {
     a.classList.toggle('active', a.dataset.route === ROUTES[route.name].nav);
   }
 }

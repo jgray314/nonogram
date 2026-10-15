@@ -46,9 +46,11 @@ npm run test:solver_slow          # solver: every 4x4 grid checked exhaustively,
 npm run test:difficulty_very_slow # difficulty persona corpus behind docs/difficulty-personas.md, about 1 minute
 npm run lint
 npm run format:check
+npm run typecheck                 # tsc --checkJs over src, scripts and test
+npm run test:ux                   # ux-checks.html in headless Chrome, about 7s
 ```
 
-CI (`.github/workflows/ci.yml`) runs `npm test`, lint and the format check on every push to `main` and every pull request. Run `test:solver_slow` after solver changes and `test:difficulty_very_slow` after persona or difficulty changes. Those two and the UX checks run locally only.
+CI (`.github/workflows/ci.yml`) runs `npm test`, lint, the format check and the type check on every push to `main` and every pull request. Run `test:solver_slow` after solver changes and `test:difficulty_very_slow` after persona or difficulty changes. Those two run locally only. The UX checks run headless in CI and in the pre-push hook (`npm run test:ux`, about 7s, needs Chrome or Edge; set `CHROME=<path>` if it is not found).
 
 **UX checks.** With the server running, open http://127.0.0.1:8123/ux-checks.html. It drives the real app in a frame and checks what a player should see: hearts, mistakes, restart, Zen, hints, the solve reveal, clue numbers, Create, the library, print, narrow layout and basic labels. It resets the app's data, so it only runs on `127.0.0.1`, which keeps its own storage, and refuses to run on `localhost`, where your library lives. A check marked KNOWN is tied to an open finding in `docs/reviews/nonogram-ux-review.md`. When one shows FIXED?, drop its `known` flag in `test/ux/checks.js`. Add `?only=<check id>` to run a single check.
 

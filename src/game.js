@@ -73,6 +73,7 @@ export function hintCell(cells, solution) {
   const h = cells.length;
   const w = h ? cells[0].length : 0;
   const open = (r, c) => solution[r][c] >= 1 && cells[r][c] !== solution[r][c];
+  /** @type {{ unknown: number, r: number, c: number } | null} */
   let best = null;
   const consider = (positions) => {
     const first = positions.find(([r, c]) => open(r, c));

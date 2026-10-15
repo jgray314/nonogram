@@ -12,3 +12,8 @@ echo "pre-push: npm run lint"
 npm run lint --silent
 echo "pre-push: npm run format:check"
 npm run format:check --silent
+echo "pre-push: npm run typecheck"
+npm run typecheck --silent
+echo "pre-push: npm run test:ux"
+# Exit 2 means no Chrome or Edge here; CI still runs it, so skip loudly rather than block.
+npm run test:ux --silent || { [ $? -eq 2 ] && echo "pre-push: test:ux skipped, no browser found" || exit 1; }

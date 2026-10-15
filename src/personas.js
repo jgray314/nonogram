@@ -166,6 +166,7 @@ export function personaTier(problem, status, { probeBudget = PROBE_BUDGET } = {}
 
 /** Solve and rate in one call: what the solver worker runs, so the page stays responsive. */
 export function solveAndRate(problem, opts) {
+  /** @type {ReturnType<typeof solve> & { tier?: string | null }} */
   const result = solve(problem, opts);
   result.tier = personaTier(problem, result.status);
   return result;

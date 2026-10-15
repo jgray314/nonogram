@@ -37,7 +37,10 @@ const lines = (file) =>
 const allLines = DOCS.flatMap(lines);
 const isHistorical = (l) => HISTORICAL_LINE.test(l.text);
 
-const testSources = readdirSync(fileURLToPath(new URL('test/', ROOT)), { recursive: true })
+const testSources = readdirSync(fileURLToPath(new URL('test/', ROOT)), {
+  recursive: true,
+  encoding: 'utf8',
+})
   .filter((f) => f.endsWith('.js'))
   .map((f) => read(`test/${f.replaceAll('\\', '/')}`))
   .join('\n');
@@ -57,6 +60,7 @@ function runFastSuite() {
     .filter((f) => f.endsWith('.test.js') && f !== 'docs_claims.test.js')
     .map((f) => dir + f);
   // NODE_TEST_CONTEXT would make the child report to this runner instead of printing.
+  /** @type {NodeJS.ProcessEnv} */
   const env = { ...process.env, NNG_DOCS_CLAIMS_CHILD: '1' };
   delete env.NODE_TEST_CONTEXT;
   const start = performance.now();

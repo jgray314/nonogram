@@ -671,15 +671,17 @@ export function mount(container, params = {}) {
     // The file's verdict is only a claim: re-solve a puzzle before it is stored.
     if (writes[0].kind === 'puzzle') {
       message.textContent = 'Checking the imported puzzle…';
-      const solver = createSolverClient();
+      // Created inside the try: `new Worker` can throw synchronously.
+      let solver;
       try {
+        solver = createSolverClient();
         const [rated] = await rateImports([writes[0].record], ratePuzzleWith(solver));
         writes = [{ kind: 'puzzle', record: rated }, ...writes.slice(1)];
       } catch {
         if (live()) message.textContent = 'Import failed: the solver could not check the puzzle';
         return;
       } finally {
-        solver.terminate();
+        solver?.terminate();
       }
     }
     // The replace was confirmed, so the import is written even if the player has

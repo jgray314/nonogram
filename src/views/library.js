@@ -142,15 +142,17 @@ async function runImport(file, ui) {
     const checking = (done) =>
       ui(() => say(`Checking ${done} of ${toCheck} imported puzzle${toCheck === 1 ? '' : 's'}…`));
     checking(0);
-    const solver = createSolverClient();
+    // Created inside the try: `new Worker` can throw synchronously.
+    let solver;
     try {
+      solver = createSolverClient();
       plan = await ratePlan(plan, ratePuzzleWith(solver), checking);
     } catch {
       return ui(() =>
         say('Import failed: the solver could not check the puzzles. Nothing was imported.'),
       );
     } finally {
-      solver.terminate();
+      solver?.terminate();
     }
   }
   let written = 0;

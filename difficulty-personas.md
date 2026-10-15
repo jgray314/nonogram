@@ -19,7 +19,7 @@ The personas model technique, not patience. A big grid of simple moves is still 
 
 ## Method
 
-`npm run test:slow` reruns everything in this section (`test/slow/personas.corpus.test.js`, seeded). It runs every persona over this corpus:
+`npm run test:extended` reruns everything in this section (`test/extended/personas.corpus.test.js`, seeded, about a minute). It runs every persona over this corpus:
 - The 11 samples.
 - 200 picture-like grids (soft blobs, 5x5 to 25x25).
 - 300 random grids at 45% to 75% density.
@@ -62,7 +62,7 @@ D23 (2026-10-11) replaced D22's first mapping after the owner's play. The owner 
 | Very hard | Expert (one-cell trial), or nobody (deeper guessing) |
 | Not fair, Unchecked | Unchanged |
 
-**Size step.** A grid 20 or more cells on its longer side moves Easy to Medium and Medium to Hard. Hard and Very hard don't move. The threshold is the same as the size warning (D20). Fair picture-like grids, as the shown label (the `blob` lines of `npm run test:slow`; none is Very hard):
+**Size step.** A grid 20 or more cells on its longer side moves Easy to Medium and Medium to Hard. Hard and Very hard don't move. The threshold is the same as the size warning (D20). Fair picture-like grids, as the shown label (the `blob` lines of `npm run test:extended`; none is Very hard):
 
 | Size | Fair | Easy | Medium | Hard |
 |---|---|---|---|---|

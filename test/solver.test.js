@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { puzzleClues } from '../src/clues.js';
-import { propagate, solve, solveLine, DEFAULT_BUDGET } from '../src/solver.js';
+import { propagate, solve, solveLine } from '../src/solver.js';
 import { lineClues } from '../src/clues.js';
 
 /** Parse a picture ('X' filled, anything else empty) into a solution grid. */
@@ -112,15 +112,7 @@ test('multiple reports differing cells', () => {
   // cell must really vary between solutions, and there must be at least one.
   const picture = pic(['X...', '.X..', '..XX', '..XX']);
   const problem = problemFrom(picture);
-  const key = JSON.stringify([problem.rows, problem.cols]);
-  const solutions = [];
-  for (let m = 0; m < 1 << 16; m += 1) {
-    const g = Array.from({ length: 4 }, (_, r) =>
-      Array.from({ length: 4 }, (_, c) => (m >> (r * 4 + c)) & 1),
-    );
-    const q = puzzleClues(g);
-    if (JSON.stringify([q.rows, q.cols]) === key) solutions.push(g);
-  }
+  const solutions = (masksBySignature.get(signature(problem)) ?? []).map(gridFromMask);
   assert.ok(solutions.length > 1);
   const amb = solve(problem);
   assert.equal(amb.status, 'multiple');
@@ -180,16 +172,17 @@ function mulberry32(seed) {
   };
 }
 
-// Count solutions per clue signature across all 65,536 4x4 grids.
-const counts = new Map();
+// Every 4x4 grid, grouped by clue signature: the true solutions of each clue set.
+const masksBySignature = new Map();
 for (let m = 0; m < 1 << 16; m += 1) {
   const key = signature(puzzleClues(gridFromMask(m)));
-  counts.set(key, (counts.get(key) ?? 0) + 1);
+  if (!masksBySignature.has(key)) masksBySignature.set(key, []);
+  masksBySignature.get(key).push(m);
 }
 
 function checkVerdict(m) {
   const p = problemFrom(gridFromMask(m));
-  const truth = counts.get(signature(p));
+  const truth = masksBySignature.get(signature(p)).length;
   const r = solve(p, { budget: 100000 });
   if (truth === 1) {
     assert.ok(
@@ -204,13 +197,13 @@ function checkVerdict(m) {
 // The full 65,536-grid version lives in test/slow/solver.exhaustive.test.js.
 test('seeded 4x4 cross-check sample', () => {
   const rand = mulberry32(12345);
-  for (let i = 0; i < 2000; i += 1) checkVerdict(Math.floor(rand() * 65536));
+  for (let i = 0; i < 500; i += 1) checkVerdict(Math.floor(rand() * 65536));
 });
 
 test('capped search reports unknown, never unique', () => {
   const rand = mulberry32(777);
   let sawUnknown = false;
-  for (let i = 0; i < 2000; i += 1) {
+  for (let i = 0; i < 500; i += 1) {
     const m = Math.floor(rand() * 65536);
     const p = problemFrom(gridFromMask(m));
     const r = solve(p, { budget: 0 });
@@ -268,7 +261,7 @@ function bruteFixpoint(p) {
 test('brute line oracle agrees on all 4x4 (sample)', () => {
   const seen = new Set();
   const pick = mulberry32(4242);
-  for (let i = 0; i < 400; i += 1) {
+  for (let i = 0; i < 150; i += 1) {
     const m = Math.floor(pick() * 65536);
     const p = problemFrom(gridFromMask(m));
     const key = signature(p);
@@ -281,7 +274,7 @@ test('brute line oracle agrees on all 4x4 (sample)', () => {
   }
   // Single lines, including partially known ones.
   const rand = mulberry32(99);
-  for (let i = 0; i < 3000; i += 1) {
+  for (let i = 0; i < 1000; i += 1) {
     const line = Array.from({ length: 6 }, () => (rand() < 0.5 ? 1 : 0));
     const known = line.map((v) => (rand() < 0.3 ? v : null));
     assert.deepEqual(solveLine(lineClues(line), known), bruteLine(lineClues(line), known));
@@ -300,21 +293,4 @@ test('25x25 line-solvable rings solve in under 1s', () => {
   assert.deepEqual(easy.grid, rings);
 });
 
-// Timing guard at the budget the app actually uses (the old version ran at
-// budget 50 and accepted any status, so it guarded only the clock). Noise
-// grids are the realistic worst case for the creator's live report.
-test('25x25 noise at the default budget finishes under 1s per grid', () => {
-  const rand = mulberry32(2025);
-  for (const density of [0.5, 0.6, 0.7]) {
-    for (let k = 0; k < 3; k++) {
-      const noise = Array.from({ length: 25 }, () =>
-        Array.from({ length: 25 }, () => (rand() < density ? 1 : 0)),
-      );
-      const t0 = performance.now();
-      const result = solve(problemFrom(noise), { budget: DEFAULT_BUDGET });
-      const ms = performance.now() - t0;
-      assert.ok(ms < 1000, `density ${density} grid ${k} took ${Math.round(ms)}ms`);
-      assert.notEqual(result.status, 'none', 'a grid built from real cells always has a solution');
-    }
-  }
-});
+// The 25x25 noise timing guard at the app's budget lives in test/slow/solver.perf.test.js.

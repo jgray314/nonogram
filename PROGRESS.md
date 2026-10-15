@@ -6,7 +6,7 @@ This is the verification ledger: check gates and controls, each with a command t
 It is not the product roadmap. What the product does and what is open lives in the README
 Status and the project plan.
 
-Commit: `3bf77bf`  
+Commit: `d9a9f96`  
 Full check: `npm test && npm run lint && npm run format:check && npm run typecheck`
 
 ## Done

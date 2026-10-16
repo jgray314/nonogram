@@ -1,6 +1,12 @@
 {
   "version": 1,
-  "init": { "state": "pending" },
+  "init": {
+    "state": "complete",
+    "commit": "dd09f8d6ebe175f8f65f106ba8fb2c5ffd7f9408",
+    "at": "2026-10-16T17:40:55Z",
+    "fresh_session_tested": true,
+    "seal": "kfanhipdibgkgpoj"
+  },
   "check_command": "npm test && npm run lint && npm run format:check && npm run typecheck",
   "features": [
     {

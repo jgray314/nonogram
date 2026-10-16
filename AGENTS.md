@@ -26,6 +26,7 @@ Browser nonogram maker and player: turns an image into a fair puzzle, then plays
 6. Imports are untrusted input: allow-list keys at every depth, bound lengths and counts, and refuse duplicate ids.
 7. No Co-Authored-By trailers. The commit-msg hook rejects them.
 8. Every number a doc quotes (counts, timings) must be reproducible from this repo. Re-time before quoting.
+9. Stay inside the active feature: no refactors, renames or fixes to unrelated code in the same change. Note them for later instead.
 
 ## End of a session
 

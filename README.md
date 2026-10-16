@@ -22,7 +22,7 @@ A browser-only tool for turning a picture into a fair nonogram (picross) and pla
 python -m http.server 8123
 ```
 
-Run it from this folder, then open http://localhost:8123. Opening `index.html` as a file won't load the modules. After updating the code, reload with Ctrl+Shift+R so the browser doesn't keep old modules.
+Run it from this folder, then open http://localhost:8123 (your library lives at this address; browser storage is per address, so `127.0.0.1:8123` shows a separate, empty library, which is what development and the UX checks use). Opening `index.html` as a file won't load the modules. After updating the code, reload with Ctrl+Shift+R so the browser doesn't keep old modules.
 
 ## Pages
 

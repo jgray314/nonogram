@@ -32,4 +32,6 @@ Browser nonogram maker and player: turns an image into a fair puzzle, then plays
 
 Run `python scripts/features.py clean`. It checks the feature list, runs the full check and the startup path, reports CI for the pushed commit, looks for debug leftovers, and warns about uncommitted changes and extra worktrees. Then `python scripts/features.py progress` and commit.
 
-Periodic sweeps (`/backlog-prune`, `/test-prune`, `/docs-consolidate`, `/harness-audit`): when `clean` or `status` lists any as due (no run in 30 days), or a phase or version has just closed, offer to run them before moving on. Each records its own run.
+Periodic sweeps: `clean` and `status` flag any of four sweeps with no recorded run in 30 days. `/backlog-prune` finds stale deferred items, `/test-prune` finds tests that no longer earn their place, `/docs-consolidate` finds redundant or drifted docs and comments, and `/harness-audit` checks which controls fired and proposes one ablation. When one is flagged, or a phase or version has just closed, offer to run them before moving on. Each ends by recording its run: `python scripts/features.py event sweep <name>`.
+
+These four are the maintainer's user-level Claude Code skills (`~/.claude/skills/`), not files in this repo. On any other machine they do not exist, so the flag never clears there. That is expected, not a broken check. Either write your own skills with those names (ending with the record command above), or set `"sweeps"` in `FEATURES.json` to the ones you keep (`[]` turns the prompt off) and delete this paragraph.

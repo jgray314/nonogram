@@ -31,3 +31,5 @@ Browser nonogram maker and player: turns an image into a fair puzzle, then plays
 ## End of a session
 
 Run `python scripts/features.py clean`. It checks the feature list, runs the full check and the startup path, reports CI for the pushed commit, looks for debug leftovers, and warns about uncommitted changes and extra worktrees. Then `python scripts/features.py progress` and commit.
+
+Periodic sweeps (`/backlog-prune`, `/test-prune`, `/docs-consolidate`, `/harness-audit`): when `clean` or `status` lists any as due (no run in 30 days), or a phase or version has just closed, offer to run them before moving on. Each records its own run.

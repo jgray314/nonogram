@@ -1,14 +1,17 @@
 #!/bin/sh
 # Two checks on every commit message.
 #
-# 1. No AI co-author trailers. Shared by all worktrees.
+# 1. No AI co-author trailers (disclose AI use once in the README instead).
 # 2. A commit whose subject starts with "Fix" and whose message names a
 #    Critical or High finding must carry a "Proof:" line saying how the fix was
 #    shown to work: reproduction, mutation, or deletion. Presence only. The hook
 #    cannot judge whether the proof is true; it makes leaving it out deliberate.
 msg="$1"
+# Best-effort event line in .harness/events.jsonl; never affects the result.
+ev() { python "$(git rev-parse --show-toplevel)/scripts/features.py" event commit-msg "$@" >/dev/null 2>&1 || true; }
 if grep -qi '^co-authored-by:' "$msg"; then
   echo "commit-msg: Co-Authored-By trailers are not allowed in this repo." >&2
+  ev reject reason=coauthor
   exit 1
 fi
 subject=$(head -n 1 "$msg")
@@ -16,6 +19,8 @@ if echo "$subject" | grep -qi '^fix' && grep -qiE '\b(critical|high)\b' "$msg"; 
   if ! grep -qiE '^proof: *(reproduction|mutation|deletion)' "$msg"; then
     echo "commit-msg: a fix for a Critical or High finding needs a line like" >&2
     echo "  Proof: reproduction | mutation | deletion  (plus what was run)" >&2
+    ev reject reason=missing-proof
     exit 1
   fi
 fi
+ev pass

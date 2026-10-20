@@ -58,7 +58,11 @@ def log_event(source, event, **fields):
     """Append one line to .harness/events.jsonl (gitignored). Never raises: a
     broken log must not break the control it observes."""
     try:
-        rec = {"at": datetime.now(UTC).isoformat(timespec="seconds"), "source": source, "event": event}
+        rec = {
+            "at": datetime.now(UTC).isoformat(timespec="seconds"),
+            "source": source,
+            "event": event,
+        }
         rec.update({k: v for k, v in fields.items() if v is not None})
         EVENTS.parent.mkdir(exist_ok=True)
         with EVENTS.open("a", encoding="utf-8", newline="\n") as fh:
@@ -620,7 +624,12 @@ def main(argv):
         code = e.code if isinstance(e.code, int) else (0 if e.code is None else 1)
         raise
     finally:
-        log_event("features", cmd, id=rest[0] if cmd in ("activate", "verify", "block") else None, ok=code == 0)
+        log_event(
+            "features",
+            cmd,
+            id=rest[0] if cmd in ("activate", "verify", "block") else None,
+            ok=code == 0,
+        )
 
 
 if __name__ == "__main__":

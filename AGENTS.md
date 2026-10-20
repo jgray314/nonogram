@@ -30,4 +30,4 @@ Browser nonogram maker and player: turns an image into a fair puzzle, then plays
 
 ## End of a session
 
-Run `python scripts/features.py clean`. It checks the feature list, runs the full check, looks for debug leftovers, and warns about uncommitted changes and extra worktrees. Then `python scripts/features.py progress` and commit.
+Run `python scripts/features.py clean`. It checks the feature list, runs the full check and the startup path, reports CI for the pushed commit, looks for debug leftovers, and warns about uncommitted changes and extra worktrees. Then `python scripts/features.py progress` and commit.

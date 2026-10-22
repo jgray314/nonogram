@@ -14,7 +14,7 @@ function pixelLuminance(rgba, i) {
 // Pixel range [start, end) of cell k out of n over a span of `len` pixels.
 // When the span is smaller than n the range can be empty; then it collapses to
 // the single pixel nearest the cell's center.
-function cellRange(k, n, len) {
+export function cellRange(k, n, len) {
   const start = Math.floor((k * len) / n);
   const end = Math.floor(((k + 1) * len) / n);
   if (end > start) return [start, end];

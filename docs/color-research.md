@@ -313,10 +313,44 @@ Treat palette layers (D) as an optional second stage. They follow a real pattern
 - **Solver budget.** 300 nodes left almost no `unknown` here (see the `unk` column). Larger color puzzles (25x25, 5 colors) are not tested.
 - **Scope of the flag.** `?features=color` stores a pref in this browser only and reveals nothing in the UI. Nothing reads it yet.
 
+## D25: most common color as the blank (2026-10-22)
+
+The maintainer chose decision 2: the most common color is the blank, with 3 to 5 colors in total. The script now has two more approaches:
+
+- **G kN**: N colors in total, seeded k-means in Lab with no fixed anchor. The largest cluster is the blank; the others are inks. The finished picture shows blank cells in the blank cluster's own color.
+- **Gm kN**: the shipped quantizer, `quantizeColors` in `src/color.js`. G plus one step: any two colors closer than delta E 15 (`MERGE_DE`) are merged, so N is a maximum.
+
+The `--detail` table has a `minpal` column: the smallest delta E between two colors of the palette, blank included. Run `node research/color/run.mjs` for the full tables; the rows below are copied from it (sizes 10, 15, 20).
+
+| group | approach | fair 10 | fair 15 | fair 20 | line 15 | deg 15 | dE 15 | clues 15 | max/line 15 |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| samples | A mono-mean | 6/6 (100%) | 6/6 (100%) | 5/6 (83%) | 6/6 (100%) | 0 | 6.3 | 46 | 2.8 |
+| samples | G k3 | 4/6 (67%) | 4/6 (67%) | 3/6 (50%) | 3/6 (50%) | 0 | 3.1 | 77 | 5.0 |
+| samples | G k5 | 5/6 (83%) | 5/6 (83%) | 3/6 (50%) | 3/6 (50%) | 0 | 0.7 | 109 | 7.3 |
+| samples | Gm k3 | 4/6 (67%) | 4/6 (67%) | 3/6 (50%) | 4/6 (67%) | 0 | 2.6 | 85 | 5.2 |
+| samples | Gm k4 | 5/6 (83%) | 5/6 (83%) | 3/6 (50%) | 4/6 (67%) | 0 | 1.6 | 98 | 6.3 |
+| samples | Gm k5 | 5/6 (83%) | 4/6 (67%) | 3/6 (50%) | 3/6 (50%) | 0 | 1.0 | 104 | 7.0 |
+| synthetic | A mono-mean | 5/6 (83%) | 4/6 (67%) | 6/6 (100%) | 3/6 (50%) | 0 | 16.5 | 52 | 3.0 |
+| synthetic | G k3 | 5/6 (83%) | 4/6 (67%) | 4/6 (67%) | 4/6 (67%) | 0 | 6.2 | 64 | 3.8 |
+| synthetic | G k5 | 5/6 (83%) | 4/6 (67%) | 5/6 (83%) | 4/6 (67%) | 0 | 3.9 | 110 | 7.2 |
+| synthetic | Gm k3 | 4/5 (80%) | 4/5 (80%) | 4/5 (80%) | 4/5 (80%) | 1 | 6.5 | 57 | 3.4 |
+| synthetic | Gm k4 | 4/5 (80%) | 5/5 (100%) | 4/5 (80%) | 4/5 (80%) | 1 | 5.3 | 69 | 4.6 |
+| synthetic | Gm k5 | 4/5 (80%) | 4/5 (80%) | 4/5 (80%) | 4/5 (80%) | 1 | 4.9 | 79 | 5.2 |
+
+What it shows:
+
+- **The blank problem is gone.** No G puzzle is degenerate (0 of 6 at every size), against 4 to 6 of 6 for B with the white blank. The blank holds at least 1/N of the cells by construction, so a grid is never fully inked.
+- **Fairness on photo-like images is about two-tone's.** On synthetic at size 15, Gm is fair in 4/5 to 5/5 non-degenerate puzzles against 4/6 for mono. On the samples it is lower than mono (4/6 or 5/6 against 6/6): those images have two colors, and extra clusters split the antialiased edges into short runs. Two-tone stays the right choice for them.
+- **Color match is much closer.** dE 4.9 to 6.5 on synthetic at size 15 against 16.5 for mono drawn in its own mean colors.
+- **The merge is needed.** Without it, k-means at k=5 put two colors of the clouds image 2.4 apart (`minpal`), which no player could tell apart in a cell. With it, every kept pair is at least 15 apart (the smallest on the samples is 16.2). The cost: the clouds image, low contrast all over, merges to one color and gives an empty grid at every k (the 1 in `deg`). Create says so and suggests Two-tone.
+- **More colors means more clues.** At size 15 the max per line rises from 3.0 (mono) to 5.2 (Gm k5) on synthetic, and the terrain texture reaches 11 at k=5 (Gm). Expect busier lines than two-tone.
+
+Still not tested on real photos (none are in the repo). The verdicts above are the solver's; how the puzzles feel is the hands-on test.
+
 ## Decisions for the maintainer before a build plan
 
 1. Is B (one color puzzle) the first build, with layers (D) deferred?
-2. How is the blank cell chosen: the most common cluster, picked by the user, or no blank on purpose? This comes before the build plan.
+2. How is the blank cell chosen: the most common cluster, picked by the user, or no blank on purpose? This comes before the build plan. **Decided 2026-10-22 (D25): the most common color, 3 to 5 colors in total.**
 3. How many colors by default and at most per puzzle: 2 to 4 plus white, as researched, or more? (webpbn caps at 5 counting white; the format here allows 30.)
 4. Black: reading (a), an extra ink that is always available. Confirm, and confirm reading (b) is out.
 5. Is the palette chosen automatically from the image with a short editor in Create, or must the user pick it by hand?

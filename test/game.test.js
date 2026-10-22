@@ -408,3 +408,46 @@ test('solvedSummary adds the hint count', () => {
   assert.equal(solvedSummary(192000, 1), 'Solved in 03:12 · 1 hint');
   assert.equal(solvedSummary(192000, 2), 'Solved in 03:12 · 2 hints');
 });
+
+// Color: row 0 is [1, 2, 0].
+const COLOR = [
+  [1, 2, 0],
+  [0, 0, 0],
+];
+const blank2x3 = () => [
+  [0, 0, 0],
+  [0, 0, 0],
+];
+
+test('heartsStroke paints with the chosen color', () => {
+  const { next, wrong } = heartsStroke(blank2x3(), left([[0, 1]]), COLOR, 2);
+  assert.equal(wrong, null);
+  assert.equal(next[0][1], 2);
+});
+
+test('heartsStroke: a fill in the wrong color is a mistake, and the cell is left open', () => {
+  const { next, wrong } = heartsStroke(blank2x3(), left([[0, 1]]), COLOR, 1);
+  assert.deepEqual(wrong, [0, 1]);
+  assert.equal(next[0][1], 0, 'not crossed: the cell does hold a color');
+});
+
+test('heartsStroke: a colored fill on an empty cell still becomes a cross', () => {
+  const { next, wrong } = heartsStroke(blank2x3(), left([[0, 2]]), COLOR, 2);
+  assert.deepEqual(wrong, [0, 2]);
+  assert.equal(next[0][2], -1);
+});
+
+test('a color puzzle is solved only with every run in its own color', () => {
+  const clues = puzzleClues(COLOR);
+  assert.equal(isSolved(COLOR, clues), true);
+  assert.equal(
+    isSolved(
+      [
+        [1, 1, 0],
+        [0, 0, 0],
+      ],
+      clues,
+    ),
+    false,
+  );
+});

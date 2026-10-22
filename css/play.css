@@ -131,6 +131,25 @@
   touch-action: none;
 }
 
+/* Color picker for color puzzles: one numbered chip per ink (the number is the
+   key that picks it, and a cue that doesn't rely on telling colors apart). */
+.nng-swatches {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* In the status row the chips are a little smaller than the toolbar buttons. */
+.nng-play .nng-swatches button.nng-swatch {
+  min-width: 30px;
+  min-height: 26px;
+  padding: 0 8px;
+}
+
+.nng-swatches[hidden] {
+  display: none;
+}
+
 .nng-mode {
   display: inline-flex;
 }

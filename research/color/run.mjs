@@ -12,7 +12,10 @@ import { fileURLToPath } from 'node:url';
 import { puzzleClues } from '../../src/clues.js';
 import { solve } from '../../src/solver.js';
 import { cellLuminance, otsu, binarize } from '../../src/image.js';
+import { quantizeColors } from '../../src/color.js';
 import { decodePng, encodePng } from './png.mjs';
+
+const rgbOfHex = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
 import {
   BLACK,
   WHITE,
@@ -31,6 +34,7 @@ const BUDGET = 300; // search nodes per puzzle; same for every approach
 const SEED = 1;
 const KS = [2, 3, 4];
 const VARIANTS = ['w', 'a', 'b'];
+const GKS = [3, 4, 5]; // G: total colors including the blank
 
 const args = process.argv.slice(2);
 const flag = (name) => args.includes(name);
@@ -155,6 +159,35 @@ function buildApproaches(img, n) {
     }
   }
 
+  // G: N colors in total with no fixed anchor; the most common cluster is the
+  // blank and the rest are inks. The finished picture shows the blank cells in
+  // the blank cluster's own color.
+  for (const k of GKS) {
+    const { assign, centroids } = kmeans(flat(cells).map(rgbToLab), [], k, SEED);
+    const rgb = flat(cells);
+    const palette = centroids.map((_, j) => {
+      const members = rgb.filter((__, i) => assign[i] === j);
+      return members.length
+        ? members[0].map((___, d) => members.reduce((s, m) => s + m[d], 0) / members.length)
+        : [128, 128, 128];
+    });
+    const grid = cells.map((row, r) => row.map((_, c) => assign[r * n + c]));
+    out[`G k${k}`] = {
+      layers: [grid],
+      shown: grid.map((row) => row.map((v) => palette[v])),
+      palette,
+    };
+    // Gm: the shipped quantizer (src/color.js): G plus merging colors closer than MERGE_DE.
+    const q = quantizeColors(cells, k);
+    const shipped = [q.blank, ...q.palette.map((p) => p.hex)].map(rgbOfHex);
+    const inked = q.grid.some((row) => row.some((v) => v !== 0));
+    out[`Gm k${k}`] = {
+      layers: [q.grid],
+      shown: q.grid.map((row) => row.map((v) => shipped[v])),
+      palette: inked ? shipped : shipped.slice(0, 1),
+    };
+  }
+
   // C: threshold each channel; an inked cell removes that channel (white paper).
   const thr = [0, 1, 2].map((ch) => otsu(flat(cells).map((p) => p[ch])));
   const cl = [0, 1, 2].map((ch) => cells.map((row) => row.map((p) => (p[ch] < thr[ch] ? 1 : 0))));
@@ -238,11 +271,29 @@ function evaluate(build, cells) {
     maxLine: Math.max(0, ...layers.map((l) => l.maxLine)),
     sweeps: layers.reduce((s, l) => s + l.sweeps, 0),
     dE: sum / total,
+    // Closest pair of colors in the palette (blank included), in delta E.
+    minPal: build.palette
+      ? Math.min(
+          ...build.palette.flatMap((a, i) =>
+            build.palette.slice(i + 1).map((b) => deltaE(lab(a), lab(b))),
+          ),
+        )
+      : null,
   };
 }
 
 // results[group][approach][n] = [per-image metrics]
-const SHEET = ['A mono', 'F dither', 'E gray4', 'B1 k3w', 'B1 k4a', 'C rgb3'];
+const SHEET = [
+  'A mono',
+  'F dither',
+  'E gray4',
+  'B1 k3w',
+  'B1 k4a',
+  'C rgb3',
+  'G k3',
+  'G k4',
+  'G k5',
+];
 /** Source and several finished puzzles side by side, one PNG per image. */
 function writeSheet(group, name, n, cells, out) {
   const px = 10;
@@ -336,6 +387,8 @@ const approachOrder = [
   ...VARIANTS.flatMap((v) => KS.map((k) => `D k${k}${v}`)),
   'E gray3',
   'E gray4',
+  ...GKS.map((k) => `G k${k}`),
+  ...GKS.map((k) => `Gm k${k}`),
 ];
 
 const mid = sizes.includes(15) ? 15 : sizes[Math.floor(sizes.length / 2)];
@@ -417,14 +470,16 @@ if (detail) {
   console.log(
     `\n## Detail at grid size ${mid} (status per layer: L line-solvable, G needs guessing, M multiple, ? unknown, X none, - trivial layer; ink = share of cells inked; deg = degenerate)\n`,
   );
-  console.log('| group | image | approach | statuses | ink% | deg | clues | max/line | dE |');
-  console.log('|---|---|---|---|---:|---|---:|---:|---:|');
+  console.log(
+    '| group | image | approach | statuses | ink% | deg | clues | max/line | dE | minpal |',
+  );
+  console.log('|---|---|---|---|---:|---|---:|---:|---:|---:|');
   for (const [group, byApproach] of Object.entries(results)) {
     for (const approach of approachOrder) {
       for (const m of byApproach[approach][mid]) {
         const st = m.layers.map((l) => (l.trivial ? '-' : short[l.status])).join(' ');
         console.log(
-          `| ${group} | ${m.image} | ${approach} | ${st} | ${Math.round(100 * m.inkShare)} | ${m.degenerate ? 'yes' : 'no'} | ${m.clues} | ${m.maxLine} | ${fix(m.dE)} |`,
+          `| ${group} | ${m.image} | ${approach} | ${st} | ${Math.round(100 * m.inkShare)} | ${m.degenerate ? 'yes' : 'no'} | ${m.clues} | ${m.maxLine} | ${fix(m.dE)} | ${m.minPal === null ? '-' : fix(m.minPal)} |`,
         );
       }
     }

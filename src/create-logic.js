@@ -31,7 +31,7 @@ export function defaultSize(imgW, imgH) {
 
 /** A string that changes whenever the saved-or-not content of the editor changes. */
 export function gridSig(st) {
-  return JSON.stringify([st.tileRows, st.tileCols, st.grid]);
+  return JSON.stringify([st.tileRows, st.tileCols, st.grid, st.palette ?? null]);
 }
 
 /**
@@ -135,6 +135,12 @@ export function newEditorState({ width = 15, height = 15 } = {}) {
     threshold: 128,
     autoThreshold: true,
     invert: false,
+    // Color (hidden flag): colors is 0 for two-tone, or 3 to 5 in total with the
+    // blank; palette is the inks from the image ({name, hex}[]), null for two-tone;
+    // brush is the ink a left-drag paints.
+    colors: 0,
+    palette: null,
+    brush: 1,
   };
 }
 
@@ -237,16 +243,16 @@ export function withArts(puzzles, arts) {
 /**
  * Puzzle record for a grid and the solver result it was checked with. `id` is
  * left empty: the caller fills it with `await puzzleId(record)`. `art`, when
- * given, is the optional source-crop JPEG data URL.
+ * given, is the optional source-crop JPEG data URL. `palette` defaults to black.
  */
-export function buildPuzzleRecord(grid, title, report, art) {
+export function buildPuzzleRecord(grid, title, report, art, palette = DEFAULT_PALETTE) {
   const record = {
     v: 1,
     id: '',
     title: title.trim() || 'Untitled',
     width: grid[0].length,
     height: grid.length,
-    palette: DEFAULT_PALETTE.map((p) => ({ ...p })),
+    palette: palette.map((p) => ({ name: p.name, hex: p.hex })),
     solution: grid.map((row) => row.slice()),
     verdict: verdictOf(report),
   };

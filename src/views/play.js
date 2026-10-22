@@ -1,5 +1,6 @@
 // Play view: load a puzzle, wire strokes, undo/redo, solve detection.
-import { renderGrid, gutterSize } from './grid.js';
+import { renderGrid, gutterSize, inkColors } from './grid.js';
+import { inkText } from '../color.js';
 import { puzzleClues } from '../clues.js';
 import { applyStroke, strokeCells } from '../play-state.js';
 import {
@@ -175,8 +176,32 @@ export function mount(container, params = {}) {
   redoBtn.type = 'button';
   redoBtn.title = 'Redo (Ctrl+Y)';
   redoBtn.setAttribute('aria-keyshortcuts', 'Control+Y');
-  const MOUSE_LEGEND = 'Left-drag to fill · Right-drag to cross · Ctrl+Z to undo';
-  const TOUCH_LEGEND = 'Choose Fill or Cross, then tap or drag';
+  // A color puzzle gets a color picker; a fill paints the picked color.
+  const inks = inkColors(puzzle.palette);
+  const multi = inks !== null && inks.length > 1;
+  let brush = 1;
+  const swatchBar = el('div', 'nng-swatches');
+  swatchBar.setAttribute('role', 'group');
+  swatchBar.setAttribute('aria-label', 'Fill color');
+  swatchBar.hidden = !multi;
+  const swatches = (multi ? inks : []).map((hex, i) => {
+    const b = el('button', 'nng-swatch', String(i + 1));
+    b.type = 'button';
+    b.style.setProperty('--ink', hex);
+    b.style.setProperty('--ink-text', inkText(hex));
+    b.setAttribute('aria-label', `Color ${i + 1}`);
+    b.addEventListener('click', () => pickBrush(i + 1));
+    swatchBar.append(b);
+    return b;
+  });
+  function pickBrush(v) {
+    brush = v;
+    swatches.forEach((b, i) => b.setAttribute('aria-pressed', String(i + 1 === brush)));
+  }
+  pickBrush(1);
+  const colorHint = multi ? `Pick a color (keys 1 to ${inks.length}) · ` : '';
+  const MOUSE_LEGEND = `${colorHint}Left-drag to fill · Right-drag to cross · Ctrl+Z to undo`;
+  const TOUCH_LEGEND = `${colorHint}Choose Fill or Cross, then tap or drag`;
   const legend = el('p', 'nng-legend', MOUSE_LEGEND);
   // D21: on a touch screen a Fill / Cross selector stands in for the mouse buttons.
   let touchMode = 'fill';
@@ -230,6 +255,8 @@ export function mount(container, params = {}) {
   // under the grid, so the save buttons don't cost a 25x25 its fit at 1024x768.
   const belowRow = el('div', 'nng-below');
   belowRow.append(legend, toolbar);
+  // The color picker sits in the status row, so it costs the grid no height.
+  heartsEl.after(swatchBar);
   root.append(title, status, outPanel, rulesBar, ruleDefault, sizeNote, holder, strip, belowRow);
   container.append(root);
 
@@ -301,7 +328,7 @@ export function mount(container, params = {}) {
 
   const preview = () => {
     if (!drag) return;
-    grid.update(applyStroke(cells, drag));
+    grid.update(applyStroke(cells, drag, brush));
     count.textContent = `${strokeCells(cells, drag).length} cells`;
   };
 
@@ -410,7 +437,9 @@ export function mount(container, params = {}) {
 
   /** One committed move (a stroke or a hint) is one undo step. */
   function commit(next, wrong = null) {
-    if (sameGrid(cells, next)) return;
+    // A wrong color leaves the grid as it was, but still counts and is marked.
+    const changed = !sameGrid(cells, next);
+    if (!changed && !wrong) return;
     startClock(); // a hint can be the first move
     // Auto-cross rides in the same undo step as the move that completed a line,
     // and its crosses sweep in along the line (D19).
@@ -421,7 +450,7 @@ export function mount(container, params = {}) {
       swept = changedCells(moved, next);
     }
     cells = next;
-    history.push(cells);
+    if (changed) history.push(cells);
     wrongMark = wrong;
     // Zen shows the same red cross but costs nothing (D13).
     if (wrong && !zen()) {
@@ -454,10 +483,10 @@ export function mount(container, params = {}) {
       drag = null;
       if (heartsOk) {
         // Hearts and Zen alike: a wrong fill becomes a red cross on the spot.
-        const result = heartsStroke(cells, finished, puzzle.solution);
+        const result = heartsStroke(cells, finished, puzzle.solution, brush);
         commit(result.next, result.wrong);
       } else {
-        commit(applyStroke(cells, finished)); // no unique solution to check against
+        commit(applyStroke(cells, finished, brush)); // no unique solution to check against
       }
     }
   }
@@ -470,6 +499,7 @@ export function mount(container, params = {}) {
     onPointer,
     touchButton: () => (touchMode === 'cross' ? 'right' : 'left'),
     zeroClues: true,
+    palette: puzzle.palette,
   });
   refresh();
 
@@ -712,6 +742,15 @@ export function mount(container, params = {}) {
   });
 
   const onKey = (e) => {
+    // Digit keys pick a fill color on a color puzzle.
+    const digit = Number(e.key);
+    if (multi && !e.ctrlKey && !e.metaKey && !e.altKey && digit >= 1 && digit <= inks.length) {
+      const t = e.target;
+      if (t?.matches?.('input, textarea, select')) return;
+      pickBrush(digit);
+      e.preventDefault();
+      return;
+    }
     if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
     const k = (e.key ?? '').toLowerCase(); // synthetic events can lack a key
     if (k === 'z' && !e.shiftKey) step(history.undo);

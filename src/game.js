@@ -136,18 +136,20 @@ export function crossEmptyLines(cells, clues) {
 }
 
 /**
- * Apply a stroke under the hearts rule. The mode comes from applyStroke; the
- * changed cells are walked in stroke order. A fill on a cell the solution
- * leaves empty becomes a cross instead and ends the walk, so cells before it
- * stay. Returns {next, wrong: [r, c] | null}. Monochrome only.
+ * Apply a stroke under the hearts rule. The mode comes from applyStroke, and
+ * `paint` is the color a fill uses; the changed cells are walked in stroke
+ * order. A fill that does not match the solution ends the walk, so cells
+ * before it stay: on a cell the solution leaves empty it becomes a cross, and
+ * on a cell of another color it is undone (crossing it would be wrong too).
+ * Returns {next, wrong: [r, c] | null}.
  */
-export function heartsStroke(cells, stroke, solution) {
-  const full = applyStroke(cells, stroke);
+export function heartsStroke(cells, stroke, solution, paint = 1) {
+  const full = applyStroke(cells, stroke, paint);
   const next = copy(cells);
   for (const [r, c] of strokeCells(cells, stroke)) {
     if (full[r][c] === cells[r][c]) continue;
-    if (full[r][c] >= 1 && solution[r][c] === 0) {
-      next[r][c] = -1;
+    if (full[r][c] >= 1 && solution[r][c] !== full[r][c]) {
+      next[r][c] = solution[r][c] === 0 ? -1 : 0;
       return { next, wrong: [r, c] };
     }
     next[r][c] = full[r][c];

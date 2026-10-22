@@ -10,6 +10,8 @@ import { tileGrid, tileFlags, makeSet } from '../tiles.js';
 import { createStore } from '../store.js';
 import { createSolverClient } from '../solver-client.js';
 import { isFair } from '../difficulty.js';
+import { isEnabled } from '../features.js';
+import { COLOR_COUNTS, colorGrid, inkText } from '../color.js';
 import {
   SIZES,
   defaultSize,
@@ -147,6 +149,22 @@ export function mount(container) {
   const sliderValue = el('span', { className: 'nng-create-threshold-value', text: '128' });
   const resetBtn = el('button', { type: 'button', text: 'Reset to auto' });
   const invertBox = el('input', { type: 'checkbox' });
+  // Color (hidden flag): 3 to 5 colors in total; the most common one is the blank.
+  let colorFlag = false;
+  try {
+    colorFlag = isEnabled(createStore(), 'color');
+  } catch {
+    // storage unavailable: two-tone only
+  }
+  const colorsSel = el('select');
+  colorsSel.append(el('option', { value: '0', text: 'Two-tone' }));
+  for (const n of COLOR_COUNTS)
+    colorsSel.append(el('option', { value: String(n), text: String(n) }));
+  const colorsLabel = el('label', {}, 'Colors ', colorsSel);
+  colorsLabel.hidden = !colorFlag;
+  const brushBar = el('span', { className: 'nng-create-brushes' });
+  brushBar.setAttribute('role', 'group');
+  brushBar.setAttribute('aria-label', 'Paint color');
   const tileRowsSel = sizeSelect(st.tileRows, TILE_COUNTS);
   const tileColsSel = sizeSelect(st.tileCols, TILE_COUNTS);
   tileRowsSel.setAttribute('aria-label', 'Tile rows');
@@ -162,6 +180,7 @@ export function mount(container) {
     el('label', {}, 'Height ', heightSel),
     el('label', {}, 'Tiles ', tileRowsSel, ' \u00d7 ', tileColsSel),
     el('span', { className: 'nng-create-tiles-hint', text: '(width and height are per tile)' }),
+    colorsLabel,
     el('label', {}, 'Threshold ', slider, sliderValue),
     resetBtn,
     el('label', {}, invertBox, 'Invert'),
@@ -187,7 +206,7 @@ export function mount(container) {
   const redoBtn = el('button', { type: 'button', text: 'Redo', disabled: true });
   redoBtn.title = 'Redo (Ctrl+Y)';
   redoBtn.setAttribute('aria-keyshortcuts', 'Control+Y');
-  const editBar = el('div', { className: 'nng-create-edit-bar' }, undoBtn, redoBtn);
+  const editBar = el('div', { className: 'nng-create-edit-bar' }, undoBtn, redoBtn, brushBar);
   const gridWrap = el(
     'div',
     { className: 'nng-create-grid-wrap' },
@@ -254,10 +273,14 @@ export function mount(container) {
     slider.value = String(st.threshold);
     sliderValue.textContent = String(st.threshold);
     invertBox.checked = st.invert;
+    colorsSel.value = String(st.colors);
     const imgControls = image !== null;
-    slider.disabled = !imgControls;
-    resetBtn.disabled = !imgControls;
-    invertBox.disabled = !imgControls;
+    // The threshold and invert only shape a two-tone grid.
+    const twoTone = imgControls && !st.colors;
+    slider.disabled = !twoTone;
+    resetBtn.disabled = !twoTone;
+    invertBox.disabled = !twoTone;
+    colorsSel.disabled = !imgControls;
     blankBtn.hidden = !imgControls; // clearing to blank only means something once an image is loaded
   }
 
@@ -321,9 +344,16 @@ export function mount(container) {
       clues,
       cells: st.grid,
       onPointer: onGridPointer,
+      palette: st.palette,
     });
+    syncBrushes();
     if (tiled()) markTileBoundaries(d);
-    emptyNote.hidden = image !== null || hasFilledCell(st.grid);
+    // In color, an image whose colors all merge into one gives an empty grid: say why.
+    const merged = image !== null && st.colors > 0 && !hasFilledCell(st.grid);
+    emptyNote.textContent = merged
+      ? "This image's colors are too close together to tell apart, so the grid is empty. Try Two-tone."
+      : 'Choose an image above, or draw on the grid below.';
+    emptyNote.hidden = !merged && (image !== null || hasFilledCell(st.grid));
     syncHistoryButtons();
     scheduleReport();
   }
@@ -444,7 +474,13 @@ export function mount(container) {
   async function saveSingle() {
     const run = reportRun;
     if (!canSave(reports[0])) return;
-    const puzzle = buildPuzzleRecord(st.grid, titleInput.value, reports[0].result, artFor(0, 0));
+    const puzzle = buildPuzzleRecord(
+      st.grid,
+      titleInput.value,
+      reports[0].result,
+      artFor(0, 0),
+      st.palette ?? DEFAULT_PALETTE,
+    );
     puzzle.id = await puzzleId(puzzle);
     // The grid may have changed while the id was computed: never save a verdict
     // that does not match the current grid.
@@ -483,7 +519,8 @@ export function mount(container) {
     if (!canSaveSet(reports)) return;
     const title = titleInput.value.trim() || 'Untitled';
     const tiles = sliceTiles(st.grid, st.tileRows, st.tileCols);
-    const made = await makeSet({ title, tiles, palette: DEFAULT_PALETTE.map((p) => ({ ...p })) });
+    const palette = (st.palette ?? DEFAULT_PALETTE).map((p) => ({ ...p }));
+    const made = await makeSet({ title, tiles, palette });
     if (run !== reportRun || !canSaveSet(reports)) return;
     const arts = made.puzzles.map((_, i) => artFor(Math.floor(i / st.tileCols), i % st.tileCols));
     const puzzles = withArts(withVerdicts(made.puzzles, reports), arts);
@@ -567,9 +604,9 @@ export function mount(container) {
     if (!stroke || button !== 'left') return;
     if (r !== null) stroke.push([r, c]);
     if (type === 'enter') {
-      gridView.update(applyStroke(st.grid, strokeOf(stroke)));
+      gridView.update(applyStroke(st.grid, strokeOf(stroke), st.brush));
     } else if (type === 'up') {
-      const next = applyStroke(st.grid, strokeOf(stroke));
+      const next = applyStroke(st.grid, strokeOf(stroke), st.brush);
       stroke = null;
       if (JSON.stringify(next) !== JSON.stringify(st.grid)) {
         history.push(next);
@@ -578,6 +615,26 @@ export function mount(container) {
       st.grid = next;
       renderGridNow();
     }
+  }
+
+  /** One numbered chip per ink while the grid has several colors; a left-drag paints the picked one. */
+  function syncBrushes() {
+    const inks = st.palette && st.palette.length > 1 ? st.palette : [];
+    if (st.brush > Math.max(1, inks.length)) st.brush = 1;
+    brushBar.replaceChildren(
+      ...inks.map((p, i) => {
+        const b = el('button', { type: 'button', className: 'nng-swatch', text: String(i + 1) });
+        b.style.setProperty('--ink', p.hex);
+        b.style.setProperty('--ink-text', inkText(p.hex));
+        b.setAttribute('aria-label', `Paint color ${i + 1}`);
+        b.setAttribute('aria-pressed', String(st.brush === i + 1));
+        b.addEventListener('click', () => {
+          st.brush = i + 1;
+          syncBrushes();
+        });
+        return b;
+      }),
+    );
   }
 
   function syncHistoryButtons() {
@@ -627,6 +684,19 @@ export function mount(container) {
     if (!image) return;
     const d = dims();
     const crop = currentCrop();
+    if (st.colors) {
+      // One palette over the whole crop, so the tiles of a set share it.
+      const q = colorGrid(image.rgba, image.w, crop, d.width, d.height, st.colors);
+      st.grid = q.grid;
+      st.palette = q.palette;
+      st.manualEdits = false;
+      resetHistory();
+      syncControls();
+      drawPreview();
+      renderGridNow();
+      return;
+    }
+    st.palette = null;
     if (st.autoThreshold) {
       const lum = cellLuminance(image.rgba, image.w, image.h, crop, d.width, d.height);
       st.threshold = otsu(lum.flat());
@@ -710,6 +780,16 @@ export function mount(container) {
     regenerate();
   }
 
+  function onColors() {
+    if (!okToDiscard()) {
+      syncControls();
+      return;
+    }
+    st.colors = Number(colorsSel.value);
+    st.brush = 1;
+    regenerate();
+  }
+
   function onInvert() {
     if (!okToDiscard()) {
       syncControls();
@@ -726,6 +806,8 @@ export function mount(container) {
     st.offset = { dx: 0, dy: 0 };
     const d = dims();
     st.grid = blankGrid(d.width, d.height);
+    st.palette = null; // a hand-drawn grid is two-tone
+    st.brush = 1;
     st.manualEdits = false;
     resetHistory();
     fileInput.value = '';
@@ -795,6 +877,7 @@ export function mount(container) {
   slider.addEventListener('input', onSlider);
   resetBtn.addEventListener('click', onReset);
   invertBox.addEventListener('change', onInvert);
+  colorsSel.addEventListener('change', onColors);
   blankBtn.addEventListener('click', onBlank);
   startOverBtn.addEventListener('click', onStartOver);
   saveBtn.addEventListener('click', onSave);

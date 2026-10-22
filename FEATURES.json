@@ -133,6 +133,20 @@
         "exit_code": 0,
         "seal": "lhkcopaicenglijj"
       }
+    },
+    {
+      "id": "color-blank-rule",
+      "behavior": "Create (color flag on) turns an image into one color puzzle with 3 to 5 colors in total: the most common color is the blank, the rest are inks with colored clues, and colors closer than the merge distance are merged.",
+      "verify": "node --test test/color.test.js && npm run test:ux",
+      "state": "active",
+      "source": "color blank rule decision 2026-10-22: most common cluster is the blank"
+    },
+    {
+      "id": "color-play",
+      "behavior": "A color puzzle plays: colored cells and clue chips, a color picker (keys 1 to 5), and a fill in the wrong color is a mistake that costs a heart.",
+      "verify": "node --test test/game.test.js test/grid.test.js && npm run test:ux",
+      "state": "not_started",
+      "source": "color blank rule decision 2026-10-22"
     }
   ]
 }

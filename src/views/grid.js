@@ -2,6 +2,7 @@
 // highlight. It reports pointer events and draws `cells`; it never applies
 // strokes itself (the play view wires play-state.js).
 // Cell encoding: 0 unknown, -1 crossed, k >= 1 filled.
+import { inkText } from '../color.js';
 
 /**
  * Gutter depth: the most clues in any column (top) and any row (left). With
@@ -14,6 +15,16 @@ export function gutterSize(clues, { zeroClues = false } = {}) {
 }
 
 const BUTTONS = { 0: 'left', 2: 'right' };
+
+/**
+ * Hex per ink (index v - 1) when `palette` ({hex}[]) should be drawn in color,
+ * else null: no palette, or a single black ink (two-tone keeps the theme's look).
+ */
+export function inkColors(palette) {
+  if (!Array.isArray(palette) || palette.length === 0) return null;
+  if (palette.length === 1 && palette[0].hex.toLowerCase() === '#000000') return null;
+  return palette.map((p) => p.hex);
+}
 
 function div(className, text) {
   const node = document.createElement('div');
@@ -35,7 +46,8 @@ function div(className, text) {
  *   touchButton: () => 'left' | 'right', read at the start of each touch or pen
  *     stroke (the mouse always uses its own buttons). Default: 'left'.
  * @param {HTMLElement} container
- * @param {{ width: number, height: number, clues: any, cells: any, onPointer?: (event: any) => void, zeroClues?: boolean, touchButton?: () => 'left' | 'right' }} options
+ * @param {{ width: number, height: number, clues: any, cells: any, onPointer?: (event: any) => void, zeroClues?: boolean, touchButton?: () => 'left' | 'right', palette?: { hex: string }[] | null }} options
+ *   palette: the puzzle's palette; a color one draws cells and clues in color (inkColors).
  *   The grid also holds one corner node (nng-grid-corner) over both gutters.
  * Returns {update(cells), setClueDone({rows, cols}), setOverlay(node | null),
  *   setWrong([r, c][]), setHighlight([r, c][]), sweep([r, c][]), destroy()}.
@@ -55,9 +67,13 @@ export function renderGrid(
     onPointer = () => {},
     zeroClues = false,
     touchButton = () => 'left',
+    palette = null,
   },
 ) {
   const { top, left } = gutterSize(clues, { zeroClues });
+  // A color puzzle draws each ink in its own color: filled cells, and each
+  // clue number as a chip of its color. A black-only palette keeps the themed look.
+  const inks = inkColors(palette);
   const root = div('nng-grid');
   root.style.gridTemplateColumns = `repeat(${left}, var(--clue-w)) repeat(${width}, var(--cell))`;
   root.style.gridTemplateRows = `repeat(${top}, var(--clue-h)) repeat(${height}, var(--cell))`;
@@ -95,12 +111,20 @@ export function renderGrid(
     node.style.setProperty('--clue-i', String(slot));
     place(node, row, col);
   };
+  const paintClue = (node, color) => {
+    node.dataset.color = String(color);
+    const hex = inks?.[color - 1];
+    if (!hex) return;
+    node.classList.add('nng-clue-ink');
+    node.style.setProperty('--ink', hex);
+    node.style.setProperty('--ink-text', inkText(hex));
+  };
   clues.cols.forEach((list, c) => {
     if (zeroClues && !list.length) zero(top, left + c + 1, top - 1, 'col'); // not in the progress flags
     list.forEach((clue, k) => {
       const node = div('nng-clue nng-clue-col', String(clue.n));
       colClues[c].push(node);
-      node.dataset.color = String(clue.c);
+      paintClue(node, clue.c);
       node.style.setProperty('--clue-i', String(top - list.length + k)); // slot in the gutter, for sticky clues
       place(node, top - list.length + k + 1, left + c + 1);
     });
@@ -110,7 +134,7 @@ export function renderGrid(
     list.forEach((clue, k) => {
       const node = div('nng-clue nng-clue-row', String(clue.n));
       rowClues[r].push(node);
-      node.dataset.color = String(clue.c);
+      paintClue(node, clue.c);
       node.style.setProperty('--clue-i', String(left - list.length + k));
       place(node, top + r + 1, left - list.length + k + 1);
     });
@@ -148,6 +172,7 @@ export function renderGrid(
         node.classList.toggle('nng-unknown', v === 0);
         if (v >= 1) node.dataset.color = String(v);
         else delete node.dataset.color;
+        if (inks) node.style.backgroundColor = v >= 1 ? (inks[v - 1] ?? '') : '';
       }
     }
     painted = true;

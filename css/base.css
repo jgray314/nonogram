@@ -240,6 +240,45 @@ main button:disabled {
   text-decoration: line-through;
 }
 
+/* Color puzzles: each number is a chip in its ink's color. The chip stays opaque
+   (sticky clues in Play must hide the cells under them); the panel-colored inset
+   separates neighbouring chips of the same color. */
+.nng-grid .nng-clue.nng-clue-ink {
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: var(--ink);
+  color: var(--ink-text);
+  box-shadow: inset 0 0 0 1px var(--panel);
+  border-radius: 3px;
+}
+
+.nng-grid .nng-clue.nng-clue-ink.nng-clue-done {
+  opacity: 1;
+  background: color-mix(in srgb, var(--ink) 25%, var(--panel));
+  color: color-mix(in srgb, var(--ink-text) 45%, var(--ink));
+}
+
+/* A color to fill with (Play) or paint with (Create): a chip in the ink's color. */
+main button.nng-swatch {
+  min-width: 36px;
+  min-height: 32px;
+  font-weight: 700;
+  background: var(--ink);
+  color: var(--ink-text);
+  border: 2px solid var(--line);
+}
+
+main button.nng-swatch:hover:not(:disabled) {
+  background: var(--ink);
+  filter: brightness(1.1);
+}
+
+main button.nng-swatch[aria-pressed='true'] {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .nng-clue-col {
   align-items: flex-end;
 }

@@ -61,6 +61,27 @@ export async function seed(storage) {
   withArt.id = await puzzleId(withArt);
   store.put('puzzle', withArt);
   ids.withArt = withArt.id;
+  // A small color puzzle with one solution: red run on top, a blue L below.
+  const color = {
+    v: 1,
+    id: '',
+    title: 'UX check: color',
+    width: 3,
+    height: 3,
+    palette: [
+      { name: 'color-1', hex: '#c8282d' },
+      { name: 'color-2', hex: '#1e46a0' },
+    ],
+    solution: [
+      [1, 1, 0],
+      [0, 2, 2],
+      [0, 2, 0],
+    ],
+    verdict: { status: 'unique-line-solvable', sweeps: 1 },
+  };
+  color.id = await puzzleId(color);
+  store.put('puzzle', color);
+  ids.color = color.id;
   return ids;
 }
 
@@ -426,6 +447,78 @@ export const CHECKS = [
   },
 
   // ---- Create (reviewer tasks 7 to 9) ----
+  // ---- Color (hidden flag) ----
+  {
+    id: 'color-play-picker',
+    name: 'A color puzzle shows colored clue chips and a picker; a fill in the wrong color costs a heart and stays open',
+    async run(app, ids) {
+      await app.open(`#/play/${ids.color}`);
+      const swatches = app.$$('.nng-swatch');
+      assert(swatches.length === 2, `expected 2 color buttons, saw ${swatches.length}`);
+      const chips = app.$$('.nng-clue-ink').length;
+      assert(chips === 7, `expected 7 colored clue chips, saw ${chips}`);
+      swatches[1].click();
+      app.stroke([[1, 1]]);
+      assert(app.cell(1, 1).dataset.color === '2', 'the fill is not in color 2');
+      assert(fullHearts(app) === 3, 'a right fill cost a heart');
+      app.stroke([[0, 0]]); // color 2 where the solution is color 1
+      const node = app.cell(0, 0);
+      assert(!node.classList.contains('nng-filled'), 'the wrong color was kept');
+      assert(!node.classList.contains('nng-crossed'), 'a colored cell was crossed');
+      assert(node.classList.contains('nng-wrong'), 'the wrong cell is not marked');
+      assert(fullHearts(app) === 2, `expected 2 hearts, saw ${fullHearts(app)}`);
+      app
+        .doc()
+        .dispatchEvent(new (app.win().KeyboardEvent)('keydown', { key: '1', bubbles: true }));
+      assert(swatches[0].getAttribute('aria-pressed') === 'true', 'key 1 did not pick color 1');
+    },
+  },
+  {
+    id: 'color-create-from-image',
+    name: 'With the color flag, Create turns an image into a color grid whose most common color is the blank',
+    async run(app, ids, storage) {
+      createStore(storage).setPref('feature.color', true);
+      try {
+        await app.open('#/create');
+        const select = app
+          .$$('.nng-create-controls label')
+          .find((l) => l.textContent.startsWith('Colors'));
+        assert(select && !select.hidden, 'no Colors control with the flag on');
+        // Cream ground, a red square and a blue band: three colors, cream the most common.
+        const canvas = app.doc().createElement('canvas');
+        canvas.width = canvas.height = 60;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#f0e6d2';
+        ctx.fillRect(0, 0, 60, 60);
+        ctx.fillStyle = '#c8282d';
+        ctx.fillRect(12, 8, 20, 20);
+        ctx.fillStyle = '#1e46a0';
+        ctx.fillRect(4, 40, 52, 12);
+        const blob = await new Promise((r) => canvas.toBlob(r, 'image/png'));
+        const files = new (app.win().DataTransfer)();
+        files.items.add(new (app.win().File)([blob], 'shapes.png', { type: 'image/png' }));
+        const input = app.$('.nng-create-controls input[type=file]');
+        input.files = files.files;
+        input.dispatchEvent(new (app.win().Event)('change'));
+        await waitFor(() => app.$('.nng-create-preview-wrap:not([hidden])'), 'the image to load');
+        const sel = select.querySelector('select');
+        sel.value = '3';
+        sel.dispatchEvent(new (app.win().Event)('change'));
+        const cells = app.$$('.nng-create-grid-wrap .nng-cell');
+        const colors = new Set(cells.map((n) => n.dataset.color ?? 'blank'));
+        assert(
+          colors.has('blank') && colors.has('1') && colors.has('2'),
+          `cell colors: ${[...colors].join(', ')}`,
+        );
+        const blanks = cells.filter((n) => !n.dataset.color).length;
+        assert(blanks > cells.length / 3, `only ${blanks} of ${cells.length} cells are blank`);
+        assert(app.$$('.nng-create-grid-wrap .nng-clue-ink').length > 0, 'no colored clue chips');
+        assert(app.$$('.nng-create-brushes .nng-swatch').length === 2, 'no paint colors to pick');
+      } finally {
+        createStore(storage).setPref('feature.color', false);
+      }
+    },
+  },
   {
     id: 'create-blank-grid-usable',
     name: 'Create opens on a blank grid with cells big enough to draw on, at least 12px (UX1)',

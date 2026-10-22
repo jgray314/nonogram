@@ -474,6 +474,41 @@ export const CHECKS = [
     },
   },
   {
+    id: 'color-blank-display',
+    name: "A color puzzle's empty and crossed cells show its blank color, with a white cross on a dark blank (D29)",
+    async run(app, ids, storage) {
+      // A puzzle like the seeded color one (a different grid, so its own id), with
+      // a dark navy blank. Removed afterwards, so the library checks don't see it.
+      const store = createStore(storage);
+      const base = store.get('puzzle', ids.color);
+      const solution = [
+        [1, 1, 0],
+        [0, 2, 2],
+        [2, 2, 0],
+      ];
+      const dark = { ...base, title: 'UX check: dark blank', solution, id: '' };
+      dark.id = await puzzleId(dark);
+      store.put('puzzle', { ...dark, blank: '#1f2f4f' });
+      try {
+        await app.open(`#/play/${dark.id}`);
+        const style = (r, c, pseudo = null) => app.win().getComputedStyle(app.cell(r, c), pseudo);
+        const unknown = style(0, 2).backgroundColor;
+        assert(unknown === 'rgb(31, 47, 79)', `an empty cell is ${unknown}, not the blank`);
+        app.stroke([[0, 2]], 2);
+        assert(app.cell(0, 2).classList.contains('nng-crossed'), 'the cell was not crossed');
+        const crossed = style(0, 2).backgroundColor;
+        assert(crossed === 'rgb(31, 47, 79)', `a crossed cell is ${crossed}, not the blank`);
+        const x = style(0, 2, '::after').backgroundImage;
+        assert(/rgb\(255, 255, 255\)/.test(x), `the cross is not white: ${x}`);
+        // A two-tone puzzle keeps the theme's empty-cell color.
+        await app.open(`#/play/${ids[HEART]}`);
+        assert(!app.$('.nng-grid-blank'), 'a two-tone puzzle uses a blank color');
+      } finally {
+        store.remove('puzzle', dark.id);
+      }
+    },
+  },
+  {
     id: 'color-create-from-image',
     name: 'Create (no flag needed) turns an image into a color grid whose most common color is the blank',
     async run(app, ids, storage) {
@@ -514,6 +549,10 @@ export const CHECKS = [
       assert(blanks > cells.length / 3, `only ${blanks} of ${cells.length} cells are blank`);
       assert(app.$$('.nng-create-grid-wrap .nng-clue-ink').length > 0, 'no colored clue chips');
       assert(app.$$('.nng-create-brushes .nng-swatch').length === 2, 'no paint colors to pick');
+      // D29: the empty cells show the image's cream ground, not the theme's empty color.
+      const empty = cells.find((n) => !n.dataset.color);
+      const bg = app.win().getComputedStyle(empty).backgroundColor;
+      assert(bg === 'rgb(240, 230, 210)', `an empty Create cell is ${bg}, not the cream ground`);
     },
   },
   {

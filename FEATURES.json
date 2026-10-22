@@ -189,6 +189,13 @@
         "exit_code": 0,
         "seal": "pclmopphjfafiged"
       }
+    },
+    {
+      "id": "color-blank-display",
+      "behavior": "A color puzzle stores its blank (background) color, and Create and Play draw empty and crossed cells in it, with the cross white on a dark blank and dark on a light one; two-tone puzzles are unchanged.",
+      "verify": "node --test test/blank_color.test.js test/import_bounds.test.js test/library.test.js && npm run test:ux",
+      "state": "active",
+      "source": "owner request 2026-10-22: blank display matches the picture's background, X inverted for contrast (D29)"
     }
   ]
 }

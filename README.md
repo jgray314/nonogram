@@ -14,7 +14,7 @@ A browser-only tool for turning a picture into a fair nonogram (picross) and pla
 
 **Color research.** `docs/color-research.md` is a write-up of how color might be layered into puzzles, and `research/color/` holds the experiment scripts behind it. Neither is part of the app.
 
-**Color puzzles.** Create has a **Colors** control: Two-tone, or 3, 4 or 5 colors in total, where the most common color becomes the blank and the rest are inks with colored clue numbers. Colors too close to tell apart are merged. Play shows a numbered color picker (keys 1 to 5), and a fill in the wrong color costs a heart. **Load sample puzzles** adds three color samples (Strawberry, Mushroom, Flower).
+**Color puzzles.** Create has a **Colors** control: Two-tone, or 3, 4 or 5 colors in total, where the most common color becomes the blank and the rest are inks with colored clue numbers. Colors too close to tell apart are merged. Play shows a numbered color picker (keys 1 to 5), and a fill in the wrong color costs a heart. In Create and Play, empty and crossed cells show the picture's blank color, with a white cross on a dark blank. **Load sample puzzles** adds three color samples (Strawberry, Mushroom, Flower).
 
 **Requirements.** To play, a modern browser and Python 3 (only for the local server below). To develop, Node 24, which is what CI uses; the color research script needs Node 21 or later.
 

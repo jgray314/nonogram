@@ -5,7 +5,7 @@ import { puzzleClues } from './clues.js';
 import { personaTier } from './personas.js';
 import { inkColors } from './color.js';
 
-/** The keys a stored puzzle may have (PLAN.md D2, the tile `set` field, and D14's `art`). */
+/** The keys a stored puzzle may have (PLAN.md D2, the tile `set` field, D14's `art` and D29's `blank`). */
 export const PUZZLE_KEYS = [
   'v',
   'id',
@@ -17,6 +17,7 @@ export const PUZZLE_KEYS = [
   'verdict',
   'set',
   'art',
+  'blank',
 ];
 
 function sameGrid(a, b) {

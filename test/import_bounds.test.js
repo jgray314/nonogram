@@ -311,6 +311,18 @@ const REGISTRY = [
       ],
     ],
   },
+  {
+    field: 'blank',
+    kind: 'puzzle',
+    cases: [
+      ['blank absent', without('blank'), 'accepted'],
+      ['blank #rrggbb', withValue('blank', '#1f2f4f'), 'accepted'],
+      ['blank not #rrggbb', withValue('blank', '#fff'), 'rejected'],
+      ['blank with trailing text', withValue('blank', '#1f2f4f;x'), 'rejected'],
+      ['blank over a hex length', withValue('blank', '#' + 'a'.repeat(100000)), 'rejected'],
+      ['blank not a string', withValue('blank', 7), 'rejected'],
+    ],
+  },
   // save
   {
     field: 'puzzleId',

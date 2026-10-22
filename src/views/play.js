@@ -500,6 +500,7 @@ export function mount(container, params = {}) {
     touchButton: () => (touchMode === 'cross' ? 'right' : 'left'),
     zeroClues: true,
     palette: puzzle.palette,
+    blank: puzzle.blank,
   });
   refresh();
 

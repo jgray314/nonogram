@@ -199,11 +199,12 @@ const ART = [
   },
 ];
 
-// Color samples (D26): '.' is the blank, and each letter is the ink of the same
-// letter in `inks`, in palette order. All three are line-solvable (test/library.test.js).
+// Color samples (D26): '.' is the blank, drawn in `blank` (D29), and each letter
+// is the ink of the same letter in `inks`, in palette order. All three are line-solvable (test/library.test.js).
 const COLOR_ART = [
   {
     title: 'AI test sample: Strawberry (10x10)',
+    blank: '#fdf1dc', // cream
     inks: [
       ['r', 'red', '#d7263d'],
       ['g', 'green', '#3a9a3f'],
@@ -224,6 +225,7 @@ const COLOR_ART = [
   },
   {
     title: 'AI test sample: Mushroom (10x10)',
+    blank: '#1f2f4f', // night sky: the cream spots stand out, and the cross is white
     inks: [
       ['r', 'red', '#c8322e'],
       ['w', 'cream', '#f4ead2'],
@@ -245,6 +247,7 @@ const COLOR_ART = [
   },
   {
     title: 'AI test sample: Flower (15x15)',
+    blank: '#cde8f6', // soft sky
     inks: [
       ['p', 'pink', '#e85d9e'],
       ['y', 'yellow', '#f5c518'],
@@ -287,10 +290,11 @@ export async function samplePuzzles() {
 /** The color samples as full puzzle records, ids computed. */
 export async function colorSamplePuzzles() {
   const out = [];
-  for (const { title, inks, rows } of COLOR_ART) {
+  for (const { title, blank, inks, rows } of COLOR_ART) {
     const palette = inks.map(([, name, hex]) => ({ name, hex }));
     const value = (ch) => inks.findIndex(([letter]) => letter === ch) + 1; // '.' -> 0
-    out.push(await sampleRecord(title, rows, palette, value));
+    // The blank is display only (D29), so adding it after the id keeps the id.
+    out.push({ ...(await sampleRecord(title, rows, palette, value)), blank });
   }
   return out;
 }

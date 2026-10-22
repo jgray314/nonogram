@@ -172,7 +172,10 @@ export function renderGrid(
         node.classList.toggle('nng-unknown', v === 0);
         if (v >= 1) node.dataset.color = String(v);
         else delete node.dataset.color;
-        if (inks) node.style.backgroundColor = v >= 1 ? (inks[v - 1] ?? '') : '';
+        if (inks) {
+          node.style.backgroundColor = v >= 1 ? (inks[v - 1] ?? '') : '';
+          node.classList.toggle('nng-ink', v >= 1);
+        }
       }
     }
     painted = true;

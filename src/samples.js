@@ -199,39 +199,131 @@ const ART = [
   },
 ];
 
-/** The samples as full puzzle records, ids computed. */
+// Color samples (D26): '.' is the blank, and each letter is the ink of the same
+// letter in `inks`, in palette order. All three are line-solvable (test/library.test.js).
+const COLOR_ART = [
+  {
+    title: 'AI test sample: Strawberry (10x10)',
+    inks: [
+      ['r', 'red', '#d7263d'],
+      ['g', 'green', '#3a9a3f'],
+      ['y', 'yellow', '#f2c230'],
+    ],
+    rows: [
+      '....gg....',
+      '..gggggg..',
+      '.rrggggrr.',
+      'rrrrggrrrr',
+      'rryrrrryrr',
+      'rrrrrrrrrr',
+      '.rrryrrrr.',
+      '.rrrrrryr.',
+      '..ryrrrr..',
+      '...rrrr...',
+    ],
+  },
+  {
+    title: 'AI test sample: Mushroom (10x10)',
+    inks: [
+      ['r', 'red', '#c8322e'],
+      ['w', 'cream', '#f4ead2'],
+      ['t', 'tan', '#c9a777'],
+      ['g', 'green', '#4f9a3a'],
+    ],
+    rows: [
+      '...rrrr...',
+      '.rrwwrrrr.',
+      'rrwwrrrwwr',
+      'rrrrrrrwwr',
+      'rwwrrrrrrr',
+      '..tttttt..',
+      '...tttt...',
+      '...tttt...',
+      '...tttt...',
+      'gggggggggg',
+    ],
+  },
+  {
+    title: 'AI test sample: Flower (15x15)',
+    inks: [
+      ['p', 'pink', '#e85d9e'],
+      ['y', 'yellow', '#f5c518'],
+      ['g', 'green', '#3f9142'],
+      ['b', 'brown', '#9a5b34'],
+    ],
+    rows: [
+      '.....ppppp.....',
+      '....ppppppp....',
+      '...ppyyyyypp...',
+      '...ppyyyyypp...',
+      '...ppyyyyypp...',
+      '....ppppppp....',
+      '.....ppppp.....',
+      '.......g.......',
+      '.ggg...g.......',
+      '..ggggggg..gg..',
+      '.......ggggg...',
+      '...bbbbbbbbb...',
+      '....bbbbbbb....',
+      '....bbbbbbb....',
+      '.....bbbbb.....',
+    ],
+  },
+];
+
+/** The two-tone samples as full puzzle records, ids computed. */
 export async function samplePuzzles() {
   const out = [];
   for (const { title, rows } of ART) {
-    const puzzle = {
-      v: 1,
-      id: '',
-      title,
-      width: rows[0].length,
-      height: rows.length,
-      palette: [{ name: 'black', hex: '#000000' }],
-      solution: rows.map((row) => Array.from(row, (ch) => (ch === '#' ? 1 : 0))),
-      verdict: null,
-    };
-    // Samples are tiny, so solving here is instant and keeps the verdict honest.
-    const problem = { width: puzzle.width, height: puzzle.height, ...puzzleClues(puzzle.solution) };
-    const { status, sweeps } = solve(problem, {});
-    puzzle.verdict = { status, sweeps };
-    // On the main thread, which is fine here: every sample is line-solvable,
-    // so the slow Expert trials never run (test/personas.test.js pins their labels).
-    const tier = personaTier(problem, status);
-    if (tier) puzzle.verdict.tier = tier;
-    puzzle.id = await puzzleId(puzzle);
-    out.push(puzzle);
+    out.push(
+      await sampleRecord(title, rows, [{ name: 'black', hex: '#000000' }], (ch) =>
+        ch === '#' ? 1 : 0,
+      ),
+    );
   }
   return out;
 }
 
-/** Put the samples in the store, skipping any already there. */
+/** The color samples as full puzzle records, ids computed. */
+export async function colorSamplePuzzles() {
+  const out = [];
+  for (const { title, inks, rows } of COLOR_ART) {
+    const palette = inks.map(([, name, hex]) => ({ name, hex }));
+    const value = (ch) => inks.findIndex(([letter]) => letter === ch) + 1; // '.' -> 0
+    out.push(await sampleRecord(title, rows, palette, value));
+  }
+  return out;
+}
+
+/** One sample record: solved here so its verdict is honest, then hashed for its id. */
+async function sampleRecord(title, rows, palette, value) {
+  const puzzle = {
+    v: 1,
+    id: '',
+    title,
+    width: rows[0].length,
+    height: rows.length,
+    palette,
+    solution: rows.map((row) => Array.from(row, value)),
+    verdict: null,
+  };
+  // Samples are tiny, so solving here is instant and keeps the verdict honest.
+  const problem = { width: puzzle.width, height: puzzle.height, ...puzzleClues(puzzle.solution) };
+  const { status, sweeps } = solve(problem, {});
+  puzzle.verdict = { status, sweeps };
+  // On the main thread, which is fine here: every sample is line-solvable,
+  // so the slow Expert trials never run (test/personas.test.js pins their labels).
+  const tier = personaTier(problem, status);
+  if (tier) puzzle.verdict.tier = tier;
+  puzzle.id = await puzzleId(puzzle);
+  return puzzle;
+}
+
+/** Put the two-tone and color samples in the store, skipping any already there. */
 export async function loadSamples(store) {
   let added = 0;
   let skipped = 0;
-  for (const puzzle of await samplePuzzles()) {
+  for (const puzzle of [...(await samplePuzzles()), ...(await colorSamplePuzzles())]) {
     if (store.get('puzzle', puzzle.id)) skipped += 1;
     else {
       store.put('puzzle', puzzle);

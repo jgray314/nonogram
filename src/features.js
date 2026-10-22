@@ -4,6 +4,7 @@
 // them all. A list with no known name and no `none` (a typo, or an empty value)
 // changes nothing; a mixed list turns on its known names and the rest off.
 // Nothing in the UI shows that these exist.
+// `color` graduated to a standard option (D26); nothing reads its pref any more.
 export const FEATURES = ['color'];
 
 /** The hash without its query string: '#/play/abc?features=color' -> '#/play/abc'. */

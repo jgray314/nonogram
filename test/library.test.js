@@ -19,7 +19,7 @@ import {
 } from '../src/library-logic.js';
 import { restartCells } from '../src/game.js';
 import { puzzleClues } from '../src/clues.js';
-import { samplePuzzles, loadSamples } from '../src/samples.js';
+import { samplePuzzles, colorSamplePuzzles, loadSamples } from '../src/samples.js';
 
 function memoryStorage() {
   const m = new Map();
@@ -341,11 +341,37 @@ test('samples are valid puzzles', async () => {
   }
 });
 
-test('loadSamples skips existing puzzles', async () => {
+test('loadSamples adds the two-tone and the color samples, and skips existing puzzles', async () => {
   const store = createStore(memoryStorage());
-  assert.deepEqual(await loadSamples(store), { added: 11, skipped: 0 });
-  assert.deepEqual(await loadSamples(store), { added: 0, skipped: 11 });
-  assert.equal(store.list('puzzle').records.length, 11);
+  assert.deepEqual(await loadSamples(store), { added: 14, skipped: 0 });
+  assert.deepEqual(await loadSamples(store), { added: 0, skipped: 14 });
+  assert.equal(store.list('puzzle').records.length, 14);
+});
+
+test('color samples: three valid, AI-labelled, line-solvable puzzles with several inks', async () => {
+  const samples = await colorSamplePuzzles();
+  assert.deepEqual(
+    samples.map((p) => p.title),
+    [
+      'AI test sample: Strawberry (10x10)',
+      'AI test sample: Mushroom (10x10)',
+      'AI test sample: Flower (15x15)',
+    ],
+  );
+  for (const p of samples) {
+    assert.equal(validatePuzzle(p).ok, true, p.title);
+    assert.equal(p.id, await puzzleId(p));
+    assert.equal(p.verdict.status, 'unique-line-solvable', p.title);
+    assert.ok(p.palette.length >= 3, `${p.title} has ${p.palette.length} inks`);
+    // Every ink is used, and some cells are blank. (Hand-drawn, so the blank need
+    // not be the most common color: that rule is for images, D25.)
+    const counts = p.palette.map((_, i) => p.solution.flat().filter((v) => v === i + 1).length);
+    assert.ok(
+      counts.every((n) => n > 0),
+      `${p.title} has an unused ink`,
+    );
+    assert.ok(p.solution.flat().includes(0), `${p.title} has no blank cell`);
+  }
 });
 
 test('image-based samples match their art source', async () => {

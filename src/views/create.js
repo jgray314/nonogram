@@ -10,7 +10,6 @@ import { tileGrid, tileFlags, makeSet } from '../tiles.js';
 import { createStore } from '../store.js';
 import { createSolverClient } from '../solver-client.js';
 import { isFair } from '../difficulty.js';
-import { isEnabled } from '../features.js';
 import { COLOR_COUNTS, colorGrid, inkText } from '../color.js';
 import {
   SIZES,
@@ -149,19 +148,12 @@ export function mount(container) {
   const sliderValue = el('span', { className: 'nng-create-threshold-value', text: '128' });
   const resetBtn = el('button', { type: 'button', text: 'Reset to auto' });
   const invertBox = el('input', { type: 'checkbox' });
-  // Color (hidden flag): 3 to 5 colors in total; the most common one is the blank.
-  let colorFlag = false;
-  try {
-    colorFlag = isEnabled(createStore(), 'color');
-  } catch {
-    // storage unavailable: two-tone only
-  }
+  // Color (D25, D26): 3 to 5 colors in total; the most common one is the blank.
   const colorsSel = el('select');
   colorsSel.append(el('option', { value: '0', text: 'Two-tone' }));
   for (const n of COLOR_COUNTS)
     colorsSel.append(el('option', { value: String(n), text: String(n) }));
   const colorsLabel = el('label', {}, 'Colors ', colorsSel);
-  colorsLabel.hidden = !colorFlag;
   const brushBar = el('span', { className: 'nng-create-brushes' });
   brushBar.setAttribute('role', 'group');
   brushBar.setAttribute('aria-label', 'Paint color');
@@ -249,7 +241,7 @@ export function mount(container) {
     el('h1', { text: 'Create' }),
     el('p', {
       className: 'nng-create-hint',
-      text: 'Simple, high-contrast images (icons, silhouettes) convert best.',
+      text: 'Simple, high-contrast images (icons, silhouettes) convert best in Two-tone. For photos and colorful art, try 3 to 5 Colors.',
     }),
     errorBox,
     controls,

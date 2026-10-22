@@ -135,7 +135,7 @@ export function newEditorState({ width = 15, height = 15 } = {}) {
     threshold: 128,
     autoThreshold: true,
     invert: false,
-    // Color (hidden flag): colors is 0 for two-tone, or 3 to 5 in total with the
+    // Color (D25): colors is 0 for two-tone, or 3 to 5 in total with the
     // blank; palette is the inks from the image ({name, hex}[]), null for two-tone;
     // brush is the ink a left-drag paints.
     colors: 0,

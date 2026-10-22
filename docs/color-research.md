@@ -311,7 +311,7 @@ Treat palette layers (D) as an optional second stage. They follow a real pattern
 - **Color profiles.** Photos from phones may carry a Display-P3 profile. The script reads them as sRGB, so their colors shift slightly.
 - **Personas lag.** Color puzzles have no difficulty tier until the personas learn color. The library label needs a stopgap.
 - **Solver budget.** 300 nodes left almost no `unknown` here (see the `unk` column). Larger color puzzles (25x25, 5 colors) are not tested.
-- **Scope of the flag.** `?features=color` stores a pref in this browser only and reveals nothing in the UI. Nothing reads it yet.
+- **Scope of the flag.** `?features=color` stores a pref in this browser only and reveals nothing in the UI. Nothing reads it yet. (Since D26, color is a standard option and the flag is unused.)
 
 ## D25: most common color as the blank (2026-10-22)
 

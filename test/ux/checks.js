@@ -4,7 +4,7 @@
 // carries `known: 'UX<n>'`: it shows as a known issue while it fails, and as
 // "fixed?" once it passes, which is the cue to drop the flag.
 import { createStore } from '../../src/store.js';
-import { samplePuzzles } from '../../src/samples.js';
+import { samplePuzzles, colorSamplePuzzles } from '../../src/samples.js';
 import { puzzleId } from '../../src/format.js';
 import { pause, waitFor } from './harness.js';
 
@@ -475,48 +475,61 @@ export const CHECKS = [
   },
   {
     id: 'color-create-from-image',
-    name: 'With the color flag, Create turns an image into a color grid whose most common color is the blank',
+    name: 'Create (no flag needed) turns an image into a color grid whose most common color is the blank',
     async run(app, ids, storage) {
-      createStore(storage).setPref('feature.color', true);
-      try {
-        await app.open('#/create');
-        const select = app
-          .$$('.nng-create-controls label')
-          .find((l) => l.textContent.startsWith('Colors'));
-        assert(select && !select.hidden, 'no Colors control with the flag on');
-        // Cream ground, a red square and a blue band: three colors, cream the most common.
-        const canvas = app.doc().createElement('canvas');
-        canvas.width = canvas.height = 60;
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#f0e6d2';
-        ctx.fillRect(0, 0, 60, 60);
-        ctx.fillStyle = '#c8282d';
-        ctx.fillRect(12, 8, 20, 20);
-        ctx.fillStyle = '#1e46a0';
-        ctx.fillRect(4, 40, 52, 12);
-        const blob = await new Promise((r) => canvas.toBlob(r, 'image/png'));
-        const files = new (app.win().DataTransfer)();
-        files.items.add(new (app.win().File)([blob], 'shapes.png', { type: 'image/png' }));
-        const input = app.$('.nng-create-controls input[type=file]');
-        input.files = files.files;
-        input.dispatchEvent(new (app.win().Event)('change'));
-        await waitFor(() => app.$('.nng-create-preview-wrap:not([hidden])'), 'the image to load');
-        const sel = select.querySelector('select');
-        sel.value = '3';
-        sel.dispatchEvent(new (app.win().Event)('change'));
-        const cells = app.$$('.nng-create-grid-wrap .nng-cell');
-        const colors = new Set(cells.map((n) => n.dataset.color ?? 'blank'));
-        assert(
-          colors.has('blank') && colors.has('1') && colors.has('2'),
-          `cell colors: ${[...colors].join(', ')}`,
-        );
-        const blanks = cells.filter((n) => !n.dataset.color).length;
-        assert(blanks > cells.length / 3, `only ${blanks} of ${cells.length} cells are blank`);
-        assert(app.$$('.nng-create-grid-wrap .nng-clue-ink').length > 0, 'no colored clue chips');
-        assert(app.$$('.nng-create-brushes .nng-swatch').length === 2, 'no paint colors to pick');
-      } finally {
-        createStore(storage).setPref('feature.color', false);
-      }
+      // The old hidden flag is off: color is a standard option now (D26).
+      createStore(storage).setPref('feature.color', false);
+      await app.open('#/create');
+      const select = app
+        .$$('.nng-create-controls label')
+        .find((l) => l.textContent.startsWith('Colors'));
+      assert(select && !select.hidden, 'no Colors control');
+      // Cream ground, a red square and a blue band: three colors, cream the most common.
+      const canvas = app.doc().createElement('canvas');
+      canvas.width = canvas.height = 60;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#f0e6d2';
+      ctx.fillRect(0, 0, 60, 60);
+      ctx.fillStyle = '#c8282d';
+      ctx.fillRect(12, 8, 20, 20);
+      ctx.fillStyle = '#1e46a0';
+      ctx.fillRect(4, 40, 52, 12);
+      const blob = await new Promise((r) => canvas.toBlob(r, 'image/png'));
+      const files = new (app.win().DataTransfer)();
+      files.items.add(new (app.win().File)([blob], 'shapes.png', { type: 'image/png' }));
+      const input = app.$('.nng-create-controls input[type=file]');
+      input.files = files.files;
+      input.dispatchEvent(new (app.win().Event)('change'));
+      await waitFor(() => app.$('.nng-create-preview-wrap:not([hidden])'), 'the image to load');
+      const sel = select.querySelector('select');
+      sel.value = '3';
+      sel.dispatchEvent(new (app.win().Event)('change'));
+      const cells = app.$$('.nng-create-grid-wrap .nng-cell');
+      const colors = new Set(cells.map((n) => n.dataset.color ?? 'blank'));
+      assert(
+        colors.has('blank') && colors.has('1') && colors.has('2'),
+        `cell colors: ${[...colors].join(', ')}`,
+      );
+      const blanks = cells.filter((n) => !n.dataset.color).length;
+      assert(blanks > cells.length / 3, `only ${blanks} of ${cells.length} cells are blank`);
+      assert(app.$$('.nng-create-grid-wrap .nng-clue-ink').length > 0, 'no colored clue chips');
+      assert(app.$$('.nng-create-brushes .nng-swatch').length === 2, 'no paint colors to pick');
+    },
+  },
+  {
+    id: 'color-samples-load-and-play',
+    name: 'Load sample puzzles adds the color samples, and the strawberry opens with its color picker',
+    async run(app, ids, storage) {
+      const store = createStore(storage);
+      for (const p of await colorSamplePuzzles()) store.remove('puzzle', p.id);
+      await app.open('#/library');
+      app.buttonByText('Load sample puzzles').click();
+      const [strawberry] = await colorSamplePuzzles();
+      await waitFor(() => store.get('puzzle', strawberry.id), 'the color samples to load', 4000);
+      await app.open(`#/play/${strawberry.id}`);
+      const swatches = app.$$('.nng-swatch').length;
+      assert(swatches === 3, `expected 3 color buttons, saw ${swatches}`);
+      assert(fullHearts(app) === 3, 'a fair color sample should play with hearts');
     },
   },
   {

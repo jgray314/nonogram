@@ -1,6 +1,7 @@
 // Record formats: puzzle, save, set. See PLAN.md D2, step 5, step 12b, and the
 // v1.1 Contracts (save `hearts` and `rules.zen`), and the v1.2 Contracts (puzzle
-// `art`, save `hints`), and the optional verdict `tier` (docs/difficulty-personas.md).
+// `art`, save `hints`), the optional verdict `tier` (docs/difficulty-personas.md),
+// and the optional puzzle `blank` color (D29).
 
 import { MAX_HEARTS } from './game.js';
 import { TIERS } from './personas.js';
@@ -35,7 +36,7 @@ const OK = { ok: true };
 
 // The fields each record kind has. Imports keep only these, so
 // a hand-edited file cannot carry extra data into the library. `set`, `art`,
-// `hearts` and `hints` are optional and stay absent when the record lacks them.
+// `blank`, `hearts` and `hints` are optional and stay absent when the record lacks them.
 export const PUZZLE_KEYS = [
   'v',
   'id',
@@ -47,6 +48,7 @@ export const PUZZLE_KEYS = [
   'verdict',
   'set',
   'art',
+  'blank',
 ];
 export const SAVE_KEYS = ['puzzleId', 'cells', 'elapsedMs', 'rules', 'solvedAt', 'hearts', 'hints'];
 export const SET_KEYS = ['v', 'setId', 'title', 'rows', 'cols', 'tileIds'];
@@ -264,6 +266,10 @@ export function validatePuzzle(x) {
       ) {
         return fail(`art must be a JPEG data URL of at most ${MAX_ART_CHARS} characters`);
       }
+    }
+    // D29: a color puzzle's blank (background) color. Display only, not in the id hash.
+    if (x.blank !== undefined && (typeof x.blank !== 'string' || !HEX.test(x.blank))) {
+      return fail('blank must be a #rrggbb color');
     }
     return OK;
   } catch (e) {

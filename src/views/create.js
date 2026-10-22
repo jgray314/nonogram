@@ -337,6 +337,7 @@ export function mount(container) {
       cells: st.grid,
       onPointer: onGridPointer,
       palette: st.palette,
+      blank: st.blank,
     });
     syncBrushes();
     if (tiled()) markTileBoundaries(d);
@@ -472,6 +473,7 @@ export function mount(container) {
       reports[0].result,
       artFor(0, 0),
       st.palette ?? DEFAULT_PALETTE,
+      st.blank ?? undefined,
     );
     puzzle.id = await puzzleId(puzzle);
     // The grid may have changed while the id was computed: never save a verdict
@@ -512,7 +514,7 @@ export function mount(container) {
     const title = titleInput.value.trim() || 'Untitled';
     const tiles = sliceTiles(st.grid, st.tileRows, st.tileCols);
     const palette = (st.palette ?? DEFAULT_PALETTE).map((p) => ({ ...p }));
-    const made = await makeSet({ title, tiles, palette });
+    const made = await makeSet({ title, tiles, palette, blank: st.blank });
     if (run !== reportRun || !canSaveSet(reports)) return;
     const arts = made.puzzles.map((_, i) => artFor(Math.floor(i / st.tileCols), i % st.tileCols));
     const puzzles = withArts(withVerdicts(made.puzzles, reports), arts);
@@ -681,6 +683,7 @@ export function mount(container) {
       const q = colorGrid(image.rgba, image.w, crop, d.width, d.height, st.colors);
       st.grid = q.grid;
       st.palette = q.palette;
+      st.blank = q.blank; // D29: Create and Play draw blank cells in it
       st.manualEdits = false;
       resetHistory();
       syncControls();
@@ -689,6 +692,7 @@ export function mount(container) {
       return;
     }
     st.palette = null;
+    st.blank = null;
     if (st.autoThreshold) {
       const lum = cellLuminance(image.rgba, image.w, image.h, crop, d.width, d.height);
       st.threshold = otsu(lum.flat());
@@ -799,6 +803,7 @@ export function mount(container) {
     const d = dims();
     st.grid = blankGrid(d.width, d.height);
     st.palette = null; // a hand-drawn grid is two-tone
+    st.blank = null;
     st.brush = 1;
     st.manualEdits = false;
     resetHistory();

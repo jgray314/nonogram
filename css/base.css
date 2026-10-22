@@ -345,6 +345,18 @@ main button.nng-swatch[aria-pressed='true'] {
     );
 }
 
+/* A color puzzle's blank (D29): grid.js sets --blank and --blank-cross on the
+   grid. Empty and crossed cells take the blank, the cross and the cell lines are
+   drawn from the cross color so they read on a dark or a light blank, and the
+   hover crosshair is a light tint of it. Scoped to cells, so clues keep the theme. */
+.nng-grid-blank .nng-cell {
+  --cell-unknown: var(--blank);
+  --cell-cross: var(--blank-cross);
+  --cell-hot: color-mix(in srgb, var(--blank) 78%, var(--blank-cross));
+  --line: color-mix(in srgb, var(--blank) 72%, var(--blank-cross));
+  --line-thick: color-mix(in srgb, var(--blank) 25%, var(--blank-cross));
+}
+
 /* Colored fills get a thin dark edge, so a light ink still stands out from an empty cell. */
 .nng-cell.nng-filled.nng-ink {
   box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.3);

@@ -6,7 +6,7 @@ This is the verification ledger: check gates and controls, each with a command t
 It is not the product roadmap. What the product does and what is open lives in the README
 and plan docs that AGENTS.md lists under 'Where things are'.
 
-Commit: `fe08554`  
+Commit: `01f5b7c`  
 Full check: `npm test && npm run lint && npm run format:check && npm run typecheck`
 
 ## Done
@@ -25,6 +25,7 @@ Full check: `npm test && npm run lint && npm run format:check && npm run typeche
 - **color-first-class**: Color is a standard Create option with no flag, and Load sample puzzles adds three fair color samples (Strawberry, Mushroom, Flower) that play with the color picker. (verified at `fac82d3`)
 - **color-library-label**: Library rows mark a color puzzle with a Color badge and one dot per ink color (screen readers hear how many colors); two-tone rows are unchanged. (verified at `cf5813e`)
 - **color-pixel-palette**: Image to color grid takes its palette from the pixels (16-level color histogram, weighted k-means seeded far apart, Chang et al. 2015) and gives each cell its majority color: antialiased edges add no extra color, a small vivid subject keeps its color, and a 3% crop move barely changes the palette. (verified at `fe08554`)
+- **color-blank-display**: A color puzzle stores its blank (background) color, and Create and Play draw empty and crossed cells in it, with the cross white on a dark blank and dark on a light one; two-tone puzzles are unchanged. (verified at `32e637f`)
 
 ## In progress
 

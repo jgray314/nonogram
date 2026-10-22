@@ -40,8 +40,11 @@ async function sha16(text) {
     .slice(0, 16);
 }
 
-/** Build the set record and one puzzle record per tile (row-major). */
-export async function makeSet({ title, tiles, palette }) {
+/**
+ * Build the set record and one puzzle record per tile (row-major). `blank`,
+ * when given, is the color puzzle's blank color (D29), on every tile.
+ */
+export async function makeSet({ title, tiles, palette, blank = null }) {
   const rows = tiles.length;
   const cols = tiles[0].length;
   const full = [];
@@ -70,6 +73,7 @@ export async function makeSet({ title, tiles, palette }) {
         verdict: null,
         set: { id: setId, row, col },
       };
+      if (blank) puzzle.blank = blank;
       puzzle.id = await puzzleId(puzzle);
       puzzles.push(puzzle);
     }

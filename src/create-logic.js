@@ -137,9 +137,11 @@ export function newEditorState({ width = 15, height = 15 } = {}) {
     invert: false,
     // Color (D25): colors is 0 for two-tone, or 3 to 5 in total with the
     // blank; palette is the inks from the image ({name, hex}[]), null for two-tone;
-    // brush is the ink a left-drag paints.
+    // brush is the ink a left-drag paints; blank is the image's blank color
+    // ('#rrggbb', D29), null for two-tone.
     colors: 0,
     palette: null,
+    blank: null,
     brush: 1,
   };
 }
@@ -244,8 +246,9 @@ export function withArts(puzzles, arts) {
  * Puzzle record for a grid and the solver result it was checked with. `id` is
  * left empty: the caller fills it with `await puzzleId(record)`. `art`, when
  * given, is the optional source-crop JPEG data URL. `palette` defaults to black.
+ * `blank`, when given, is a color puzzle's blank color (D29).
  */
-export function buildPuzzleRecord(grid, title, report, art, palette = DEFAULT_PALETTE) {
+export function buildPuzzleRecord(grid, title, report, art, palette = DEFAULT_PALETTE, blank) {
   const record = {
     v: 1,
     id: '',
@@ -257,6 +260,7 @@ export function buildPuzzleRecord(grid, title, report, art, palette = DEFAULT_PA
     verdict: verdictOf(report),
   };
   if (art) record.art = art;
+  if (blank) record.blank = blank;
   return record;
 }
 

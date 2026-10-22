@@ -18,6 +18,19 @@ const BUTTONS = { 0: 'left', 2: 'right' };
 
 export { inkColors }; // the view's callers import it from here
 
+/**
+ * CSS custom properties for a color puzzle's blank (D29), or null when `hex`
+ * is not a '#rrggbb' color. --blank fills unknown and crossed cells;
+ * --blank-cross is the cross, white on a dark blank and black on a light one
+ * (the same test as clue chip numbers). base.css derives the cell lines and
+ * the hover color from both.
+ * @param {string | null | undefined} hex
+ */
+export function blankStyle(hex) {
+  if (typeof hex !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(hex)) return null;
+  return { '--blank': hex, '--blank-cross': inkText(hex) };
+}
+
 function div(className, text) {
   const node = document.createElement('div');
   node.className = className;
@@ -38,8 +51,10 @@ function div(className, text) {
  *   touchButton: () => 'left' | 'right', read at the start of each touch or pen
  *     stroke (the mouse always uses its own buttons). Default: 'left'.
  * @param {HTMLElement} container
- * @param {{ width: number, height: number, clues: any, cells: any, onPointer?: (event: any) => void, zeroClues?: boolean, touchButton?: () => 'left' | 'right', palette?: { hex: string }[] | null }} options
+ * @param {{ width: number, height: number, clues: any, cells: any, onPointer?: (event: any) => void, zeroClues?: boolean, touchButton?: () => 'left' | 'right', palette?: { hex: string }[] | null, blank?: string | null }} options
  *   palette: the puzzle's palette; a color one draws cells and clues in color (inkColors).
+ *   blank: a color puzzle's blank color ('#rrggbb', D29): unknown and crossed cells
+ *     use it instead of the theme's empty-cell color (blankStyle). Absent: themed.
  *   The grid also holds one corner node (nng-grid-corner) over both gutters.
  * Returns {update(cells), setClueDone({rows, cols}), setOverlay(node | null),
  *   setWrong([r, c][]), setHighlight([r, c][]), sweep([r, c][]), destroy()}.
@@ -60,6 +75,7 @@ export function renderGrid(
     zeroClues = false,
     touchButton = () => 'left',
     palette = null,
+    blank = null,
   },
 ) {
   const { top, left } = gutterSize(clues, { zeroClues });
@@ -67,6 +83,11 @@ export function renderGrid(
   // clue number as a chip of its color. A black-only palette keeps the themed look.
   const inks = inkColors(palette);
   const root = div('nng-grid');
+  const blankVars = blankStyle(blank);
+  if (blankVars) {
+    root.classList.add('nng-grid-blank');
+    for (const [name, value] of Object.entries(blankVars)) root.style.setProperty(name, value);
+  }
   root.style.gridTemplateColumns = `repeat(${left}, var(--clue-w)) repeat(${width}, var(--cell))`;
   root.style.gridTemplateRows = `repeat(${top}, var(--clue-h)) repeat(${height}, var(--cell))`;
 

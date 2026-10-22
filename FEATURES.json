@@ -166,8 +166,15 @@
       "id": "color-first-class",
       "behavior": "Color is a standard Create option with no flag, and Load sample puzzles adds three fair color samples (Strawberry, Mushroom, Flower) that play with the color picker.",
       "verify": "node --test test/library.test.js && npm run test:ux",
-      "state": "active",
-      "source": "owner request 2026-10-22: color as a first-class option, 3 sample color puzzles (D26)"
+      "state": "passing",
+      "source": "owner request 2026-10-22: color as a first-class option, 3 sample color puzzles (D26)",
+      "evidence": {
+        "commit": "fac82d33661bda36814198a709be98fa42e6364f",
+        "dirty": false,
+        "at": "2026-10-22T21:09:15Z",
+        "exit_code": 0,
+        "seal": "ppfdbiiaeiakeopa"
+      }
     }
   ]
 }

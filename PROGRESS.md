@@ -6,7 +6,7 @@ This is the verification ledger: check gates and controls, each with a command t
 It is not the product roadmap. What the product does and what is open lives in the README
 and plan docs that AGENTS.md lists under 'Where things are'.
 
-Commit: `3ff75cd`  
+Commit: `fac82d3`  
 Full check: `npm test && npm run lint && npm run format:check && npm run typecheck`
 
 ## Done
@@ -22,6 +22,7 @@ Full check: `npm test && npm run lint && npm run format:check && npm run typeche
 - **ux-checks-headless**: ux-checks.html runs headless in Chrome and exits non-zero on any unmarked check failure; KNOWN issues are reported only. (verified at `3682959`)
 - **color-blank-rule**: Create (color flag on) turns an image into one color puzzle with 3 to 5 colors in total: the most common color is the blank, the rest are inks with colored clues, and colors closer than the merge distance are merged. (verified at `3ff75cd`)
 - **color-play**: A color puzzle plays: colored cells and clue chips, a color picker (keys 1 to 5), and a fill in the wrong color is a mistake that costs a heart. (verified at `3ff75cd`)
+- **color-first-class**: Color is a standard Create option with no flag, and Load sample puzzles adds three fair color samples (Strawberry, Mushroom, Flower) that play with the color picker. (verified at `fac82d3`)
 
 ## In progress
 

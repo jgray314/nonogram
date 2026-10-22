@@ -2,7 +2,7 @@
 // highlight. It reports pointer events and draws `cells`; it never applies
 // strokes itself (the play view wires play-state.js).
 // Cell encoding: 0 unknown, -1 crossed, k >= 1 filled.
-import { inkText } from '../color.js';
+import { inkColors, inkText } from '../color.js';
 
 /**
  * Gutter depth: the most clues in any column (top) and any row (left). With
@@ -16,15 +16,7 @@ export function gutterSize(clues, { zeroClues = false } = {}) {
 
 const BUTTONS = { 0: 'left', 2: 'right' };
 
-/**
- * Hex per ink (index v - 1) when `palette` ({hex}[]) should be drawn in color,
- * else null: no palette, or a single black ink (two-tone keeps the theme's look).
- */
-export function inkColors(palette) {
-  if (!Array.isArray(palette) || palette.length === 0) return null;
-  if (palette.length === 1 && palette[0].hex.toLowerCase() === '#000000') return null;
-  return palette.map((p) => p.hex);
-}
+export { inkColors }; // the view's callers import it from here
 
 function div(className, text) {
   const node = document.createElement('div');

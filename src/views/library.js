@@ -232,6 +232,19 @@ function rowNode(row) {
     row.label,
   );
   meta.append(el('span', null, row.size), fairness);
+  // D27: a color puzzle says so, with one dot per ink in the palette's order.
+  if (row.colors) {
+    const n = row.colors.length;
+    const badge = el('span', 'nng-badge nng-badge-color', 'Color');
+    badge.setAttribute('role', 'img');
+    badge.setAttribute('aria-label', `Color puzzle, ${n} ${n === 1 ? 'color' : 'colors'}`);
+    for (const hex of row.colors) {
+      const dot = el('span', 'nng-color-dot');
+      dot.style.setProperty('--ink', hex);
+      badge.append(dot);
+    }
+    meta.append(badge);
+  }
   const progress = row.progress === 'solved' ? '✓ solved' : row.progress;
   meta.append(el('span', `nng-progress nng-progress-${row.progress.replace(' ', '-')}`, progress));
   // D20: shown only below 600px wide (css/library.css).

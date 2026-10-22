@@ -3,6 +3,7 @@ import { difficultyLabel, isFair, LARGE_SIDE } from './difficulty.js';
 import { restartCells, isSolved } from './game.js';
 import { puzzleClues } from './clues.js';
 import { personaTier } from './personas.js';
+import { inkColors } from './color.js';
 
 /** The keys a stored puzzle may have (PLAN.md D2, the tile `set` field, and D14's `art`). */
 export const PUZZLE_KEYS = [
@@ -81,6 +82,7 @@ export function rowModel(puzzle, save) {
     label: puzzleLabel(puzzle),
     badge,
     large: largePuzzle(puzzle),
+    colors: inkColors(puzzle.palette), // ink hexes for a color puzzle, null for two-tone (D27)
     progress: progressOf(save, puzzle),
   };
 }

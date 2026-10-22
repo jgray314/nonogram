@@ -56,6 +56,17 @@ export function hexOf(rgb) {
 
 const rgbOfHex = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
 
+/**
+ * Hex per ink (index v - 1) when `palette` ({hex}[]) is a color palette, else
+ * null: no palette, or a single black ink (a two-tone puzzle).
+ * @param {{ hex: string }[] | null | undefined} palette
+ */
+export function inkColors(palette) {
+  if (!Array.isArray(palette) || palette.length === 0) return null;
+  if (palette.length === 1 && palette[0].hex.toLowerCase() === '#000000') return null;
+  return palette.map((p) => p.hex);
+}
+
 /** Text color for a number drawn on an ink chip: black on light inks, white on dark. */
 export function inkText(hex) {
   return rgbToLab(rgbOfHex(hex))[0] > 60 ? '#000000' : '#ffffff';

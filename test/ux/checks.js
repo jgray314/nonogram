@@ -517,6 +517,28 @@ export const CHECKS = [
     },
   },
   {
+    id: 'color-library-badge',
+    name: 'The library marks a color puzzle with a Color badge and its ink dots, and leaves two-tone rows alone (D27)',
+    async run(app) {
+      await app.open('#/library');
+      const rows = app.$$('.nng-lib-row');
+      const rowOf = (title) =>
+        rows.find((r) => r.querySelector('.nng-lib-title')?.textContent === title);
+      const color = rowOf('UX check: color');
+      assert(color, 'no row for the seeded color puzzle');
+      const badge = color.querySelector('.nng-badge-color');
+      assert(badge && /Color/.test(badge.textContent), 'no Color badge on the color row');
+      const dots = color.querySelectorAll('.nng-color-dot').length;
+      assert(dots === 2, `expected 2 ink dots, saw ${dots}`);
+      assert(
+        /2 colors/.test(badge.getAttribute('aria-label') ?? ''),
+        'badge does not say how many colors',
+      );
+      const heart = rows.find((r) => /Heart/.test(r.textContent));
+      assert(heart && !heart.querySelector('.nng-badge-color'), 'a two-tone row has a Color badge');
+    },
+  },
+  {
     id: 'color-samples-load-and-play',
     name: 'Load sample puzzles adds the color samples, and the strawberry opens with its color picker',
     async run(app, ids, storage) {

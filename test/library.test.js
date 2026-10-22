@@ -115,6 +115,20 @@ test('badge shown for non-unique verdict', () => {
   );
 });
 
+test('a color puzzle row lists its ink colors; a two-tone row lists none (D27)', () => {
+  const color = puzzle('c', {
+    palette: [
+      { name: 'red', hex: '#d7263d' },
+      { name: 'green', hex: '#3a9a3f' },
+    ],
+  });
+  assert.deepEqual(rowModel(color, null).colors, ['#d7263d', '#3a9a3f']);
+  assert.equal(rowModel(puzzle('m'), null).colors, null);
+  // One ink that isn't black is still a color puzzle (the image merged to one ink).
+  const ochre = puzzle('o', { palette: [{ name: 'color-1', hex: '#c89632' }] });
+  assert.deepEqual(rowModel(ochre, null).colors, ['#c89632']);
+});
+
 test('library row label comes from the verdict', () => {
   const label = (v) => rowModel(puzzle('a', { verdict: v }), null).label;
   assert.equal(label({ ...verdict('unique-line-solvable'), tier: 'newcomer' }), 'Easy');

@@ -175,6 +175,13 @@
         "exit_code": 0,
         "seal": "ppfdbiiaeiakeopa"
       }
+    },
+    {
+      "id": "color-library-label",
+      "behavior": "Library rows mark a color puzzle with a Color badge and one dot per ink color (screen readers hear how many colors); two-tone rows are unchanged.",
+      "verify": "node --test test/library.test.js && npm run test:ux",
+      "state": "active",
+      "source": "owner request 2026-10-22: label color puzzles in the library (D27)"
     }
   ]
 }

@@ -189,6 +189,13 @@
         "exit_code": 0,
         "seal": "pclmopphjfafiged"
       }
+    },
+    {
+      "id": "color-pixel-palette",
+      "behavior": "Image to color grid takes its palette from the pixels (16-level color histogram, weighted k-means seeded far apart, Chang et al. 2015) and gives each cell its majority color: antialiased edges add no extra color, a small vivid subject keeps its color, and a 3% crop move barely changes the palette.",
+      "verify": "node --test test/color.test.js && npm run test:ux",
+      "state": "active",
+      "source": "owner 2026-10-22: color selection janky on photos; research in docs/color-research.md D28"
     }
   ]
 }

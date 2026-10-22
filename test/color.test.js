@@ -8,6 +8,7 @@ import {
   deltaE,
   hexOf,
   inkText,
+  labToRgb,
   quantizeColors,
   rgbToLab,
 } from '../src/color.js';
@@ -155,6 +156,60 @@ test('colorGrid runs the whole image to grid path', () => {
   assert.equal(grid.length, 5);
   assert.equal(palette.length, 2);
   assert.equal(grid[4][4], 0);
+});
+
+// ---- D28: palette from the pixels ----------------------------------------
+
+const full = (w, h) => ({ x: 0, y: 0, w, h });
+const softDisc = (w, h, cx, cy, r, ink, ground) =>
+  makeImage(w, h, (x, y) => {
+    // Antialiased edge: a 2px blend between ink and ground.
+    const t = Math.max(0, Math.min(1, (r + 1 - Math.hypot(x - cx, y - cy)) / 2));
+    return ink.map((v, i) => Math.round(v * t + ground[i] * (1 - t)));
+  });
+
+test('an antialiased two-color image gives one ink, not an extra edge color', () => {
+  const rgba = softDisc(150, 150, 75, 75, 40, RED, CREAM);
+  const { palette, blank, grid } = colorGrid(rgba, 150, full(150, 150), 15, 15, 5);
+  assert.equal(palette.length, 1, `inks: ${palette.map((p) => p.hex).join(' ')}`);
+  assert.ok(deltaE(rgbToLab(rgbOfHex(palette[0].hex)), rgbToLab(RED)) < 5, 'the ink is not red');
+  assert.ok(deltaE(rgbToLab(rgbOfHex(blank)), rgbToLab(CREAM)) < 5, 'the blank is not cream');
+  assert.equal(grid[7][7], 1);
+});
+
+test('a small vivid subject keeps its own color next to large soft areas', () => {
+  // Brown top half, beige bottom half, a small red disc and a smaller green leaf.
+  const rgba = makeImage(200, 200, (x, y) => {
+    if (Math.hypot(x - 100, y - 100) < 22) return RED;
+    if (Math.hypot(x - 112, y - 70) < 8) return GREEN;
+    const shade = (x + y) / 400; // a soft gradient inside each area
+    return y < 110 ? [130 - 20 * shade, 85, 55] : [225 - 20 * shade, 210, 185];
+  });
+  const { palette } = colorGrid(rgba, 200, full(200, 200), 20, 20, 5);
+  const has = (rgb) => palette.some((p) => deltaE(rgbToLab(rgbOfHex(p.hex)), rgbToLab(rgb)) < 12);
+  assert.ok(has(RED), 'the red subject lost its color');
+  assert.ok(has(GREEN), 'the green leaf lost its color');
+});
+
+test('moving the crop a little barely changes the palette', () => {
+  const rgba = makeImage(200, 200, (x, y) => {
+    if (Math.hypot(x - 90, y - 110) < 35) return RED;
+    if (y < 60) return [120 + x / 4, 160, 210]; // sky gradient
+    return [90, 140 - y / 8, 70]; // grass gradient
+  });
+  const a = colorGrid(rgba, 200, full(200, 200), 15, 15, 4);
+  const b = colorGrid(rgba, 200, { x: 6, y: 6, w: 194, h: 194 }, 15, 15, 4);
+  const labs = (q) => [q.blank, ...q.palette.map((p) => p.hex)].map((h) => rgbToLab(rgbOfHex(h)));
+  const near = (xs, ys) =>
+    xs.reduce((s, x) => s + Math.min(...ys.map((y) => deltaE(x, y))), 0) / xs.length;
+  const shift = (near(labs(a), labs(b)) + near(labs(b), labs(a))) / 2;
+  assert.ok(shift < 2, `palette moved by ${shift.toFixed(1)}`);
+});
+
+test('labToRgb inverts rgbToLab', () => {
+  for (const rgb of [RED, BLUE, GREEN, CREAM, [0, 0, 0], [255, 255, 255]]) {
+    assert.deepEqual(labToRgb(rgbToLab(rgb)), rgb);
+  }
 });
 
 test('clue text is dark on light inks and light on dark inks', () => {

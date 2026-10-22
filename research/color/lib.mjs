@@ -257,6 +257,102 @@ function ramp(stops, t) {
 
 const soft = (d, r) => Math.max(0, Math.min(1, 1 - d / r));
 
+const smooth01 = (t) => {
+  const x = Math.max(0, Math.min(1, t));
+  return x * x * (3 - 2 * x);
+};
+/** 1 inside, 0 outside, with an antialiased edge `e` wide (image units 0..1). */
+const inside = (d, e = 0.012) => smooth01(0.5 - d / e);
+
+/**
+ * Photo-like scenes for the clustering research (D28): a small vivid subject on
+ * a large soft background, shading, antialiased edges and sensor noise, which
+ * are what made photo conversion feel janky. Name -> {width, height, rgba}.
+ */
+export function photoLikeImages() {
+  const out = {};
+  const n1 = makeNoise(101);
+  // Red apple with a leaf on a wooden table against a warm wall.
+  out['photo-apple'] = paint(
+    (x, y) => {
+      let c = mix([228, 214, 190], [196, 176, 150], y);
+      const table = inside(0.66 - y + 0.01 * Math.sin(x * 9), 0.01);
+      const grain = 0.85 + 0.3 * n1(x * 3, y * 40, 3);
+      c = mix(c, [128 * grain, 84 * grain, 52 * grain], 1 - table);
+      const shadow = inside(Math.hypot((x - 0.55) / 0.3, (y - 0.74) / 0.06) - 1, 0.3);
+      c = mix(c, [60, 40, 30], 0.45 * shadow * (1 - table));
+      const d = Math.hypot(x - 0.5, y - 0.5) - 0.22;
+      const shade = 0.75 + 0.35 * (1 - Math.hypot(x - 0.42, y - 0.42) / 0.3);
+      c = mix(c, [205 * shade, 30 * shade, 38 * shade], inside(d));
+      const hl = inside(Math.hypot(x - 0.42, y - 0.4) - 0.03, 0.03);
+      c = mix(c, [250, 220, 215], 0.7 * hl * inside(d));
+      const leaf = Math.hypot((x - 0.6) / 0.09, (y - 0.25) / 0.035) - 1;
+      c = mix(c, [70, 140, 50], inside(leaf, 0.08));
+      const stem = Math.abs(x - 0.51) - 0.008;
+      return mix(c, [90, 60, 30], inside(stem, 0.006) * (y > 0.22 && y < 0.3 ? 1 : 0));
+    },
+    7,
+    202,
+  );
+  // Sunset: orange-to-purple sky, a sun, dark hills with a tree.
+  out['photo-sunset'] = paint(
+    (x, y) => {
+      let c = ramp(
+        [
+          [0, [70, 50, 120]],
+          [0.35, [200, 90, 110]],
+          [0.62, [245, 160, 70]],
+          [1, [250, 200, 120]],
+        ],
+        y,
+      );
+      c = mix(c, [255, 235, 160], inside(Math.hypot(x - 0.62, y - 0.55) - 0.08));
+      const hill = 0.7 + 0.06 * Math.sin(x * 7 + 1) + 0.03 * n1(x * 4, 3, 3);
+      const trunk = inside(Math.abs(x - 0.25) - 0.01, 0.006) * (y > 0.5 ? 1 : 0);
+      const crown = inside(Math.hypot((x - 0.25) / 0.08, (y - 0.48) / 0.07) - 1, 0.2);
+      return mix(c, [30, 22, 40], Math.max(inside(hill - y, 0.008), trunk, crown));
+    },
+    6,
+    303,
+  );
+  // Small blue bird with an orange breast on a branch, blurred green background.
+  out['photo-bird'] = paint(
+    (x, y) => {
+      const b = n1(x * 2.5 + 7, y * 2.5, 4);
+      let c = mix([60, 110, 50], [150, 190, 110], b);
+      const branch = Math.abs(y - (0.72 - 0.25 * x)) - 0.025;
+      c = mix(c, [95, 70, 45], inside(branch, 0.01));
+      const body = Math.hypot((x - 0.5) / 0.13, (y - 0.5) / 0.09) - 1;
+      c = mix(c, [40, 90, 190], inside(body, 0.1));
+      const breast = Math.hypot((x - 0.55) / 0.07, (y - 0.54) / 0.05) - 1;
+      c = mix(c, [235, 130, 40], inside(breast, 0.12));
+      const head = Math.hypot(x - 0.6, y - 0.4) - 0.06;
+      c = mix(c, [40, 90, 190], inside(head));
+      return mix(c, [15, 15, 20], inside(Math.hypot(x - 0.62, y - 0.39) - 0.012, 0.006));
+    },
+    6,
+    404,
+  );
+  // Person in a red shirt against a grey-blue wall, light from the left.
+  out['photo-person'] = paint(
+    (x, y) => {
+      let c = mix([150, 165, 180], [110, 120, 135], x);
+      const shirt = Math.hypot((x - 0.5) / 0.32, (y - 1.05) / 0.38) - 1;
+      const light = 1.1 - 0.4 * x;
+      c = mix(c, [190 * light, 40 * light, 45 * light], inside(shirt, 0.05));
+      const neck = inside(Math.abs(x - 0.5) - 0.05, 0.01) * (y > 0.5 && y < 0.7 ? 1 : 0);
+      const face = Math.hypot((x - 0.5) / 0.15, (y - 0.4) / 0.2) - 1;
+      const skin = [225 * light, 180 * light, 150 * light];
+      c = mix(c, skin, Math.max(inside(face, 0.08), neck));
+      const hair = Math.hypot((x - 0.5) / 0.17, (y - 0.3) / 0.15) - 1;
+      return mix(c, [60, 40, 30], inside(hair, 0.08) * (y < 0.32 ? 1 : 0.0));
+    },
+    6,
+    505,
+  );
+  return out;
+}
+
 /** Name -> {width, height, rgba}. Fixed seeds, so the output is reproducible. */
 export function syntheticImages() {
   const out = {};

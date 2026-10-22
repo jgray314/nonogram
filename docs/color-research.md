@@ -347,6 +347,46 @@ What it shows:
 
 Still not tested on real photos (none are in the repo). The verdicts above are the solver's; how the puzzles feel is the hands-on test.
 
+## D28: picking colors from the pixels (2026-10-22)
+
+The maintainer found color selection "a bit janky" on photos. The D25 method averaged each cell first and ran seeded k-means++ on those averages. Two things went wrong with that, both visible on the contact sheets: averaging blends colors at every edge, so blended edge colors became clusters of their own (a pink fringe around a red disc on cream); and k-means++ on a few hundred cell averages picks different colors when the crop moves a little.
+
+**What the sources say.**
+- Chang et al., "Palette-based Photo Recoloring", SIGGRAPH 2015 ([paper](https://gfx.cs.princeton.edu/pubs/Chang_2015_PPR/)): bin the image's pixels into a 16 x 16 x 16 RGB histogram, run weighted k-means on the bin means in Lab, and seed it deterministically: the heaviest bin first, then each other bin's weight damped by 1 - exp(-d^2 / 80^2) for its distance d to the seeds already chosen, so seeds are big and far apart. (They also lock one extra center to black to keep a near-black entry out of an editing palette; for nonograms dark outlines matter, so that step was not used.)
+- Celebi, "Improving the performance of k-means for color quantization", 2011 ([arXiv 1101.0395](https://arxiv.org/abs/1101.0395)): k-means is a strong quantizer once it is initialized well; Wu's method plus k-means ranked best, plain median cut worst. Measured by RGB mean squared error.
+- Gerstner et al., "Pixelated Image Abstraction", 2012 ([project](https://pixl.cs.princeton.edu/pubs/Gerstner_2012_PIA/)): works in Lab and, like pixel artists, multiplies the palette's a and b by 1.1 at the end.
+- Pixel-art downscaling write-ups ([Aseprite majority downsizer](https://community.aseprite.org/t/script-majority-downsizer/17892), [edge-aware pixelation](https://yogthos.net/posts/2025-12-11-edge-aware-pixelation.html)): giving each block its most common color keeps edges crisp, where averaging turns them into in-between bands. No source benchmarks this against averaging; it was measured here.
+
+**Experiment.** `node research/color/cluster.mjs` (`--detail`, `--preview` for sheets in `research/color/out/cluster-*.png`). It runs `src/color.js` itself: the D25 method (`cellColorGrid`) and options of the new `pixelColorGrid`. Images: the 6 samples, the 6 synthetic images, and 4 new photo-like scenes in `research/color/lib.mjs` (`photoLikeImages`: an apple with a leaf on a table, a sunset with a tree, a small bird on a branch against a blurred background, a person in a red shirt against a wall), which have the small vivid subjects, soft backgrounds, shading and antialiased edges real photos have. Sizes 10, 15, 20 and k 3, 4, 5, pooled. New measures: `pdE` is the mean delta E from every source pixel to the color its cell shows (fairer to crisp edges than comparing with cell averages); `speckle` is the share of cells with no same-color neighbour; `shift` is how far the palette moves when the crop moves 3%. Output as printed:
+
+| group | approach | fair | line | colors | pdE | speckle % | shift | minpal | clues | max/line |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| samples | now (cell mean, k-means++) | 36/54 | 30/54 | 3.1 | 6.0 | 4.2 | 4.6 | 16.2 | 81 | 5.0 |
+| samples | pixels, far seeds, cell mean | 45/54 | 42/54 | 2.0 | 4.5 | 0.5 | 0.0 | 68.5 | 48 | 3.1 |
+| samples | pixels, far seeds, cell vote | 42/54 | 39/54 | 2.0 | 4.5 | 0.5 | 0.0 | 68.5 | 47 | 3.1 |
+| synthetic | now (cell mean, k-means++) | 37/45 | 36/45 | 3.6 | 8.3 | 2.9 | 4.2 | 15.0 | 69 | 4.2 |
+| synthetic | pixels, far seeds, cell mean | 42/45 | 36/45 | 3.5 | 7.0 | 1.9 | 0.3 | 15.6 | 64 | 4.1 |
+| synthetic | pixels, far seeds, cell vote | 36/45 | 36/45 | 3.5 | 7.0 | 1.4 | 0.4 | 15.6 | 58 | 3.7 |
+| photo-like | now (cell mean, k-means++) | 30/36 | 29/36 | 3.6 | 8.9 | 1.3 | 4.9 | 15.0 | 45 | 3.6 |
+| photo-like | pixels, heavy seeds, cell vote | 33/36 | 30/36 | 3.1 | 9.0 | 0.1 | 2.0 | 14.9 | 38 | 2.8 |
+| photo-like | pixels, far seeds, cell mean | 32/36 | 32/36 | 3.8 | 8.1 | 0.9 | 0.8 | 32.8 | 38 | 3.3 |
+| photo-like | pixels, far seeds, cell vote | 32/36 | 32/36 | 3.8 | 8.0 | 0.1 | 0.4 | 32.8 | 36 | 2.9 |
+| photo-like | pixels, far seeds, cell vote, sat 1.1 | 32/36 | 32/36 | 3.8 | 9.0 | 0.1 | 0.4 | 35.9 | 36 | 2.9 |
+| photo-like | pixels, far vivid seeds, cell vote | 34/36 | 34/36 | 3.7 | 8.1 | 0.1 | 1.3 | 32.8 | 35 | 2.9 |
+
+What it shows:
+
+- **Taking the palette from the pixels fixes the jitter.** The palette moves 0.3 to 0.8 when the crop moves 3%, against 4.2 to 4.9 for the D25 method. That is the "janky" part: dragging the crop or changing the size reshuffled the colors.
+- **No more edge colors.** The two-color samples now give 2 colors, not about 3, and specks drop (photo-like 0.1% of cells against 1.3%). Colors are farther apart (closest pair 32.8 against 15.0 on photo-like).
+- **Fairness is as good or better.** Line-solvable on photo-like 32/36 against 29/36; on synthetic 36/45 either way; on samples 39/54 against 30/54.
+- **Seeds far apart matter.** Seeding with the heaviest bins (`heavy`) lost the apple's leaf and the bird's orange breast on the sheets, and its colors sat closer (14.9).
+- **Cell vote against cell mean.** Same line-solvable count on synthetic and photo-like, fewer specks and clues with the vote, crisper edges on the sheets. The mean was a little fairer on the samples (42/54 against 39/54 line) and on synthetic counting guessing puzzles (42/45 against 36/45). The vote was kept: it is what keeps edges crisp on photos, which is the case being fixed.
+- **Not adopted: the 1.1 saturation boost** (Gerstner). It moves every color away from the source (pdE 9.0 against 8.0) and changed no puzzle; it looks a little more vivid on the sheets, so it stays as an option (`saturate`). **Not adopted: favouring vivid colors when seeding** (`vivid`, weight x (1 + chroma / 50)). Two more fair puzzles out of 36, but the palette moved three times as much (1.3 against 0.4), and it did not bring back the sunset's small sun, which simply needs a sixth color.
+
+**Shipped** (`colorGrid` in `src/color.js`, used by Create): histogram of the crop's pixels (sampled to at most 65,536), weighted k-means in Lab seeded far apart (falloff 80), merge closer than delta E 15, each palette color the mean of its pixels, each cell its majority color, the color covering the most cells is the blank. On a noisy 768 x 768 crop it takes about 20 to 27 ms in Node against 11 to 13 ms before.
+
+Still not tested on real photos: the photo-like scenes are generated. Put PNGs in `research/color/photos/` and run `node research/color/cluster.mjs --preview` to see the same tables and sheets for them.
+
 ## Decisions for the maintainer before a build plan
 
 1. Is B (one color puzzle) the first build, with layers (D) deferred?

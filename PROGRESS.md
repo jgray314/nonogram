@@ -6,7 +6,7 @@ This is the verification ledger: check gates and controls, each with a command t
 It is not the product roadmap. What the product does and what is open lives in the README
 and plan docs that AGENTS.md lists under 'Where things are'.
 
-Commit: `02209f3`  
+Commit: `3ff75cd`  
 Full check: `npm test && npm run lint && npm run format:check && npm run typecheck`
 
 ## Done
@@ -20,6 +20,8 @@ Full check: `npm test && npm run lint && npm run format:check && npm run typeche
 - **docs-claims-pinned**: Test counts, suite timings and case counts quoted in README and PLAN are asserted by a test against their source. (verified at `3682959`)
 - **typecheck-clean**: tsc --checkJs reports nothing on src, scripts and test; a suppression needs a stated reason. (verified at `3682959`)
 - **ux-checks-headless**: ux-checks.html runs headless in Chrome and exits non-zero on any unmarked check failure; KNOWN issues are reported only. (verified at `3682959`)
+- **color-blank-rule**: Create (color flag on) turns an image into one color puzzle with 3 to 5 colors in total: the most common color is the blank, the rest are inks with colored clues, and colors closer than the merge distance are merged. (verified at `3ff75cd`)
+- **color-play**: A color puzzle plays: colored cells and clue chips, a color picker (keys 1 to 5), and a fill in the wrong color is a mistake that costs a heart. (verified at `3ff75cd`)
 
 ## In progress
 

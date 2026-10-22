@@ -180,8 +180,15 @@
       "id": "color-library-label",
       "behavior": "Library rows mark a color puzzle with a Color badge and one dot per ink color (screen readers hear how many colors); two-tone rows are unchanged.",
       "verify": "node --test test/library.test.js && npm run test:ux",
-      "state": "active",
-      "source": "owner request 2026-10-22: label color puzzles in the library (D27)"
+      "state": "passing",
+      "source": "owner request 2026-10-22: label color puzzles in the library (D27)",
+      "evidence": {
+        "commit": "cf5813ea5b54d3a228eaf1ed978f0cc4aea6e3a4",
+        "dirty": false,
+        "at": "2026-10-22T21:15:09Z",
+        "exit_code": 0,
+        "seal": "pclmopphjfafiged"
+      }
     }
   ]
 }

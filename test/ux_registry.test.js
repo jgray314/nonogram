@@ -12,6 +12,7 @@ const PIPELINE_IDS = [
   'pipeline-backup-round-trip',
   'pipeline-webpbn-export',
   'pipeline-save-file-round-trip',
+  'pipeline-leave-puzzle-saves-time',
 ];
 
 test('ux registry: every end-to-end pipeline check is registered', () => {

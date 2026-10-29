@@ -3,6 +3,7 @@
 // so keep this spread LAST in CHECKS: a check placed after it would lose its seed.
 import { BACKUP_CHECKS } from './pipeline-backup.js';
 import { COLOR_CHECKS } from './pipeline-color.js';
+import { LEAVE_CHECKS } from './pipeline-leave.js';
 import { MONO_CHECKS } from './pipeline-mono.js';
 import { SAVEFILE_CHECKS } from './pipeline-savefile.js';
 import { WEBPBN_CHECKS } from './pipeline-webpbn.js';
@@ -13,4 +14,5 @@ export const PIPELINE_CHECKS = [
   ...BACKUP_CHECKS,
   ...WEBPBN_CHECKS,
   ...SAVEFILE_CHECKS,
+  ...LEAVE_CHECKS,
 ];

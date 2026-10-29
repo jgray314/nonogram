@@ -2,6 +2,7 @@
 import { renderGrid, gutterSize, inkColors } from './grid.js';
 import { inkText } from '../color.js';
 import { puzzleClues } from '../clues.js';
+import { elc } from './dom.js';
 import { applyStroke, strokeCells } from '../play-state.js';
 import {
   MAX_HEARTS,
@@ -40,13 +41,6 @@ function ensureCss() {
   document.head.append(link);
 }
 
-function el(tag, className, text) {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
-}
-
 function loadPuzzle(store, id) {
   const rec = store.get('puzzle', id);
   return rec && validatePuzzle(rec).ok ? rec : null;
@@ -68,10 +62,10 @@ let generation = 0;
 const pendingNotes = new Map();
 
 function showMissing(el_) {
-  const box = el('section', 'nng-play');
-  box.append(el('h1', undefined, 'Puzzle not found'));
-  const p = el('p', undefined, 'That puzzle is missing or invalid. ');
-  const a = el('a', undefined, 'Back to the library');
+  const box = elc('section', 'nng-play');
+  box.append(elc('h1', undefined, 'Puzzle not found'));
+  const p = elc('p', undefined, 'That puzzle is missing or invalid. ');
+  const a = elc('a', undefined, 'Back to the library');
   a.href = '#/library';
   p.append(a);
   box.append(p);
@@ -94,85 +88,85 @@ export function mount(container, params = {}) {
     return;
   }
 
-  root = el('section', 'nng-play');
+  root = elc('section', 'nng-play');
   // D15: the name plus a badge, as in the library; the stored title keeps its prefix.
   const label = sampleLabel(puzzle.title || 'Untitled');
-  const title = el('h1', undefined, label.name);
+  const title = elc('h1', undefined, label.name);
   if (label.ai) {
-    title.append(' ', el('span', 'nng-badge nng-badge-ai nng-header-badge', 'AI test sample'));
+    title.append(' ', elc('span', 'nng-badge nng-badge-ai nng-header-badge', 'AI test sample'));
   }
   // Size and difficulty as in the library row, inline so the header stays one line tall.
-  title.append(' ', el('span', 'nng-header-meta', puzzleMeta(puzzle)));
-  const status = el('div', 'nng-status');
-  const solvedMsg = el('span', 'nng-solved');
+  title.append(' ', elc('span', 'nng-header-meta', puzzleMeta(puzzle)));
+  const status = elc('div', 'nng-status');
+  const solvedMsg = elc('span', 'nng-solved');
   solvedMsg.hidden = true;
-  const count = el('span', 'nng-count');
-  const timerEl = el('span', 'nng-timer');
-  const heartsEl = el('span', 'nng-hearts');
+  const count = elc('span', 'nng-count');
+  const timerEl = elc('span', 'nng-timer');
+  const heartsEl = elc('span', 'nng-hearts');
   heartsEl.setAttribute('role', 'img');
-  const heartNodes = Array.from({ length: MAX_HEARTS }, () => el('span', 'nng-heart'));
+  const heartNodes = Array.from({ length: MAX_HEARTS }, () => elc('span', 'nng-heart'));
   heartsEl.append(...heartNodes);
   status.append(timerEl, heartsEl, solvedMsg, count);
   // Shown while out of hearts; Restart is the only way out.
-  const outPanel = el('div', 'nng-out');
+  const outPanel = elc('div', 'nng-out');
   outPanel.hidden = true;
-  const outRestartBtn = el('button', undefined, 'Restart');
+  const outRestartBtn = elc('button', undefined, 'Restart');
   outRestartBtn.type = 'button';
-  const outZenBtn = el('button', undefined, 'Continue in Zen mode');
+  const outZenBtn = elc('button', undefined, 'Continue in Zen mode');
   outZenBtn.type = 'button';
   outPanel.append(
-    el('strong', undefined, 'Out of hearts'),
-    el('span', 'nng-out-note', 'Restart clears the grid, timer and hearts.'),
+    elc('strong', undefined, 'Out of hearts'),
+    elc('span', 'nng-out-note', 'Restart clears the grid, timer and hearts.'),
     outRestartBtn,
     outZenBtn,
   );
-  const sizeNote = el(
+  const sizeNote = elc(
     'p',
     'nng-size-note',
     "This puzzle is big for this screen, so the grid scrolls. It's easiest on a wider window.",
   );
   sizeNote.hidden = true;
-  const holder = el('div', 'nng-grid-holder');
-  const toolbar = el('div', 'nng-toolbar');
-  const exportBtn = el('button', undefined, 'Export save');
+  const holder = elc('div', 'nng-grid-holder');
+  const toolbar = elc('div', 'nng-toolbar');
+  const exportBtn = elc('button', undefined, 'Export save');
   exportBtn.type = 'button';
-  const importBtn = el('button', undefined, 'Import save');
+  const importBtn = elc('button', undefined, 'Import save');
   importBtn.type = 'button';
-  const fileInput = el('input');
+  const fileInput = elc('input');
   fileInput.type = 'file';
   fileInput.accept = '.json,application/json';
   fileInput.hidden = true;
-  const message = el('span', 'nng-msg');
+  const message = elc('span', 'nng-msg');
   const pending = pendingNotes.get(puzzle.id);
   if (pending) {
     message.textContent = pending;
     pendingNotes.delete(puzzle.id);
   }
   toolbar.append(exportBtn, importBtn, fileInput, message);
-  const rulesBar = el('div', 'nng-rules');
+  const rulesBar = elc('div', 'nng-rules');
   const toggles = {};
   for (const [key, label] of [
     ['zen', 'Zen mode'],
     ['autoCross', 'Auto-cross'],
   ]) {
-    const wrap = el('label', 'nng-toggle');
-    const box = el('input');
+    const wrap = elc('label', 'nng-toggle');
+    const box = elc('input');
     box.type = 'checkbox';
     toggles[key] = box;
     wrap.append(box, document.createTextNode(` ${label}`));
     rulesBar.append(wrap);
   }
-  const hintBtn = el('button', undefined, 'Reveal a cell');
+  const hintBtn = elc('button', undefined, 'Reveal a cell');
   hintBtn.type = 'button';
-  const hintCount = el('span', 'nng-hint-count');
-  const restartBtn = el('button', undefined, 'Restart');
+  const hintCount = elc('span', 'nng-hint-count');
+  const restartBtn = elc('button', undefined, 'Restart');
   restartBtn.type = 'button';
-  const ruleNote = el('span', 'nng-note');
-  const undoBtn = el('button', undefined, 'Undo');
+  const ruleNote = elc('span', 'nng-note');
+  const undoBtn = elc('button', undefined, 'Undo');
   undoBtn.type = 'button';
   undoBtn.title = 'Undo (Ctrl+Z)';
   undoBtn.setAttribute('aria-keyshortcuts', 'Control+Z');
-  const redoBtn = el('button', undefined, 'Redo');
+  const redoBtn = elc('button', undefined, 'Redo');
   redoBtn.type = 'button';
   redoBtn.title = 'Redo (Ctrl+Y)';
   redoBtn.setAttribute('aria-keyshortcuts', 'Control+Y');
@@ -180,12 +174,12 @@ export function mount(container, params = {}) {
   const inks = inkColors(puzzle.palette);
   const multi = inks !== null && inks.length > 1;
   let brush = 1;
-  const swatchBar = el('div', 'nng-swatches');
+  const swatchBar = elc('div', 'nng-swatches');
   swatchBar.setAttribute('role', 'group');
   swatchBar.setAttribute('aria-label', 'Fill color');
   swatchBar.hidden = !multi;
   const swatches = (multi ? inks : []).map((hex, i) => {
-    const b = el('button', 'nng-swatch', String(i + 1));
+    const b = elc('button', 'nng-swatch', String(i + 1));
     b.type = 'button';
     b.style.setProperty('--ink', hex);
     b.style.setProperty('--ink-text', inkText(hex));
@@ -202,10 +196,10 @@ export function mount(container, params = {}) {
   const colorHint = multi ? `Pick a color (keys 1 to ${inks.length}) · ` : '';
   const MOUSE_LEGEND = `${colorHint}Left-drag to fill · Right-drag to cross · Ctrl+Z to undo`;
   const TOUCH_LEGEND = `${colorHint}Choose Fill or Cross, then tap or drag`;
-  const legend = el('p', 'nng-legend', MOUSE_LEGEND);
+  const legend = elc('p', 'nng-legend', MOUSE_LEGEND);
   // D21: on a touch screen a Fill / Cross selector stands in for the mouse buttons.
   let touchMode = 'fill';
-  const modeBar = el('div', 'nng-mode');
+  const modeBar = elc('div', 'nng-mode');
   modeBar.setAttribute('role', 'group');
   modeBar.setAttribute('aria-label', 'Touch mode');
   const modeBtns = {};
@@ -213,7 +207,7 @@ export function mount(container, params = {}) {
     ['fill', 'Fill'],
     ['cross', 'Cross'],
   ]) {
-    const b = el('button', 'nng-mode-btn', label);
+    const b = elc('button', 'nng-mode-btn', label);
     b.type = 'button';
     modeBtns[mode] = b;
     b.addEventListener('click', () => {
@@ -240,20 +234,20 @@ export function mount(container, params = {}) {
   cleanup.push(() => coarse?.removeEventListener?.('change', syncCoarse));
   rulesBar.append(undoBtn, redoBtn, modeBar, hintBtn, hintCount, restartBtn, ruleNote);
   // Shown once a solve is final (after the art fade, if any): the time and a way back.
-  const strip = el('div', 'nng-solved-strip');
+  const strip = elc('div', 'nng-solved-strip');
   strip.hidden = true;
-  const stripText = el('span', 'nng-solved-text');
-  const stripLink = el('a', undefined, 'Back to library');
+  const stripText = elc('span', 'nng-solved-text');
+  const stripLink = elc('a', undefined, 'Back to library');
   stripLink.href = '#/library';
   strip.append(stripText, stripLink);
-  const ruleDefault = el(
+  const ruleDefault = elc(
     'p',
     'nng-rule-default',
     "Zen and Auto-cross also apply to puzzles you haven't started yet.",
   );
   // The legend and the quiet Export / Import save buttons share one row
   // under the grid, so the save buttons don't cost a 25x25 its fit at 1024x768.
-  const belowRow = el('div', 'nng-below');
+  const belowRow = elc('div', 'nng-below');
   belowRow.append(legend, toolbar);
   // The color picker sits in the status row, so it costs the grid no height.
   heartsEl.after(swatchBar);
@@ -406,7 +400,7 @@ export function mount(container, params = {}) {
       showStrip();
       return;
     }
-    const img = el('img', 'nng-art');
+    const img = elc('img', 'nng-art');
     img.alt = 'The finished picture';
     img.src = puzzle.art;
     img.addEventListener('error', () => {
@@ -658,7 +652,7 @@ export function mount(container, params = {}) {
   exportBtn.addEventListener('click', () => {
     const blob = new Blob([serializeSaveFile(puzzle, snapshot())], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    const a = el('a');
+    const a = elc('a');
     a.href = url;
     a.download = `${(puzzle.title || 'puzzle').replace(/[^\w-]+/g, '-')}.nng.json`;
     document.body.append(a);

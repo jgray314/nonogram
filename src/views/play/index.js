@@ -3,7 +3,7 @@ import { renderGrid, gutterSize, inkColors } from '../grid.js';
 import { puzzleClues } from '../../clues.js';
 import { elc } from '../dom.js';
 import { buildView } from './build.js';
-import { reveal, sameGrid } from './util.js';
+import { sameGrid } from './util.js';
 import { createHud } from './hud.js';
 import { createPersist } from './persist.js';
 import { createRulesLayout } from './rules-layout.js';
@@ -24,9 +24,7 @@ import {
   isSolved,
   restartCells,
   restartPrompt,
-  solvedSummary,
 } from '../../game.js';
-import { clueProgress, solutionProgress } from '../../clue-progress.js';
 import { createStore } from '../../store.js';
 import { validatePuzzle, validateSave, idMatches } from '../../format.js';
 import { serializeSaveFile, parseSaveFile, importWrites } from '../../save.js';
@@ -95,11 +93,8 @@ export function mount(container, params = {}) {
   const refs = buildView({ puzzle, inks, multi, pendingNote });
   root = refs.root;
   const {
-    solvedMsg,
     count,
     timerEl,
-    heartsEl,
-    heartNodes,
     outPanel,
     outRestartBtn,
     outZenBtn,
@@ -111,9 +106,7 @@ export function mount(container, params = {}) {
     message,
     toggles,
     hintBtn,
-    hintCount,
     restartBtn,
-    ruleNote,
     undoBtn,
     redoBtn,
     swatches,
@@ -121,8 +114,6 @@ export function mount(container, params = {}) {
     legendText,
     modeBar,
     modeBtns,
-    strip,
-    stripText,
     belowRow,
   } = refs;
   container.append(root);
@@ -274,6 +265,9 @@ export function mount(container, params = {}) {
     persist: null,
     rulesLayout: null,
     session: null,
+    // @ts-expect-error forwarding entries until the session module owns zen; not in PlayContext yet
+    zen: () => zen(),
+    outOfHearts: () => outOfHearts(),
   };
   ctx.hud = createHud(ctx);
   ctx.persist = createPersist(ctx);
@@ -282,96 +276,11 @@ export function mount(container, params = {}) {
   const zen = () => rules.zen || !heartsOk;
   const outOfHearts = () => !zen() && state.hearts === 0 && state.solvedAt === null;
 
-  function refresh() {
-    const out = outOfHearts();
-    grid.setWrong(state.wrongMark && state.solvedAt === null ? [state.wrongMark] : []);
-    for (const key of Object.keys(toggles)) {
-      toggles[key].checked = key === 'zen' ? zen() : rules[key];
-      toggles[key].disabled = out || (key !== 'autoCross' && !helpers.enabled);
-    }
-    heartsEl.hidden = zen();
-    heartsEl.setAttribute('aria-label', `${state.hearts} of ${MAX_HEARTS} hearts`);
-    heartNodes.forEach((node, i) => {
-      const full = i < state.hearts;
-      node.textContent = full ? '♥' : '♡';
-      node.classList.toggle('nng-heart-full', full);
-    });
-    outPanel.hidden = !out;
-    restartBtn.hidden = out; // the panel has its own Restart; show only one
-    holder.classList.toggle('nng-locked', out);
-    hintBtn.disabled = !helpers.enabled || state.solvedAt !== null || out;
-    undoBtn.disabled = !state.history.canUndo() || state.solvedAt !== null || out;
-    redoBtn.disabled = !state.history.canRedo() || state.solvedAt !== null || out;
-    hintCount.textContent = `Hints used: ${state.hints}`;
-    ruleNote.textContent = helpers.note;
-    timerEl.textContent = formatTime(state.elapsedMs);
-    grid.update(state.solvedAt === null ? state.cells : reveal(state.cells));
-    // With a unique solution every wrong fill is caught on the spot, in both
-    // modes, so numbers can follow the solution (D11, D13). Without one there is
-    // no answer to compare against, so the logic-only fenced rule applies.
-    grid.setClueDone(
-      heartsOk ? solutionProgress(state.cells, puzzle.solution) : clueProgress(state.cells, clues),
-    );
-    holder.classList.toggle('nng-celebrate', state.solvedAt !== null); // styling hook for the solve glow
-    solvedMsg.hidden = state.solvedAt === null;
-    solvedMsg.textContent = state.solvedAt === null ? '' : 'Solved';
-    count.textContent = '';
-    syncReveal();
-  }
-
   // Solve reveal (D14): the original crop fades in over the cells. A puzzle with
   // no art, a reopened solved puzzle and reduced motion skip the fade.
   state.revealed = false;
   state.animateReveal = false; // set by the move that solves the puzzle
   state.revealTimer = null;
-  const reduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-  function showStrip() {
-    clearTimeout(state.revealTimer);
-    stripText.textContent = solvedSummary(state.elapsedMs, state.hints);
-    strip.hidden = false;
-  }
-  function clearReveal() {
-    clearTimeout(state.revealTimer);
-    state.revealed = false;
-    grid.setOverlay(null);
-    holder.classList.remove('nng-revealed', 'nng-reveal-anim');
-    strip.hidden = true;
-  }
-  function syncReveal() {
-    if (state.solvedAt === null) {
-      if (state.revealed || !strip.hidden) clearReveal();
-      return;
-    }
-    if (state.revealed) return;
-    state.revealed = true;
-    const animate = state.animateReveal && !reduceMotion();
-    state.animateReveal = false;
-    if (!puzzle.art) {
-      showStrip();
-      return;
-    }
-    const img = elc('img', 'nng-art');
-    img.alt = 'The finished picture';
-    img.src = puzzle.art;
-    img.addEventListener('error', () => {
-      grid.setOverlay(null);
-      holder.classList.remove('nng-revealed', 'nng-reveal-anim');
-      showStrip();
-    });
-    grid.setOverlay(img);
-    if (!animate) {
-      img.classList.add('nng-art-in', 'nng-art-instant');
-      holder.classList.add('nng-revealed');
-      showStrip();
-      return;
-    }
-    holder.classList.add('nng-reveal-anim');
-    img.getBoundingClientRect(); // commit the start state so the fade runs
-    img.classList.add('nng-art-in');
-    holder.classList.add('nng-revealed');
-    img.addEventListener('transitionend', showStrip, { once: true });
-    state.revealTimer = setTimeout(showStrip, 1600); // in case transitionend never fires
-  }
 
   function startClock() {
     if (state.started) return;
@@ -407,7 +316,7 @@ export function mount(container, params = {}) {
       state.animateReveal = true;
     }
     state.dirty = true;
-    refresh();
+    ctx.hud.refresh();
     grid.sweep(swept);
     persist();
   }
@@ -446,7 +355,7 @@ export function mount(container, params = {}) {
     palette: puzzle.palette,
     blank: puzzle.blank,
   });
-  refresh();
+  ctx.hud.refresh();
 
   // Cell size: the largest of 16..32px that fits the grid and its clue
   // gutters in the window below the header, and in the main column's width.
@@ -519,7 +428,7 @@ export function mount(container, params = {}) {
       rules[key] = box.checked;
       rememberRule(key, box.checked);
       state.dirty = true;
-      refresh();
+      ctx.hud.refresh();
       persist();
     });
   }
@@ -564,7 +473,7 @@ export function mount(container, params = {}) {
     state.wrongMark = null;
     state.cells = fn();
     state.dirty = true;
-    refresh();
+    ctx.hud.refresh();
     persist();
   }
 
@@ -580,7 +489,7 @@ export function mount(container, params = {}) {
     state.lastTick = Date.now();
     state.solvedAt = isSolved(state.cells, clues) ? Date.now() : null; // an all-blank or all-filled tile starts solved
     state.dirty = true;
-    refresh();
+    ctx.hud.refresh();
     persist();
   }
   restartBtn.addEventListener('click', () => {
@@ -595,7 +504,7 @@ export function mount(container, params = {}) {
     rules.zen = true;
     state.lastTick = Date.now();
     state.dirty = true;
-    refresh();
+    ctx.hud.refresh();
     persist();
   });
 

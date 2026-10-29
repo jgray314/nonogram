@@ -6,31 +6,31 @@ This is the verification ledger: check gates and controls, each with a command t
 It is not the product roadmap. What the product does and what is open lives in the README
 and plan docs that AGENTS.md lists under 'Where things are'.
 
-Commit: `e867c9f`  
+Commit: `70f96ce`  
 Full check: `npm test && npm run lint && npm run format:check && npm run typecheck`
 
 ## Done
 
-- **fast-suite**: The fast suite passes: solver, difficulty, import and player logic. (verified at `3682959`)
-- **lint-clean**: ESLint reports nothing on the whole tree. (verified at `3682959`)
-- **format-clean**: Prettier check passes on the whole tree. (verified at `3682959`)
-- **import-bounds-registry**: Every import entry point has a table-driven test for allow-listed keys at every depth, per-field length limits, count limits and duplicate ids, so a new field fails until it has a row. (verified at `3682959`)
-- **public-docs-denylist**: Source comments and public docs contain no review ids (gate pass N, finding ids), private workspace paths or third-person owner references; a test fails on any. (verified at `3682959`)
-- **encoding-guard**: Tracked JSON, Markdown and recordings contain no mojibake byte sequences, and .gitattributes pins text line endings. (verified at `3682959`)
-- **docs-claims-pinned**: Test counts, suite timings and case counts quoted in README and PLAN are asserted by a test against their source. (verified at `3682959`)
-- **typecheck-clean**: tsc --checkJs reports nothing on src, scripts and test; a suppression needs a stated reason. (verified at `3682959`)
-- **ux-checks-headless**: ux-checks.html runs headless in Chrome and exits non-zero on any unmarked check failure; KNOWN issues are reported only. (verified at `3682959`)
-- **color-blank-rule**: Create (color flag on) turns an image into one color puzzle with 3 to 5 colors in total: the most common color is the blank, the rest are inks with colored clues, and colors closer than the merge distance are merged. (verified at `3ff75cd`)
-- **color-play**: A color puzzle plays: colored cells and clue chips, a color picker (keys 1 to 5), and a fill in the wrong color is a mistake that costs a heart. (verified at `3ff75cd`)
-- **color-first-class**: Color is a standard Create option with no flag, and Load sample puzzles adds three fair color samples (Strawberry, Mushroom, Flower) that play with the color picker. (verified at `fac82d3`)
-- **color-library-label**: Library rows mark a color puzzle with a Color badge and one dot per ink color (screen readers hear how many colors); two-tone rows are unchanged. (verified at `cf5813e`)
-- **color-pixel-palette**: Image to color grid takes its palette from the pixels (16-level color histogram, weighted k-means seeded far apart, Chang et al. 2015) and gives each cell its majority color: antialiased edges add no extra color, a small vivid subject keeps its color, and a 3% crop move barely changes the palette. (verified at `fe08554`)
-- **color-blank-display**: A color puzzle stores its blank (background) color, and Create and Play draw empty and crossed cells in it, with the cross white on a dark blank and dark on a light one; two-tone puzzles are unchanged. (verified at `32e637f`)
-- **e2e-pipeline-helpers**: The UX harness has upload, create-and-save, download-capture, file-pick and store-reset helpers, a synthetic color fixture and a PIPELINE_CHECKS registration hook, so pipeline checks can drive the real app end to end. No behavior change; failing-first is N/A. (verified at `07e6950`)
-- **e2e-pipeline-mono**: End to end: uploading cat-15x15 in Create and saving stores a 15x15 puzzle with a real worker verdict, and the library lists it with a Play button that opens a 15x15 grid. (verified at `4707b09`)
-- **e2e-pipeline-backup**: Exporting the library, wiping the store and importing a backup whose verdicts were tampered with restores both the mono and color puzzles with the worker's re-rated verdicts, not the file's. (verified at `4707b09`)
-- **e2e-pipeline-color**: A color image uploaded in Create (4 colors chosen) reaches the library through the real worker: palette of 2 to 4 inks plus a valid distinct blank hex, a real stored verdict, a Color badge with one dot per ink, and one swatch per ink in Play. (verified at `4707b09`)
-- **e2e-pipeline-webpbn**: A puzzle created from an image through the real Create flow exports webpbn XML from the Library whose root, dimensions and row and column clues match the stored solution, with expected clues derived independently in the check. (verified at `4707b09`)
+- **fast-suite**: The fast suite passes: solver, difficulty, import and player logic. (verified at `70f96ce`)
+- **lint-clean**: ESLint reports nothing on the whole tree. (verified at `70f96ce`)
+- **format-clean**: Prettier check passes on the whole tree. (verified at `70f96ce`)
+- **import-bounds-registry**: Every import entry point has a table-driven test for allow-listed keys at every depth, per-field length limits, count limits and duplicate ids, so a new field fails until it has a row. (verified at `70f96ce`)
+- **public-docs-denylist**: Source comments and public docs contain no review ids (gate pass N, finding ids), private workspace paths or third-person owner references; a test fails on any. (verified at `70f96ce`)
+- **encoding-guard**: Tracked JSON, Markdown and recordings contain no mojibake byte sequences, and .gitattributes pins text line endings. (verified at `70f96ce`)
+- **docs-claims-pinned**: Test counts, suite timings and case counts quoted in README and PLAN are asserted by a test against their source. (verified at `70f96ce`)
+- **typecheck-clean**: tsc --checkJs reports nothing on src, scripts and test; a suppression needs a stated reason. (verified at `70f96ce`)
+- **ux-checks-headless**: ux-checks.html runs headless in Chrome and exits non-zero on any unmarked check failure; KNOWN issues are reported only. (verified at `70f96ce`)
+- **color-blank-rule**: Create (color flag on) turns an image into one color puzzle with 3 to 5 colors in total: the most common color is the blank, the rest are inks with colored clues, and colors closer than the merge distance are merged. (verified at `70f96ce`)
+- **color-play**: A color puzzle plays: colored cells and clue chips, a color picker (keys 1 to 5), and a fill in the wrong color is a mistake that costs a heart. (verified at `70f96ce`)
+- **color-first-class**: Color is a standard Create option with no flag, and Load sample puzzles adds three fair color samples (Strawberry, Mushroom, Flower) that play with the color picker. (verified at `70f96ce`)
+- **color-library-label**: Library rows mark a color puzzle with a Color badge and one dot per ink color (screen readers hear how many colors); two-tone rows are unchanged. (verified at `70f96ce`)
+- **color-pixel-palette**: Image to color grid takes its palette from the pixels (16-level color histogram, weighted k-means seeded far apart, Chang et al. 2015) and gives each cell its majority color: antialiased edges add no extra color, a small vivid subject keeps its color, and a 3% crop move barely changes the palette. (verified at `70f96ce`)
+- **color-blank-display**: A color puzzle stores its blank (background) color, and Create and Play draw empty and crossed cells in it, with the cross white on a dark blank and dark on a light one; two-tone puzzles are unchanged. (verified at `70f96ce`)
+- **e2e-pipeline-helpers**: The UX harness has upload, create-and-save, download-capture, file-pick and store-reset helpers, a synthetic color fixture and a PIPELINE_CHECKS registration hook, so pipeline checks can drive the real app end to end. No behavior change; failing-first is N/A. (verified at `70f96ce`)
+- **e2e-pipeline-mono**: End to end: uploading cat-15x15 in Create and saving stores a 15x15 puzzle with a real worker verdict, and the library lists it with a Play button that opens a 15x15 grid. (verified at `70f96ce`)
+- **e2e-pipeline-backup**: Exporting the library, wiping the store and importing a backup whose verdicts were tampered with restores both the mono and color puzzles with the worker's re-rated verdicts, not the file's. (verified at `70f96ce`)
+- **e2e-pipeline-color**: A color image uploaded in Create (4 colors chosen) reaches the library through the real worker: palette of 2 to 4 inks plus a valid distinct blank hex, a real stored verdict, a Color badge with one dot per ink, and one swatch per ink in Play. (verified at `70f96ce`)
+- **e2e-pipeline-webpbn**: A puzzle created from an image through the real Create flow exports webpbn XML from the Library whose root, row and column clues and picture match the stored solution, with expected clues derived independently in the check. (verified at `70f96ce`)
 
 ## In progress
 

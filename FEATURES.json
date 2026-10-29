@@ -397,6 +397,14 @@
         "seal": "gjlibanlojlnmnhm"
       },
       "plan_review_skipped": "predates the plan gate (2026-10-29)"
+    },
+    {
+      "id": "line-cap-300",
+      "behavior": "No file under src/ is longer than 300 lines: the six oversized files are split into new files behind unchanged export lists, with no cycles among them, and the lint cap is 300 with a test that pins it.",
+      "verify": "node --test test/lint_size_cap.test.js test/module_graph.test.js test/split_samples.test.js test/split_format.test.js test/split_create_logic.test.js test/split_color.test.js test/split_library.test.js test/split_grid.test.js && npm run lint && npm run test:ux",
+      "state": "not_started",
+      "source": "docs/plans/line-cap-300.md",
+      "plan": "docs/plans/line-cap-300.md"
     }
   ],
   "plan_gate": true

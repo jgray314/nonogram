@@ -2,89 +2,186 @@
 
 Goal: lower the `max-lines` cap on `src/**` from 500 to ESLint's default of 300, so no source file is longer than 300 lines. Behavior must not change (AGENTS rule 9).
 
-Follow-up to [view-split.md](view-split.md). That plan sets the cap at 500 as a ratchet against growth and splits the two views. This plan starts only after that one is merged and gated: it relies on `src/views/dom.js` and on the size-cap test (`test/lint_size_cap.test.js`) that plan creates, and it must re-measure after the view split, not assume.
+Follow-up to [view-split.md](view-split.md), which is merged, gated (gate pass 8) and pushed. That plan set the cap at 500 as a ratchet and split the two views; this one finishes the job. This version was reworked after a `/plan-review` (see `docs/reviews/nonogram-plan-review.md`, "Plan review: line-cap-300", 2026-10-29) and from the view split's own problems, which are listed under "What the view split taught" below.
 
-Scope: `src/**` only, which is what the lint rule covers. Test files, `test/ux/checks.js` (883 lines), `research/` and `scripts/` are not capped and are not touched.
+Scope: `src/**` only, which is what the lint rule covers. Test files, `test/ux/checks.js` (883 lines), `research/` and `scripts/` are not capped. `scripts/` and `test/` gain new files in Wave 0 (the equivalence tools and split tests); nothing existing outside `src/` changes except the numbers named in Wave 4.
 
-## Starting point (measured 2026-10-29, before the view split)
+## Starting point (measured 2026-10-29, after the view split; checked again before Wave 0)
 
 | File | Lines | Shape |
 |---|---|---|
-| `src/color.js` | 457 | color-space conversions, an older cell-averaging path, and the newer pixel-histogram path |
-| `src/views/library.js` | 417 | row rendering, export and import flow, tile-set rendering |
-| `src/format.js` | 354 | key allow-lists, JPEG size parsing, validators, id hashing |
+| `src/color.js` | 457 | color-space conversions, an older cell-averaging path (D25), and the pixel-histogram path (D28) |
+| `src/views/library.js` | 417 | module state, row rendering, export and import flow, tile-set rendering, `addSamples` |
+| `src/format.js` | 354 | limits and key allow-lists, JPEG size parsing, validators, id hashing |
 | `src/views/grid.js` | 347 | one function, `renderGrid`, about 280 lines |
 | `src/samples.js` | 338 | about 270 lines are the sample-art data arrays |
 | `src/create-logic.js` | 334 | sizing, editor state, report text, save records, tile sets |
 
-After the view split, the new view modules are expected to be under 300 already (largest about 200). Wave 0 re-measures every file and replaces this table with the real list; any new file the split leaves between 301 and 500 joins it.
+No other `src/` file is over 300 (the next largest is `src/views/create/index.js` at 289), so nothing unlisted breaks the cap. Every new file below must also end at or under 300; lint enforces it only in Wave 4, so each lane reports `wc -l` of its new files.
 
-## Decision: move to new files, keep the old path
+## What the view split taught, and what this plan does about it
 
-Each split moves a coherent group of functions to a new file and re-exports it from the original path, so importers, tests and research scripts keep working unchanged. This is the lowest-risk shape (no importer edits, tests untouched, so they still prove behavior). The re-exports can be removed later, one importer at a time, and are not part of this plan.
-
-Nothing is deleted. In particular `color.js` keeps the older cell-averaging method (the D25 path: `cellColors`, `kmeans`, `quantizeColors`, `cellColorGrid`), which production no longer uses but `test/color.test.js` and `research/color/` import. `colorGrid`, the function Create calls, is a one-line wrapper over `pixelColorGrid` and stays with the pixel path. Removing the old method would be a behavior and research decision, not a size fix.
-
-## Proposed cuts (provisional; Wave 0 confirms line ranges)
-
-| File | New files | Stays |
-|---|---|---|
-| `samples.js` | `samples-art.js` (the `ART` and `COLOR_ART` arrays, data only) | loaders and `sampleRecord`, about 70 lines |
-| `format.js` | `format-keys.js` (limits, key lists, `pickKnown`, about 90); `format-art.js` (`jpegSize`, `boundArt`, about 70) | validators, id hashing, JSON, about 200 |
-| `create-logic.js` | `create-save-logic.js` (art sizing, `buildPuzzleRecord`, `canSave`, tile-set slicing, writes and rollback, about 170) | editor state, sizing, crop, report text, about 160 |
-| `color.js` | `color-space.js` (Lab and hex conversions, `deltaE`, `inkColors`, `inkText`, about 90); `color-cells.js` (the D25 cell-averaging path: `cellColors`, `kmeans`, `quantizeColors`, `clusterOf`, `cellColorGrid`, about 140) | the pixel-histogram path, `pixelColorGrid` and `colorGrid`, about 210 |
-| `views/library.js` | `library-backup.js` (export, import and `runImport`, about 120); `library-sets.js` (set and tile rendering, about 90) | mount, render, rows; its own `el` becomes the `elc` from `dom.js`; about 200 |
-| `views/grid.js` | cut decided by the Wave 0 map | |
-
-`grid.js` is the hard one. `renderGrid` is a single function, so there is nothing to move until it is broken up. The map lists its inner pieces (clue rendering, pointer and drag handling, update and diff, sizing) and the state they share, and the lanes below follow it.
-
-## Effort check
-
-Estimates are rough agent-lane hours including verification. No chunk is above 4.
-
-| Chunk | Est. hours |
+| Problem last round | Change here |
 |---|---|
-| 0a re-measure plus pre-register rows | 0.5 |
-| 0b `renderGrid` map (read-only) | 1.5 |
-| 1a `samples.js` | 1 |
-| 1b `format.js` (plus mutation proofs) | 3 |
-| 1c `create-logic.js` | 2.5 |
-| 1d `color.js` | 2.5 |
-| 2a `library.js` backup | 2 |
-| 2b `library.js` sets | 2 |
-| 2c `grid.js` step 1: state object in place | 3 (risk) |
-| 2d `grid.js` step 2: extract clue rendering | 3 |
-| 2e `grid.js` step 3: extract pointer handling | 3 |
-| 3 lower the cap, docs, restamp | 1 |
+| About 20 mutations survived; the safety net was found thin lane by lane | Wave 0 audits the six files with mutations first and closes the survivors that matter before any code moves |
+| "No behavior change" was shown by a full check plus UX checks, and by hand-run browser comparisons that lived in a scratchpad | Wave 0 builds two repo tools: `scripts/dom-compare.mjs` (rendered pages against a baseline commit, in headless Chrome) and `scripts/export-names.mjs` (a module's export names against the baseline); every merge runs both |
+| Every Wave 2 merge conflicted in the shared `index.js` | Every file edited by more than one lane has its regions named below, and library gets a foundation step so its lanes only fill their own regions |
+| Briefs carried ordering errors (calls before the context existed, no-op replaced by `null`) | The maps must list order (grid, library), and the lane brief template at the end is part of the plan |
+| Layout tests passed on empty stubs and on commented-out wiring | Each split gets a test that the functions are defined in the new file and not in the old one, with comments stripped |
+| Guesses (the module cut) were treated as plan | Cuts for the four pure-logic files are frozen below with owners for every shared helper; grid's cut is a decision resolved by the map and frozen before its lanes start |
+| README timings contradicted each other; tolerance bands hid it | Nothing in this plan changes a documented time; a new docs test already pins one number per suite |
+| Worktree folders broke lint, format and the private-path scan | Fixed in `999eb79`; no longer an issue |
 
-If the map shows `renderGrid` shares more than about 15 mutable bindings across its pieces, 2c is split by region (clue state, then pointer state) instead of one lane. If `grid.js` still measures over 300 after 2e, the remaining update path becomes its own step 2f; it is not exempted.
+## Decisions
+
+1. **Move to new files, keep the old path.** Each split moves a group of functions to new files; the old file ends with `export * from './<new>.js';` lines so importers, tests and research scripts keep working unchanged. Named exports only (these files have no default export), and `scripts/export-names.mjs` proves the export set of the old path is identical before and after. Removing the re-exports later is a separate change.
+2. **Leaves first, no cycles.** A new file never imports the old path. Anything two new files both need lives in a leaf file that imports nothing from this family. `test/module_graph.test.js` (Wave 0) pins this: it fails if a listed new file imports its barrel. Reason: `create-logic.js` would otherwise re-export a file that imports `verdictOf` back from it, an import cycle whose initialisation order depends on who loads first.
+3. **Nothing is deleted.** The D25 cell-averaging path in `color.js` stays (`test/color.test.js` and `research/color/` import it); dead code stays dead. Removing it is a research decision, not a size fix.
+4. **Library shares one state object.** `library.js` today has six module-level `let`s (`root`, `store`, `status`, `listEl`, `toolbarButtons`, `generation`) that `unmount` clears. They become fields of one exported object `lib` in `src/views/library-state.js`; every library file reads `lib.<field>` at call time (never a copy: `runImport` deliberately snapshots `lib.store` into a local because `unmount` clears it, and that stays). `render` is reached as `lib.render()`, assigned in `mount`, so the backup and set files do not import `library.js` (decision 2).
+5. **Grid is decomposed only after its map.** `renderGrid` is one function with mutable closure state, so its pieces and their order are not known yet. The cut is a decision resolved by the Wave 0 map and frozen at the end of Wave 0; until then no grid lane is sized or started.
+6. **One feature row, one activation.** The plan gate is on. The row `line-cap-300` names this plan (`"plan": "docs/plans/line-cap-300.md"`). The orchestrator records the review (`plan-reviewed`), activates the row once at the start of Wave 0, and verifies it once at the end. Lanes never edit `FEATURES.json` (Wave 4's restamp is the orchestrator's). Parallel worktrees do not conflict with the single-active rule because only the orchestrator activates.
+
+## Frozen cuts (pure-logic files)
+
+Directed acyclic: leaf, then siblings, then the old file re-exporting.
+
+**`color.js` (457)**
+
+| File | Contents | About lines |
+|---|---|---|
+| `color-space.js` (leaf) | `SEED`, `ITERATIONS`, `MERGE_DE` (exported as before), `lin`, `f`, `rgbToLab`, `deltaE`, `hexOf`, `rgbOfHex`, `labToRgb`, `mean`, `mulberry32`, `inkColors`, `inkText`, `COLOR_COUNTS` | 150 |
+| `color-cells.js` (imports `color-space.js`, `image.js`) | the D25 path: `cellColors`, `kmeans`, `quantizeColors`, `clusterOf`, `cellColorGrid` | 130 |
+| `color.js` (imports both, re-exports both) | the pixel path: `pixelAt`, `binKey`, `histogram`, `seeds`, `weightedKmeans`, `nearest`, `pixelColorGrid`, `colorGrid` | 180 |
+
+Shared helpers have one owner (`color-space.js`); `labToRgb`, used only by the pixel path, sits there because it is a conversion.
+
+**`create-logic.js` (334)**
+
+| File | Contents | About lines |
+|---|---|---|
+| `create-verdict.js` (leaf, imports `difficulty.js`) | `STATUS_TEXT`, `verdictOf`, `reportView`, `DEFAULT_PALETTE` | 50 |
+| `create-save-logic.js` (imports `create-verdict.js`, `format.js`) | art constants and `artSize`, `tileCropRect`, `pickArt`, `withArts`, `buildPuzzleRecord`, `canSave`, `TILE_COUNTS`, `fullSize`, `sliceTiles`, `tileStatusLine`, `canSaveSet`, `withVerdicts`, `setWrites`, `rollbackTargets` | 180 |
+| `create-logic.js` (imports `create-verdict.js`, re-exports it and `create-save-logic.js`) | sizing, crop, editor state, `gridSig`, `hasUnsavedWork`, `existingPuzzle`, `blankGrid`, `newEditorState` and the rest | 120 |
+
+Callers of `create-logic.js` (the Create modules, `solver-client.js`, `test/create.test.js`) keep their imports; they see the same export names.
+
+**`format.js` (354)**
+
+| File | Contents | About lines |
+|---|---|---|
+| `format-keys.js` (leaf) | every `MAX_*` limit, `ART_PREFIX`, `PUZZLE_KEYS`, `SAVE_KEYS`, `SET_KEYS`, `PALETTE_ENTRY_KEYS`, `PUZZLE_SET_KEYS`, `RULES_KEYS`, `pickKeys`, `pickKnown` | 100 |
+| `format-art.js` (imports `format-keys.js`) | `jpegSize`, `boundArt` | 70 |
+| `format.js` (imports both, re-exports both) | validators, `canonical`, `puzzleId`, `idMatches`, `toJSON`, `fromJSON` | 200 |
+
+`format.js` is the import boundary (AGENTS rule 6); the mutation list for this lane is in Wave 1.
+
+**`samples.js` (338)**: `samples-art.js` (the `ART` and `COLOR_ART` arrays, data only, about 275 plus a header) and `samples.js` (loaders, `sampleRecord`, about 70). If `samples-art.js` ends over 300, `COLOR_ART` moves to `samples-art-color.js`.
+
+**Library (417)**, frozen by the library map in Wave 0 (the files below are the working hypothesis, the map confirms regions and callers):
+
+| File | Contents |
+|---|---|
+| `library-state.js` (leaf) | `lib`, `say`, `forThisMount` (it reads `lib.generation`; `addSamples` and the backup code both use it) |
+| `library-backup.js` | `download`, `exportXml`, `exportLibrary`, `importLibrary`, `runImport` |
+| `library-sets.js` | `solutionCanvas`, `tileNode`, `tileBox`, `setNode`, `deleteSet` |
+| `library.js` | `ensureCss`, `button`, `link`, `deletePuzzle`, `addSamples`, `moreMenu`, `rowNode`, `render`, `mount`, `unmount`; its local `el` becomes `elc` from `dom.js` |
+
+## Safety net and equivalence proof
+
+"Behavior unchanged" is shown by these, in this order, and each is built or audited in Wave 0 before any file moves:
+
+1. **Mutation audit of the code about to move.** For each of the six files, a read-only lane applies simple mutations (delete an assignment, drop a call, change a constant, swap a branch) in scratch copies and records which survive `npm test` plus `npm run test:ux`. Output: `docs/plans/line-cap-300-audit-<file>.md`. Known weak spots from earlier rounds to include: `grid.js` drag and sweep paths, `library.js` backup and import (`runImport` holds the forged-id filter `idMatches`, the re-solve through `ratePlan`, and the write-failure path), `format.js` nested allow-lists and every `MAX_*` bound. Test coverage today: `renderGrid` has no unit test (`test/grid.test.js` covers `gutterSize` and a few helpers), and no test imports `library.js`; both rely on UX checks.
+2. **Close the survivors that matter** (Wave 0e). A survivor is closed with a check or accepted in writing in the Results section; the rule of thumb is that anything on a trust boundary (`format.js` bounds and allow-lists, `runImport`) and anything with user-visible output (`grid.js`, `library.js` rows) is closed.
+3. **`scripts/dom-compare.mjs <baseline-ref>`**: serves the baseline commit (`git archive` into a temp directory, never a worktree in the repo) and the working tree, loads the samples, walks the library page, a play page for each sample, the Create page after an upload, and the print page, applies a fixed set of interactions (fill, cross, undo, a library export), and compares hashes of the rendered DOM step by step. It runs in the headless Chrome the UX checks already use (a real viewport), prints the first differing step, and exits non-zero on any difference.
+4. **`scripts/export-names.mjs <baseline-ref>`**: for each source module, the sorted export names at the baseline and now must be identical (the "nothing is deleted, old path unchanged" claim).
+5. **`test/module_graph.test.js`**: pins decision 2 (no new file imports its barrel, no cycles among the listed files).
+6. **One split test per split** (`test/split_<name>.test.js`, using `test/helpers/split.js` from Wave 0): every listed function is defined in its new file and not in the old one, comments stripped; the old file contains the `export * from` lines. A stub file or a commented-out line fails it.
+7. **The existing suites**: `npm test`, lint, format, typecheck, `npm run test:ux`.
+8. **A pure-logic output probe for `color.js`**: a small script (kept in `scripts/`, run before and after) prints a hash of `pixelColorGrid` and `cellColorGrid` results on fixed synthetic images and the samples. `research/color/cluster.mjs` is not used for this: it prints timings.
+
+Every lane also runs its own mutations (listed in its brief) and pastes the results.
+
+## Pricing
+
+Estimates are rough agent-lane hours including verification. Every step is at most 4. "Type" separates mechanical moves from design work.
+
+| Step | Type | Hours |
+|---|---|---|
+| 0a Orchestrator: re-check sizes, add the `line-cap-300` row with `plan`, record the review, activate, note the baseline commit | bookkeeping | 0.5 |
+| 0b-grid map of `renderGrid` (read-only) | design input | 2 |
+| 0b-library map (read-only) | design input | 1.5 |
+| 0c-1 Mutation audit: `color.js`, `samples.js`, `create-logic.js` (read-only) | audit | 3 |
+| 0c-2 Mutation audit: `format.js`, `grid.js`, `library.js` (read-only) | audit | 3.5 |
+| 0d-1 `scripts/dom-compare.mjs` | tool | 3.5 |
+| 0d-2 `scripts/export-names.mjs`, `test/helpers/split.js`, `test/module_graph.test.js`, the color probe | tool | 3 |
+| 0e Close survivors, in up to two lanes (sized from the audit; if one exceeds 3.5 it is split) | tests | 3.5 each |
+| Freeze point: orchestrator reads the maps and audit, freezes grid's cut and the library files, updates this plan | decision | 1 |
+| 1a `samples.js` | mechanical | 1 |
+| 1b `format.js` (cut 1, mutations 2) | mechanical | 3 |
+| 1c `create-logic.js` | mechanical | 2.5 |
+| 1d `color.js` | mechanical | 2.5 |
+| 2a `library.js` foundation: `lib` state object in place, stub files and header | design + mechanical | 3 |
+| 2b `library-backup.js` | mechanical | 2 |
+| 2c `library-sets.js` | mechanical | 2 |
+| 2d `grid.js` state object in place | design | 3 (sized again at the freeze) |
+| 2e `grid.js` extraction 1 | design + mechanical | 3 (set at the freeze) |
+| 2f `grid.js` extraction 2 | design + mechanical | 3 (set at the freeze) |
+| 3 Merge and verify, per lane | verification | 0.5 |
+| 4 Cap to 300, test, docs, verify and restamp | bookkeeping | 1.5 |
+
+If the map shows `renderGrid` needs more than three extraction steps, or any step over 3.5 hours, the step is split before starting, and the plan is re-reviewed on that section.
 
 ## Steps and parallelism
 
-Before any lane starts, the orchestrator pre-registers the feature row `line-cap-300` with a failing verify command (`node --test test/lint_size_cap.test.js`, which asserts the 300 cap and fails while the config says 500), so lanes never edit `FEATURES.json`.
+**Wave 0: safety net and maps. Lanes at the same time unless noted; disjoint files.**
 
-**Wave 0: two lanes at the same time (read-only or measurement).**
+- 0a orchestrator (above), first.
+- 0b-grid, 0b-library: read-only maps. Each lists every inner function and handler with its line range; state read and written; **setup order, teardown order, the calls made before shared structures exist, values read live, the returned API and its callers**; and a proposed cut with line estimates. For grid: `painted`, `overlay`, `hot`, `button`, `nodes`, the clue arrays, the window listeners and their removal in `destroy`, the order `update` runs before the root is appended, and the callers in Create, Play and Print. For library: every module-level `let`, who writes it, `forThisMount`, and which functions call `render`. Output: `docs/plans/line-cap-300-map-grid.md`, `docs/plans/line-cap-300-map-library.md`.
+- 0c-1, 0c-2: the mutation audits. Read-only on `src/`: mutations are made in copies under the scratchpad directory, never in the repo.
+- 0d-1, 0d-2: the tools and helpers. 0d-1 owns `scripts/dom-compare.mjs` only; 0d-2 owns the other new files. No lane edits `package.json`: the orchestrator adds the `scripts` entries for the new tools in 0a.
+- 0e: after 0c merges, lanes that add checks for survivors, one lane per file group; each owns only new test files (`test/ux/` additions go in a new file `test/ux/pipeline-linecap.js` registered once by the orchestrator in 0a with an empty array, so no lane edits a shared registry).
 
-- 0a. Re-measure every file under `src/` (`npx eslint . --rule '{"max-lines":["error",300]}'` as a dry run, then `wc -l`) and replace the starting-point table with the result. Records the baseline for the gate.
-- 0b. Read-only map of `renderGrid`: every inner function and handler with its line range, the state each reads and writes, and a proposed cut. Output is a doc in `docs/plans/`, no code.
+**Freeze point (orchestrator).** Nothing in Waves 1 and 2 starts until the maps, audit and 0e are merged and this plan is updated with grid's frozen cut, the library file list, sized steps and the list of accepted survivors. The updated sections are reviewed again (`/plan-review` pass recorded) before Wave 1.
 
-**Wave 1: four lanes at the same time.** Disjoint files: `samples.js`, `format.js`, `create-logic.js`, `color.js` (and their new files). None of them is imported by another lane's file in a way that edits it, because every old path re-exports. Needs 0a only.
+**Wave 1: four pure-logic lanes at the same time.** Disjoint files, one lane per file group (samples, format, create-logic, color). Each lane owns the old file, its new files and `test/split_<name>.test.js`; it may not touch anything else, including other lanes' split tests.
 
-- Each lane moves its group, re-exports from the old path, and changes nothing else.
-- `format.js` is the import boundary (AGENTS rule 6). Its lane proves the moved allow-lists still bite: for each of `PUZZLE_KEYS`, `SAVE_KEYS` and `SET_KEYS`, remove one key in the new file, confirm `test/import_bounds.test.js` fails, then restore it (one mutation per list, results recorded in the plan's Results section).
-- The `color.js` lane runs `test/color.test.js` and `node research/color/cluster.mjs` before and after and checks the printed palettes are identical, since seeded k-means must not shift.
+**Wave 2: library and grid groups at the same time.**
 
-**Wave 2: two groups at the same time.** Needs Wave 1 merged only for the shared full-check baseline; the files are disjoint from Wave 1.
+- Library: 2a first (sequential), then 2b and 2c in parallel. 2a converts the six module-level variables to `lib.<field>` in place, adds `library-state.js`, creates the two stub files, and pre-registers the three import lines and the `export * from` lines in `library.js`, so that 2b and 2c never touch the header. After 2a, `library.js` regions: **2b owns** `download`…`runImport` (today's lines 48 to 195, minus `addSamples`) and its call sites in `mount`; **2c owns** `solutionCanvas`…`deleteSet` (287 to 377) and its call sites in `render`. `addSamples`, `render`, `rowNode`, `moreMenu` stay in `library.js` (not in either lane's region). Merge order: 2b, then 2c; the orchestrator resolves any conflict, and a conflict outside those regions is a plan defect to report.
+- Grid: 2d, 2e, 2f in order (they edit the same function), starting only after the freeze. Each is verified with `dom-compare` and the grid mutations from the audit.
 
-- Library: 2a and 2b in parallel. Their regions of `library.js` do not overlap (backup is lines 75 to 195, sets are 287 to 377); shared helpers (`say`, `button`, `el`) stay in `library.js` and are passed in through a small context object, the same pure-move shape as the view split. Needs `dom.js` from the view split.
-- Grid: 2c, 2d, 2e in order (all edit `renderGrid`), needs 0b. Grid is shared by Play and Create, so it is verified by `grid.test.js`, the UX checks and the manual checks below.
+**Wave 3: after every merge, by the orchestrator.** `npm test && npm run lint && npm run format:check && npm run typecheck`, `npm run test:ux`, `node scripts/dom-compare.mjs <baseline>` and `node scripts/export-names.mjs <baseline>`. A red merge is reverted, not fixed on `main`. The manual browser checks are replaced by `dom-compare` plus, for pointer and drag paths in the grid, the closed audit survivors.
 
-**Wave 3: sequential, after every merge.** `npm test && npm run lint && npm run format:check && npm run typecheck` and `npm run test:ux`. After the grid lanes the orchestrator drives the manual checks in the browser pane (play a puzzle at a narrow and a wide width, paint in Create), one at a time, since the pane is shared.
+**Wave 4: close.** Change `max-lines` from 500 to 300 in `eslint.config.js` (and its comment) in one commit with `test/lint_size_cap.test.js`, written first so it fails: `MAX = 300` (titles use it); the 301-line probes at `src/views/create/x.js`, `src/views/play/x.js`, `src/color.js`, `src/views/library.js`, `src/views/x.mjs` and a bare `src/x.js`; the 300-line case passes; the disable-comment, scoped-to-`src/` and blank-line tests stay. `npm run lint` is what enforces "no `src/` file over 300"; the test pins the rule, its glob and its scope. Update `AGENTS.md` ("500 lines" to "300"), the `view-split.md` mention, and the README if it quotes the number. Then, by the orchestrator: `python scripts/features.py verify line-cap-300`, `restamp`, `progress`, commit.
 
-**Wave 4: close.** Change `max-lines` from 500 to 300 in `eslint.config.js` and update `test/lint_size_cap.test.js` (created by the view split) to match: a 301-line text at `src/color.js`, at a view path and at a root `src/` path errors (including with a disable comment at the top); a 300-line text passes. `npm run lint` must be clean with the new cap and no override added. Update the stale numbers in the README file map and AGENTS, restamp the feature rows at a clean commit (`python scripts/features.py restamp`), regenerate `PROGRESS.md`, then the gate.
+Feature row: `line-cap-300`, `"plan": "docs/plans/line-cap-300.md"`, verify: `node --test test/lint_size_cap.test.js test/module_graph.test.js test/split_samples.test.js test/split_format.test.js test/split_create_logic.test.js test/split_color.test.js test/split_library.test.js test/split_grid.test.js && npm run lint && npm run test:ux`. The files are named one by one so deleting any of them fails the command (AGENTS rule 10); the command cannot pass before all of them exist and the cap is 300 (rule 3).
 
-Feature row: `line-cap-300` (verify: `node --test test/lint_size_cap.test.js` plus `npm run lint`; fails if the cap goes back above 300, the rule is removed, or any `src/` file passes 300 lines).
+## Lane brief template
+
+Every lane brief is this template filled in; the orchestrator does not improvise one.
+
+```
+LANE <id>: <one line>.
+READ FIRST: docs/plans/line-cap-300.md (this lane's step, "Frozen cuts" and "Decisions"), the map for this file if any.
+SETUP: git reset --hard main; node_modules junction to the main checkout; baseline must pass:
+  npm test && npm run lint && npm run format:check && npm run typecheck && npm run test:ux
+YOU OWN (may edit): <exact files, including new files and your split test>.
+MAY NOT TOUCH: FEATURES.json, PLAN.md, package.json, eslint.config.js, any plan doc, any other lane's files, anything not listed above.
+INVARIANTS: <order and live-read rules for this file; new files never import the old path; shared helpers in the leaf; reads of shared state at call time; no destructuring of another module at construction>.
+DO: <the move, the re-export lines, the split test (written first, watch it fail)>.
+VERIFY (paste real output): the baseline commands again, plus node scripts/export-names.mjs <baseline> and wc -l of every new file (each <= 300).
+MUTATIONS (run each, restore, report caught or not): <list from the audit and the file notes>.
+STOP: two failed attempts at the same thing means stop and report what you tried. If the plan or a map looks wrong, stop and report instead of working around it.
+COMMIT: subject says what, body says why; no Co-Authored-By trailer or AI attribution; do not push; do not touch the main checkout.
+REPORT: check output, moved-lines numbers (git diff -w --stat and what changed outside the move), mutation results, commit hash.
+```
+
+Known traps, to put in every brief that applies: a name defined in the first part of a file and used in the second (`verdictOf`); a barrel that imports its own leaf and is imported back; `export *` hiding a name collision; `lib` fields copied instead of read live; a local variable that shadows the context or the state object; `window` listeners and their removal order in `destroy`.
+
+## Results
+
+Written when the round is done: the baseline commit, each survivor and its disposition, `dom-compare` and `export-names` output per merge, line counts of every new file, and what moved from the plan.
 
 ## Gate
 
-This plan gets its own gate: a `/gate-review` scoped to this round, run once every lane is merged and before anything is pushed. It is not combined with the view split or the end-to-end checks round. Nothing in this plan pushes. Lanes merge to local `main` only.
+This plan gets its own gate: a `/gate-review` scoped to this round, run once every lane is merged and before anything is pushed. It is not combined with earlier rounds. Nothing in this plan pushes. Lanes merge to local `main` only.

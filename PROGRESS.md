@@ -6,7 +6,7 @@ This is the verification ledger: check gates and controls, each with a command t
 It is not the product roadmap. What the product does and what is open lives in the README
 and plan docs that AGENTS.md lists under 'Where things are'.
 
-Commit: `02bfd56`  
+Commit: `681485b`  
 Full check: `npm test && npm run lint && npm run format:check && npm run typecheck`
 
 ## Done
@@ -48,4 +48,5 @@ None.
 
 ## Not started
 
-None.
+- **line-cap-300**: No file under src/ is longer than 300 lines: the six oversized files are split into new files behind unchanged export lists, with no cycles among them, and the lint cap is 300 with a test that pins it.
+  - done when: `node --test test/lint_size_cap.test.js test/module_graph.test.js test/split_samples.test.js test/split_format.test.js test/split_create_logic.test.js test/split_color.test.js test/split_library.test.js test/split_grid.test.js && npm run lint && npm run test:ux`

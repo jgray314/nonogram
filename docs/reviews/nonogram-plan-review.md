@@ -231,3 +231,53 @@
 **Blocking owner decision:** D14 (store a small copy of the crop) blocks 19f and 20c only. Everything else can start.
 
 **Verdict:** Ready to execute after the owner's go. Without D14, the reveal becomes strip-only.
+
+## Plan review: line-cap-300 (bring every source file to 300 lines), 2026-10-29
+
+**Scope:** `docs/plans/line-cap-300.md` as first written (after the view split was merged and gated), reviewed against the checklist in the `/plan-review` skill including items 14 to 18 (added after the view split). Reviewer: a cold, read-only Explore agent that did not read the earlier review records or the view-split and e2e plans, plus the orchestrator's own checks of the code (file sizes, importers, which names the second half of `create-logic.js` uses from the first, the shared constants in `color.js`). Every finding cites the plan text it is about.
+
+### Findings (first draft of the plan)
+
+Blocking (checks 2, 5, 6, 9, 14, 15):
+
+1. **Check 14, "Steps and parallelism" Wave 0 and "Decision: move to new files".** "Behavior must not change" with no equivalence proof and no audit of the safety net: Wave 0 only re-measured and mapped `renderGrid`; only `format.js` got mutations; `renderGrid` has no unit test, no test imports `library.js`, and the plan never named which UX checks cover the moved code.
+2. **Check 9, "Wave 1" `format.js` bullet.** The boundary pinning covered three key lists and no magnitude bound: the nested allow-lists (`PALETTE_ENTRY_KEYS`, `PUZZLE_SET_KEYS`, `RULES_KEYS`), `pickKnown`, every `MAX_*` limit, `jpegSize` and `boundArt` were not mutated; `runImport` (forged-id filter, re-solve through `ratePlan`, write-failure path) moves in the library lane with no mutation assigned; the plan said results go in a Results section that did not exist.
+3. **Check 15, "Wave 2" library bullet.** Lanes 2a and 2b both edit `library.js` (import header, call sites, `render`), with no resolver named; `addSamples` and `forThisMount`/`generation` sat in neither lane's region.
+4. **Checks 5 and 7, "Proposed cuts" library row against the Wave 2 library bullet.** Two designs for the shared helpers (`el` becomes `elc`; `say`, `button`, `el` "passed in through a small context object") and the context object never specified; the module-level `let`s (`store`, `status`, `listEl`, `toolbarButtons`, `generation`) are cleared on `unmount` and must be read live.
+5. **Check 16, "Proposed cuts" grid row and Wave 0 0b.** The `renderGrid` treatment was not adequate: the lane names and hours were fixed before the map existed; the map brief omitted setup order (`update` before the root is appended), teardown order (`destroy`), live reads (`button`, `hot`, `overlay`, `painted`), the returned API and its callers; the state-object step was priced as a pure move; no freeze point; no check named for pointer and drag paths.
+6. **Checks 7 and 11, "Proposed cuts" `color.js` row.** Shared helpers with no owner (`SEED`, `ITERATIONS`, `MERGE_DE`, `mulberry32`, `lin`, `mean`, `rgbOfHex`, `hexOf`, `labToRgb`); `labToRgb` (used by the pixel path) absent from the leaf; the re-export decision needs the new files not to import the old path; the "printed palettes identical" check used `research/color/cluster.mjs`, which prints timings.
+7. **Checks 5, 7, 11, "Proposed cuts" `create-logic.js` row.** An import cycle: `tileStatusLine` and `withVerdicts` (save half) call `verdictOf`/`reportView`, which stay in `create-logic.js`, and `create-logic.js` re-exports the save half. Membership ambiguous; ten importers not named.
+8. **Checks 14 and 3, opening paragraph of "Steps and parallelism" and Wave 4.** The pre-registered verify (`node --test test/lint_size_cap.test.js`, "fails while the config says 500") could not fail the way the plan said: that test asserted 500 and passed.
+9. **Checks 18 and 12, whole plan.** No lane brief template: no owned and forbidden files, must-pass commands, out-of-scope list, mutation list, stop rule or commit rules, for six parallel worktree lanes.
+
+Advisory:
+
+10. **Check 17, "Effort check".** Mechanical edits and design work priced together (`format.js` 3h bundles the cut with mutations; the grid steps billed as pure moves); the provisional tables never frozen.
+11. **Process, opening paragraph and Wave 4.** The plan gate, `activate`/`verify` and who owns the single activation were not represented; the row had no `plan`.
+12. **Wave 4 test text.** Did not say to change `MAX`, the titles, or add the root `src/x.js` case, nor that the scope and blank-line tests stay; the "fails if any file passes 300" claim is carried by `npm run lint`, not the test.
+13. **Check 2, "Decision" and Wave 1 sentence on lanes not editing each other's files.** Property claims with no check (no cycles, "nothing is deleted").
+14. **Stale text.** The starting-point table said "before the view split"; the config comment and `AGENTS.md` name 500.
+15. **Re-export hygiene.** `export *` versus named, and where the lines go, unspecified; no check that the export set is unchanged.
+16. **Wave 4 lint result.** No other `src/` file is over 300 today, but the new files' sizes were estimates (`samples-art.js` about 275 plus header) and no step counted them.
+
+### Clean checks
+
+6 (the "move and keep the old path" and "keep the D25 path" decisions carry reasons); 9 in part (the plan names `format.js` as the boundary); the consumer search (`research/color/*.mjs`, `test/ux/checks.js` and the tests are the only extra importers, and re-exports keep them working); the file list (exactly six files are over 300 today); the gate (its own `/gate-review`, no push, local merges only).
+
+### Disposition (plan edited; what changed)
+
+| Finding | Fixed in the plan |
+|---|---|
+| 1, 13, 15 | New "Safety net and equivalence proof" section and Wave 0: a mutation audit of all six files (0c) with survivors closed (0e) before any move; `scripts/dom-compare.mjs` (rendered pages against a baseline commit in headless Chrome) and `scripts/export-names.mjs` (export set unchanged); `test/module_graph.test.js` (no cycles, no new file imports its barrel); one split test per split with a rule that comments do not count; decision 1 fixes `export * from` as the re-export form |
+| 2 | Wave 1 `format.js` mutations extend to the nested allow-lists, `pickKnown`, every `MAX_*` bound, `jpegSize` and `boundArt`; the 0c-2 audit names `runImport` explicitly and 0e closes it; a Results section exists |
+| 3, 4 | Decision 4 (one `lib` state object in `library-state.js`, read at call time, `render` reached as `lib.render()`) and Wave 2: a foundation step 2a pre-registers the header and stubs; 2b and 2c own named regions; `addSamples` stays in `library.js`; merge order and resolver stated; `elc` is the only helper change |
+| 5, 10 | Decision 5 and the freeze point: grid's cut, hours and steps are decided by the map and frozen before its lanes start; the map brief now lists setup order, teardown order, live reads, the returned API and callers; the state-object step is priced as design; any step over 3.5 hours is split and that section re-reviewed |
+| 6, 7 | "Frozen cuts": `color-space.js` leaf owns every shared constant and helper including `labToRgb`; `create-verdict.js` leaf holds `verdictOf`, `reportView`, `STATUS_TEXT`, `DEFAULT_PALETTE`; decision 2 (leaves first, no cycles) pinned by the module-graph test; the colour probe is a small script, not `cluster.mjs`; importers named |
+| 8, 12, 16 | The row's verify names every split test explicitly and ends with lint and the UX checks, so it cannot pass early (rule 3) and fails if a file is deleted (rule 10); Wave 4 specifies the test change (`MAX = 300`, the probe paths including a bare `src/x.js` and `.mjs`, the tests that stay) and says lint carries the claim; every lane reports `wc -l` of its new files, with a fallback for `samples-art.js` |
+| 9 | The "Lane brief template" section, with the known traps from the view split |
+| 11 | Decision 6: the row names the plan, the orchestrator records the review and owns the single activation and the final verify and restamp |
+| 14 | Starting-point table dated and re-checked; Wave 4 updates the config comment and `AGENTS.md` |
+
+### Verdict
+
+Ready to start Wave 0 after the owner's go. **Not ready for Waves 1 and 2 until the freeze point:** grid's cut, the library file list, the survivors and the sized steps are decisions resolved in Wave 0, and the updated sections are reviewed again before any extraction lane starts.

@@ -1,18 +1,23 @@
 // Creator view: image -> grid (step 10), cell editor and blank grid (step 11a),
 // live solver report (11b), save to library (11c), tile sets (12c).
-import { cellLuminance, otsu } from '../image.js';
-import { puzzleClues } from '../clues.js';
-import { el } from './dom.js';
-import { renderGrid, gutterSize } from './grid.js';
-import { applyStroke } from '../play-state.js';
-import { createHistory } from '../game.js';
-import { puzzleId, validatePuzzle, validateSet } from '../format.js';
-import { tileGrid, tileFlags, makeSet } from '../tiles.js';
-import { createStore } from '../store.js';
-import { createSolverClient } from '../solver-client.js';
-import { isFair } from '../difficulty.js';
-import { colorGrid, inkText } from '../color.js';
-import { buildView } from './create/build.js';
+import { cellLuminance, otsu } from '../../image.js';
+import { puzzleClues } from '../../clues.js';
+import { el } from '../dom.js';
+import { renderGrid, gutterSize } from '../grid.js';
+import { applyStroke } from '../../play-state.js';
+import { createHistory } from '../../game.js';
+import { puzzleId, validatePuzzle, validateSet } from '../../format.js';
+import { tileGrid, tileFlags, makeSet } from '../../tiles.js';
+import { createStore } from '../../store.js';
+import { createSolverClient } from '../../solver-client.js';
+import { isFair } from '../../difficulty.js';
+import { colorGrid, inkText } from '../../color.js';
+import { buildView } from './build.js';
+import { createImageSource } from './image-source.js';
+import { createCropPreview } from './crop-preview.js';
+import { createGridView } from './grid-view.js';
+import { createReport } from './report.js';
+import { createSave } from './save.js';
 import {
   defaultSize,
   titleFromFile,
@@ -41,7 +46,7 @@ import {
   rollbackTargets,
   existingPuzzle,
   narrowCellSize,
-} from '../create-logic.js';
+} from '../../create-logic.js';
 
 const PREVIEW_MAX = 320;
 const REPORT_DEBOUNCE_MS = 150;
@@ -109,7 +114,7 @@ export function mount(container) {
   const restored = draft;
   draft = null;
   const st = restored?.st ?? newEditorState({ width: 15, height: 15 });
-  /** @type {Record<string, any>} */
+  /** @type {import('./context.js').CreateState} */
   const state = {
     st,
     image: null,
@@ -830,6 +835,35 @@ export function mount(container) {
   previewCanvas.addEventListener('pointermove', onPreviewMove);
   previewCanvas.addEventListener('pointerup', onPreviewUp);
   previewCanvas.addEventListener('pointercancel', onPreviewUp);
+
+  // The shared context for the Wave 2 modules. Built here because every field
+  // is initialized by now (state, refs, solver) and the shell functions are
+  // declared above; the modules are constructed in this one block, in order.
+  /** @type {import('./context.js').CreateContext} */
+  // @ts-expect-error the five module slots are filled just below
+  const ctx = {
+    st,
+    state,
+    refs,
+    solver,
+    root: () => root,
+    shell: {
+      showError,
+      syncControls,
+      dims,
+      tiled,
+      okToDiscard,
+      newBlank,
+      onBlank,
+      onStartOver,
+      onResize,
+    },
+  };
+  ctx.imageSource = createImageSource(ctx);
+  ctx.cropPreview = createCropPreview(ctx);
+  ctx.gridView = createGridView(ctx);
+  ctx.report = createReport(ctx);
+  ctx.save = createSave(ctx);
 
   liveUnsaved = () => hasUnsavedWork(st, state.savedSig);
   syncControls();

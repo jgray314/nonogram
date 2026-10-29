@@ -1,5 +1,5 @@
 // Play view: load a puzzle, wire strokes, undo/redo, solve detection.
-import { renderGrid, gutterSize, inkColors } from '../grid.js';
+import { renderGrid, inkColors } from '../grid.js';
 import { puzzleClues } from '../../clues.js';
 import { elc } from '../dom.js';
 import { buildView } from './build.js';
@@ -90,10 +90,8 @@ export function mount(container, params = {}) {
   const {
     count,
     timerEl,
-    outPanel,
     outRestartBtn,
     outZenBtn,
-    sizeNote,
     holder,
     message,
     toggles,
@@ -102,11 +100,7 @@ export function mount(container, params = {}) {
     undoBtn,
     redoBtn,
     swatches,
-    legend,
-    legendText,
-    modeBar,
     modeBtns,
-    belowRow,
   } = refs;
   container.append(root);
   // All mutable per-mount values live here; each is assigned at its original
@@ -131,35 +125,14 @@ export function mount(container, params = {}) {
     rules: { zen: false, autoCross: true },
   };
   state.brush = 1;
-  swatches.forEach((b, i) => b.addEventListener('click', () => pickBrush(i + 1)));
-  function pickBrush(v) {
-    state.brush = v;
-    swatches.forEach((b, i) => b.setAttribute('aria-pressed', String(i + 1 === state.brush)));
-  }
-  pickBrush(1);
+  swatches.forEach((b, i) => b.addEventListener('click', () => ctx.rulesLayout.pickBrush(i + 1)));
   state.touchMode = 'fill';
   for (const [mode, b] of Object.entries(modeBtns)) {
     b.addEventListener('click', () => {
       state.touchMode = mode;
-      syncMode();
+      ctx.rulesLayout.syncMode();
     });
   }
-  function syncMode() {
-    for (const [mode, b] of Object.entries(modeBtns)) {
-      b.setAttribute('aria-pressed', String(mode === state.touchMode));
-      b.classList.toggle('nng-mode-on', mode === state.touchMode);
-    }
-  }
-  syncMode();
-  const coarse = window.matchMedia?.('(pointer: coarse)');
-  function syncCoarse() {
-    const on = !!coarse?.matches;
-    modeBar.hidden = !on;
-    legend.textContent = on ? legendText.touch : legendText.mouse;
-  }
-  syncCoarse();
-  coarse?.addEventListener?.('change', syncCoarse);
-  cleanup.push(() => coarse?.removeEventListener?.('change', syncCoarse));
 
   const clues = puzzleClues(puzzle.solution);
   // v1's `check` rule is gone (D13): every wrong fill is now flagged on the spot.
@@ -186,6 +159,7 @@ export function mount(container, params = {}) {
     rules,
     clues,
     refs,
+    prefKeys: PREF_KEYS,
     container,
     cleanup,
     heartsOk,
@@ -212,6 +186,12 @@ export function mount(container, params = {}) {
   ctx.persist = createPersist(ctx);
   persistNow = ctx.persist.persist;
   ctx.rulesLayout = createRulesLayout(ctx);
+  ctx.rulesLayout.pickBrush(1);
+  ctx.rulesLayout.syncMode();
+  ctx.rulesLayout.syncCoarse();
+  const { coarse } = ctx.rulesLayout;
+  coarse?.addEventListener?.('change', ctx.rulesLayout.syncCoarse);
+  cleanup.push(() => coarse?.removeEventListener?.('change', ctx.rulesLayout.syncCoarse));
   ctx.session = createSession(ctx);
   const zen = () => rules.zen || !heartsOk;
   const outOfHearts = () => !zen() && state.hearts === 0 && state.solvedAt === null;
@@ -297,59 +277,14 @@ export function mount(container, params = {}) {
   });
   ctx.hud.refresh();
 
-  // Cell size: the largest of 16..32px that fits the grid and its clue
-  // gutters in the window below the header, and in the main column's width.
-  // Smaller windows scroll inside the holder, where the clues stay put.
-  function sizeGrid() {
-    const gutter = gutterSize(clues, { zeroClues: true });
-    const px = (name, fallback) =>
-      parseFloat(getComputedStyle(holder).getPropertyValue(name)) || fallback;
-    const clueW = px('--clue-w', 22);
-    const clueH = px('--clue-h', 18);
-    const chrome = 28; // holder padding (16) and the grid's own padding (12)
-    // The out-of-hearts panel and the size note aren't part of the steady layout,
-    // so the note appearing can't change the size that decided to show it.
-    const lost =
-      (outPanel.hidden ? 0 : outPanel.offsetHeight + 8) +
-      (sizeNote.hidden ? 0 : sizeNote.offsetHeight + 8);
-    // Room under the grid for the legend and the solved strip, so "Back to
-    // library" lands on screen after a solve.
-    const below = belowRow.offsetHeight + 44;
-    const avail =
-      window.innerHeight -
-      (holder.getBoundingClientRect().top + window.scrollY - lost) -
-      below -
-      16;
-    const byHeight = (avail - chrome - gutter.top * clueH) / puzzle.height;
-    const byWidth = (holder.clientWidth - chrome - gutter.left * clueW) / puzzle.width;
-    const size = Math.max(16, Math.min(32, Math.floor(Math.min(byHeight, byWidth))));
-    // D20: at the 16px floor and still too big for the holder, say the grid scrolls.
-    sizeNote.hidden = !(
-      holder.clientWidth > 0 && // no layout (a test DOM) means nothing to measure
-      size === 16 &&
-      (puzzle.width * 16 + gutter.left * clueW + chrome > holder.clientWidth ||
-        puzzle.height * 16 + gutter.top * clueH + chrome > avail)
-    );
-    holder.style.setProperty('--cell', `${size}px`);
-    holder.style.maxHeight = `${Math.max(200, Math.floor(avail))}px`;
-  }
-  sizeGrid();
+  ctx.rulesLayout.sizeGrid();
   // Measure again once the first layout and the font have settled: the first pass
   // can see a taller header, which showed the size note on a 25x25 that fits.
-  const settle = () => holder.isConnected && sizeGrid();
-  requestAnimationFrame(settle);
-  document.fonts?.ready.then(settle);
-  window.addEventListener('resize', sizeGrid);
-  cleanup.push(() => window.removeEventListener('resize', sizeGrid));
+  requestAnimationFrame(ctx.rulesLayout.settle);
+  document.fonts?.ready.then(ctx.rulesLayout.settle);
+  window.addEventListener('resize', ctx.rulesLayout.sizeGrid);
+  cleanup.push(() => window.removeEventListener('resize', ctx.rulesLayout.sizeGrid));
 
-  function rememberRule(key, value) {
-    if (!store || !(key in PREF_KEYS)) return;
-    try {
-      store.setPref(PREF_KEYS[key], value);
-    } catch {
-      // Storage unavailable: the switch still works for this puzzle.
-    }
-  }
   for (const [key, box] of Object.entries(toggles)) {
     box.addEventListener('change', () => {
       // Zen can be switched on any time, but hearts come back only with a
@@ -361,12 +296,12 @@ export function mount(container, params = {}) {
           return;
         }
         rules.zen = false;
-        rememberRule('zen', false);
+        ctx.rulesLayout.rememberRule('zen', false);
         restart();
         return;
       }
       rules[key] = box.checked;
-      rememberRule(key, box.checked);
+      ctx.rulesLayout.rememberRule(key, box.checked);
       state.dirty = true;
       ctx.hud.refresh();
       ctx.persist.persist();
@@ -456,7 +391,7 @@ export function mount(container, params = {}) {
     if (multi && !e.ctrlKey && !e.metaKey && !e.altKey && digit >= 1 && digit <= inks.length) {
       const t = e.target;
       if (t?.matches?.('input, textarea, select')) return;
-      pickBrush(digit);
+      ctx.rulesLayout.pickBrush(digit);
       e.preventDefault();
       return;
     }

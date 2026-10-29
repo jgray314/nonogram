@@ -1,14 +1,11 @@
 // Creator view: image -> grid (step 10), cell editor and blank grid (step 11a),
 // live solver report (11b), save to library (11c), tile sets (12c).
 import { cellLuminance, otsu } from '../../image.js';
-import { puzzleClues } from '../../clues.js';
 import { el } from '../dom.js';
-import { renderGrid, gutterSize } from '../grid.js';
-import { applyStroke } from '../../play-state.js';
 import { createHistory } from '../../game.js';
 import { tileGrid } from '../../tiles.js';
 import { createSolverClient } from '../../solver-client.js';
-import { colorGrid, inkText } from '../../color.js';
+import { colorGrid } from '../../color.js';
 import { buildView } from './build.js';
 import { createImageSource } from './image-source.js';
 import { createCropPreview } from './crop-preview.js';
@@ -18,7 +15,6 @@ import { createSave } from './save.js';
 import {
   defaultSize,
   titleFromFile,
-  hasFilledCell,
   hasUnsavedWork,
   centerCrop,
   loadScale,
@@ -26,7 +22,6 @@ import {
   newEditorState,
   regenerateNeedsConfirm,
   fullSize,
-  narrowCellSize,
 } from '../../create-logic.js';
 
 const CSS_ID = 'nng-create-css';
@@ -132,14 +127,11 @@ export function mount(container) {
     resetBtn,
     invertBox,
     colorsSel,
-    brushBar,
     tileRowsSel,
     tileColsSel,
     blankBtn,
     startOverBtn,
     previewCanvas,
-    gridHost,
-    emptyNote,
     undoBtn,
     redoBtn,
     titleInput,
@@ -181,58 +173,6 @@ export function mount(container) {
     return centerCrop(state.image.w, state.image.h, d.width, d.height, st.offset);
   }
 
-  /** Below 600px wide, size the cells so the grid fits the column. */
-  function fitCells(cols, clueCols) {
-    if (window.matchMedia('(max-width: 599px)').matches) {
-      const size = narrowCellSize(root.clientWidth, cols, clueCols);
-      gridHost.style.setProperty('--cell', `${size}px`);
-    } else {
-      gridHost.style.removeProperty('--cell');
-    }
-  }
-
-  function renderGridNow() {
-    state.gridView?.destroy();
-    const d = dims();
-    // Clues belong to each tile, not the mosaic, so a tile set shows none here.
-    const clues = tiled()
-      ? {
-          rows: Array.from({ length: d.height }, () => []),
-          cols: Array.from({ length: d.width }, () => []),
-        }
-      : puzzleClues(st.grid);
-    fitCells(d.width, gutterSize(clues).left);
-    state.gridView = renderGrid(gridHost, {
-      width: d.width,
-      height: d.height,
-      clues,
-      cells: st.grid,
-      onPointer: onGridPointer,
-      palette: st.palette,
-      blank: st.blank,
-    });
-    syncBrushes();
-    if (tiled()) markTileBoundaries(d);
-    // In color, an image whose colors all merge into one gives an empty grid: say why.
-    const merged = state.image !== null && st.colors > 0 && !hasFilledCell(st.grid);
-    emptyNote.textContent = merged
-      ? "This image's colors are too close together to tell apart, so the grid is empty. Try Two-tone."
-      : 'Choose an image above, or draw on the grid below.';
-    emptyNote.hidden = !merged && (state.image !== null || hasFilledCell(st.grid));
-    syncHistoryButtons();
-    ctx.report.scheduleReport();
-  }
-
-  /** Thicker separators between tiles (the renderer only draws every 5th line). */
-  function markTileBoundaries(d) {
-    for (const node of gridHost.querySelectorAll('.nng-cell')) {
-      const r = Number(node.dataset.r);
-      const c = Number(node.dataset.c);
-      if ((c + 1) % st.width === 0 && c + 1 < d.width) node.classList.add('nng-tile-right');
-      if ((r + 1) % st.height === 0 && r + 1 < d.height) node.classList.add('nng-tile-bottom');
-    }
-  }
-
   // --- live solver report (11b), one per tile (12c) ---
   // reports[i] is row-major; phase is 'pending' (checking or stale), 'fresh'
   // (matches st.grid) or 'error'. A 1x1 grid has exactly one report.
@@ -242,82 +182,6 @@ export function mount(container) {
   // in place during a stroke (its DOM must survive the drag); the clues are
   // rebuilt by re-rendering when the stroke ends. The right button is ignored.
   state.stroke = null; // [r, c][] while a left stroke is held
-  const strokeOf = (path) => ({ button: 'left', path });
-
-  function onGridPointer({ type, r, c, button }) {
-    if (type === 'down') {
-      if (button === 'left' && r !== null) state.stroke = [[r, c]];
-      return;
-    }
-    if (!state.stroke || button !== 'left') return;
-    if (r !== null) state.stroke.push([r, c]);
-    if (type === 'enter') {
-      state.gridView.update(applyStroke(st.grid, strokeOf(state.stroke), st.brush));
-    } else if (type === 'up') {
-      const next = applyStroke(st.grid, strokeOf(state.stroke), st.brush);
-      state.stroke = null;
-      if (JSON.stringify(next) !== JSON.stringify(st.grid)) {
-        state.history.push(next);
-        st.manualEdits = true;
-      }
-      st.grid = next;
-      renderGridNow();
-    }
-  }
-
-  /** One numbered chip per ink while the grid has several colors; a left-drag paints the picked one. */
-  function syncBrushes() {
-    const inks = st.palette && st.palette.length > 1 ? st.palette : [];
-    if (st.brush > Math.max(1, inks.length)) st.brush = 1;
-    brushBar.replaceChildren(
-      ...inks.map((p, i) => {
-        const b = el('button', { type: 'button', className: 'nng-swatch', text: String(i + 1) });
-        b.style.setProperty('--ink', p.hex);
-        b.style.setProperty('--ink-text', inkText(p.hex));
-        b.setAttribute('aria-label', `Paint color ${i + 1}`);
-        b.setAttribute('aria-pressed', String(st.brush === i + 1));
-        b.addEventListener('click', () => {
-          st.brush = i + 1;
-          syncBrushes();
-        });
-        return b;
-      }),
-    );
-  }
-
-  function syncHistoryButtons() {
-    undoBtn.disabled = !state.history.canUndo();
-    redoBtn.disabled = !state.history.canRedo();
-  }
-
-  /** A fresh history for the grid as it now stands (after a regenerate or a blank). */
-  function resetHistory() {
-    state.history = createHistory(st.grid);
-    state.baseline = JSON.stringify(st.grid);
-    syncHistoryButtons();
-  }
-
-  function stepHistory(back) {
-    if (state.stroke) return; // never swap the grid under a held stroke
-    if (back ? !state.history.canUndo() : !state.history.canRedo()) return;
-    st.grid = back ? state.history.undo() : state.history.redo();
-    // Back at the generated grid, there is nothing left to discard.
-    st.manualEdits = JSON.stringify(st.grid) !== state.baseline;
-    renderGridNow();
-  }
-
-  function onKeydown(e) {
-    if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
-    const t = e.target;
-    if (t?.matches?.('textarea, input:not([type=checkbox]):not([type=range]):not([type=file])')) {
-      return; // leave text editing to the browser
-    }
-    const key = e.key.toLowerCase();
-    if (key === 'z' && !e.shiftKey) stepHistory(true);
-    else if (key === 'y' || (key === 'z' && e.shiftKey)) stepHistory(false);
-    else return;
-    e.preventDefault();
-  }
 
   /** Ask before a regeneration throws away hand edits. */
   function okToDiscard() {
@@ -339,10 +203,10 @@ export function mount(container) {
       st.palette = q.palette;
       st.blank = q.blank; // D29: Create and Play draw blank cells in it
       st.manualEdits = false;
-      resetHistory();
+      ctx.gridView.resetHistory();
       syncControls();
       ctx.cropPreview.drawPreview();
-      renderGridNow();
+      ctx.gridView.renderGridNow();
       return;
     }
     st.palette = null;
@@ -372,10 +236,10 @@ export function mount(container) {
     );
     st.grid = full;
     st.manualEdits = false;
-    resetHistory();
+    ctx.gridView.resetHistory();
     syncControls();
     ctx.cropPreview.drawPreview();
-    renderGridNow();
+    ctx.gridView.renderGridNow();
   }
 
   // --- handlers ---
@@ -467,11 +331,11 @@ export function mount(container) {
     st.blank = null;
     st.brush = 1;
     st.manualEdits = false;
-    resetHistory();
+    ctx.gridView.resetHistory();
     fileInput.value = '';
     syncControls();
     ctx.cropPreview.drawPreview();
-    renderGridNow();
+    ctx.gridView.renderGridNow();
   }
 
   function onBlank() {
@@ -494,10 +358,10 @@ export function mount(container) {
     state.savedSig = null;
     showError(null);
     fileInput.value = '';
-    resetHistory();
+    ctx.gridView.resetHistory();
     syncControls();
     ctx.cropPreview.drawPreview();
-    renderGridNow();
+    ctx.gridView.renderGridNow();
   }
 
   fileInput.addEventListener('change', onFile);
@@ -512,11 +376,12 @@ export function mount(container) {
   blankBtn.addEventListener('click', onBlank);
   startOverBtn.addEventListener('click', onStartOver);
   saveBtn.addEventListener('click', () => ctx.save.onSave());
-  undoBtn.addEventListener('click', () => stepHistory(true));
-  redoBtn.addEventListener('click', () => stepHistory(false));
+  undoBtn.addEventListener('click', () => ctx.gridView.stepHistory(true));
+  redoBtn.addEventListener('click', () => ctx.gridView.stepHistory(false));
+  const onKeydown = (e) => ctx.gridView.onKeydown(e);
   document.addEventListener('keydown', onKeydown);
   const onResize = () => {
-    if (!state.stroke) renderGridNow();
+    if (!state.stroke) ctx.gridView.renderGridNow();
   };
   window.addEventListener('resize', onResize);
   titleInput.addEventListener('input', () => {
@@ -565,7 +430,7 @@ export function mount(container) {
   liveUnsaved = () => hasUnsavedWork(st, state.savedSig);
   syncControls();
   ctx.cropPreview.drawPreview();
-  renderGridNow();
+  ctx.gridView.renderGridNow();
 
   teardown = () => {
     // Keep unsaved work for the next visit; a saved or empty editor leaves nothing.

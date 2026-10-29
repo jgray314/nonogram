@@ -1,9 +1,14 @@
 // Play view: load a puzzle, wire strokes, undo/redo, solve detection.
-import { renderGrid, gutterSize, inkColors } from './grid.js';
-import { puzzleClues } from '../clues.js';
-import { elc } from './dom.js';
-import { buildView } from './play/build.js';
-import { applyStroke, strokeCells } from '../play-state.js';
+import { renderGrid, gutterSize, inkColors } from '../grid.js';
+import { puzzleClues } from '../../clues.js';
+import { elc } from '../dom.js';
+import { buildView } from './build.js';
+import { reveal, sameGrid } from './util.js';
+import { createHud } from './hud.js';
+import { createPersist } from './persist.js';
+import { createRulesLayout } from './rules-layout.js';
+import { createSession } from './session.js';
+import { applyStroke, strokeCells } from '../../play-state.js';
 import {
   MAX_HEARTS,
   autoCross,
@@ -20,13 +25,13 @@ import {
   restartCells,
   restartPrompt,
   solvedSummary,
-} from '../game.js';
-import { clueProgress, solutionProgress } from '../clue-progress.js';
-import { createStore } from '../store.js';
-import { validatePuzzle, validateSave, idMatches } from '../format.js';
-import { serializeSaveFile, parseSaveFile, importWrites } from '../save.js';
-import { rateImports } from '../backup.js';
-import { createSolverClient, ratePuzzleWith } from '../solver-client.js';
+} from '../../game.js';
+import { clueProgress, solutionProgress } from '../../clue-progress.js';
+import { createStore } from '../../store.js';
+import { validatePuzzle, validateSave, idMatches } from '../../format.js';
+import { serializeSaveFile, parseSaveFile, importWrites } from '../../save.js';
+import { rateImports } from '../../backup.js';
+import { createSolverClient, ratePuzzleWith } from '../../solver-client.js';
 
 const CSS_HREF = 'css/play.css';
 const PREF_KEYS = { zen: 'play.zen', autoCross: 'play.autoCross' };
@@ -44,10 +49,6 @@ function loadPuzzle(store, id) {
   const rec = store.get('puzzle', id);
   return rec && validatePuzzle(rec).ok ? rec : null;
 }
-
-/** Crosses are hidden and unknowns shown empty once the puzzle is solved. */
-const reveal = (cells) => cells.map((row) => row.map((v) => (v >= 1 ? v : 0)));
-const sameGrid = (a, b) => a.every((row, r) => row.every((v, c) => v === b[r][c]));
 
 let root = null;
 let grid = null;
@@ -254,6 +255,30 @@ export function mount(container, params = {}) {
   const helpers = helpersAvailability(puzzle.verdict);
   // Hearts need a unique solution, so a puzzle that isn't fair is forced into Zen mode.
   const heartsOk = heartsAvailable(puzzle.verdict);
+
+  /** @type {import('./context.js').PlayContext} */
+  const ctx = {
+    puzzle,
+    store,
+    state,
+    rules,
+    clues,
+    refs,
+    container,
+    cleanup,
+    heartsOk,
+    helpers,
+    grid: () => grid,
+    generation: () => generation,
+    hud: null,
+    persist: null,
+    rulesLayout: null,
+    session: null,
+  };
+  ctx.hud = createHud(ctx);
+  ctx.persist = createPersist(ctx);
+  ctx.rulesLayout = createRulesLayout(ctx);
+  ctx.session = createSession(ctx);
   const zen = () => rules.zen || !heartsOk;
   const outOfHearts = () => !zen() && state.hearts === 0 && state.solvedAt === null;
 

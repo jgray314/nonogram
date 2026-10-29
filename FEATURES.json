@@ -259,6 +259,20 @@
         "exit_code": 0,
         "seal": "pkjpgdhecjoicgpl"
       }
+    },
+    {
+      "id": "e2e-pipeline-color",
+      "behavior": "A color image uploaded in Create (4 colors chosen) reaches the library through the real worker: palette of 2 to 4 inks plus a valid distinct blank hex, a real stored verdict, a Color badge with one dot per ink, and one swatch per ink in Play.",
+      "verify": "npm run test:ux",
+      "state": "passing",
+      "source": "docs/plans/e2e-pipeline-checks.md Wave 1 B",
+      "evidence": {
+        "commit": "4707b0966934d10553ff30b67d373dbc92c8fe4b",
+        "dirty": true,
+        "at": "2026-10-29T17:06:38Z",
+        "exit_code": 0,
+        "seal": "himancbegkdfjlja"
+      }
     }
   ]
 }

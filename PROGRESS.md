@@ -6,7 +6,7 @@ This is the verification ledger: check gates and controls, each with a command t
 It is not the product roadmap. What the product does and what is open lives in the README
 and plan docs that AGENTS.md lists under 'Where things are'.
 
-Commit: `190498e`  
+Commit: `285e1ae`  
 Full check: `npm test && npm run lint && npm run format:check && npm run typecheck`
 
 ## Done
@@ -36,6 +36,7 @@ Full check: `npm test && npm run lint && npm run format:check && npm run typeche
 - **split-play-view**: src/views/play.js is split into src/views/play/ modules (build, hud, persist, rules-layout, session, util, index) with no change in behavior; the layout test pins the modules and their exports. (verified at `190498e`)
 - **view-size-cap**: No file under src/ is longer than 500 lines: max-lines is on, inline disables are ignored, and a test pins the rule and its scope. (verified at `190498e`)
 - **save-file-ux-check**: A UX check drives play's Export save and Import save: an exported save re-imports to the same cells, elapsed time and hearts, and a save for another puzzle is handled; it fails if the import handler stops writing the save or stops remounting. (verified at `190498e`)
+- **leave-saves-time-ux-check**: A UX check leaves a puzzle after waiting and asserts the stored save gained the elapsed time and kept its cells; it fails if unmount stops saving. (verified at `285e1ae`)
 
 ## In progress
 

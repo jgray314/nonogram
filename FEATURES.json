@@ -362,8 +362,15 @@
       "id": "leave-saves-time-ux-check",
       "behavior": "A UX check leaves a puzzle after waiting and asserts the stored save gained the elapsed time and kept its cells; it fails if unmount stops saving.",
       "verify": "node --test test/ux_registry.test.js && npm run test:ux",
-      "state": "not_started",
-      "source": "docs/reviews/nonogram-gate.md pass 8, L1-1"
+      "state": "passing",
+      "source": "docs/reviews/nonogram-gate.md pass 8, L1-1",
+      "evidence": {
+        "commit": "285e1aecd75818652186ff68f18c4e061ae9242c",
+        "dirty": true,
+        "at": "2026-10-29T20:55:56Z",
+        "exit_code": 0,
+        "seal": "cnjlnhniaggbdfld"
+      }
     }
   ]
 }

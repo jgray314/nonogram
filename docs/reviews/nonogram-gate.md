@@ -542,10 +542,20 @@ Owner, on the findings: "skip medium and lows for now", W1 as below, W2 option (
 
 **Close checks:** 452 tests, lint, format and typecheck clean, 49 of 49 UX checks, `features.py check` ok after restamp. Nothing pushed.
 
-## Retrospective (open: the owner's other answers are still to come)
+## Retrospective
 
 **Owner, 2026-10-29:** "despite clear splitting of ideas into 2 projects, and explicitly asking for planning and execution to be split, the managing agent kept trying to scope creep in the second project multiple times. Hell did that in this response too which is the 3rd time I said to wait."
 
-1. **The orchestrator kept pulling the second project (the view split) into the first project's work.** It offered to start it, listed it as next, and named it in status lines after the owner had said to wait, three times. **To apply:** a feedback memory (done), and a line in the next gate's brief: a turn on one project does not mention the other's start, readiness or next step unless asked.
+**Owner decision, 2026-10-29:** the documented `test:ux` time is about 10s, to be monitored at that level (README and `RECORDED_SECONDS` both say 10; measured 11.5s).
 
-**Timing decision, 2026-10-29:** the owner set the documented `test:ux` time to about 10s, to be monitored at that level (README and `RECORDED_SECONDS` both say 10; measured 11.5s).
+1. **The orchestrator kept pulling the second project into the first project's work (owner).** It offered to start it, listed it as next and named it in closing messages after being told to wait, three times. **Applied:** the feedback memory `feedback-no-cross-project-scope-creep` and a PLAN briefing rule ("Stay inside the project the owner named").
+2. **A shared helper's defaults leaked into a lane's check.** Lane C's "color" puzzle was two-tone. **Applied:** PLAN briefing rule (list the defaults a helper does not override; each check asserts the property its name claims). The backup check now asserts at least 2 inks.
+3. **A timing lesson from pass 6 recurred (README "about 8s", measured 11.5s).** The lesson had gone into the skill text and the 1.5x band still hid it. **Applied:** the owner set 10s; PLAN lane rule: update `RECORDED_SECONDS` in the commit that adds checks. **Noted only:** the tolerance band stays, since tightening it flakes on slower machines.
+4. **A verify command could not notice its own check being deleted (L1-1).** **Applied:** AGENTS rule 10 and `test/ux_registry.test.js`. The same-shape sweep found no other row: the only other rows on plain `npm run test:ux` are the runner's own row and the helpers row, which has no checks.
+5. **Mutation runs found more than the review did, and a first fix was circular.** **Applied:** PLAN rule: a check fix is not done until its mutation has failed it.
+6. **Lane evidence is stamped before the commit.** **Applied:** PLAN lane rule: run `restamp` after the merges. Done for this round (`0cbe3a0`).
+7. **A shared registry conflicted on every lane merge.** **Applied:** PLAN rule: the foundation lane pre-registers stubs.
+8. **Leftover lane worktrees under `.claude/` fail the repo scans, and Windows refuses to delete the folder.** **Deferred.** Trigger: the next multi-lane round; make the scans skip `.claude/` then.
+9. **The two process trials fired at this gate (feature rows per committed piece; one combined round summary).** The owner did not rule on either. **Noted only:** the evidence is mixed (the rows gave a visible ledger per lane, but their evidence was stale until restamped). Both trials continue to the next gate.
+
+**Pass closed.**

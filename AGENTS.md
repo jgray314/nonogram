@@ -27,6 +27,7 @@ Browser nonogram maker and player: turns an image into a fair puzzle, then plays
 7. No Co-Authored-By trailers. The commit-msg hook rejects them.
 8. Every number a doc quotes (counts, timings) must be reproducible from this repo. Re-time before quoting.
 9. Stay inside the active feature: no refactors, renames or fixes to unrelated code in the same change. Note them for later instead.
+10. A `verify` command must fail if the thing it verifies is deleted or unregistered. `npm run test:ux` alone exits 0 with a check missing, so chain a test that pins the check's id (see `test/ux_registry.test.js`).
 
 ## End of a session
 

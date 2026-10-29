@@ -155,9 +155,14 @@ Tags on each step read `[wave·lane]`. Steps in the same wave but different lane
 - **Commit messages:** what changed in the subject, why in the body. No AI co-author trailer.
 - **Local only.** Pushing to GitHub isn't in scope unless you ask.
 
-**Briefing rules for the orchestrator** (added at gate pass 6, 2026-10-14):
+**Briefing rules for the orchestrator** (added at gate pass 6, 2026-10-14; extended at gate pass 7, 2026-10-29):
 - Before briefing a lane, grep the Backlog and the gate doc's deferred dispositions for triggers on the files the lane owns ("the next time those handlers are touched"). Put any trigger that fires into the brief. Public-prep fired pass 1 L7's trigger and made that bug worse, unnoticed until the next gate.
 - When a brief narrows a fix ("shallow", "only the top level"), name what is left out in the brief, and mark the backlog item done only for the part that was done. Public-prep's "shallow copy" brief left nested keys open while the backlog said Done (gate pass 6, L1).
+- **Stay inside the project the owner named.** When work is split into projects or into planning and execution, a turn on one does not offer, list or mention the start of the other unless asked (gate pass 7 retrospective, the owner's note).
+- **A shared helper's brief lists the app defaults it does not override** (Create defaults to two-tone, so a helper that cannot pick colors makes a "color" puzzle that is not one), and every check asserts the property its name claims, not only that something saved.
+- **A fix to a check is not done until the mutation it guards against has failed it.** Run the mutation before committing the fix; a first attempt at the `tier` check passed its own mutation because it used the code under test.
+- **After lanes merge, run `python scripts/features.py restamp` at a clean HEAD.** Lanes verify before they commit, so their evidence names a commit that lacks the check. Update the recorded timing baseline (`RECORDED_SECONDS`) in the commit that adds checks.
+- **The foundation lane pre-registers stub files for the later lanes** in any shared registry (`test/ux/pipeline.js` conflicted on every merge even with one line per lane).
 
 **Lane rules** (every lane prompt includes them):
 - **Lane subagents run on Sonnet** (`model: "sonnet"`, which is Sonnet 5.5), at the owner's request on 2026-10-08. The orchestrator (Opus) merges, runs the manual checks and holds the contracts. **Upgrade rule:** if a Sonnet lane hits the two-failure stop, the orchestrator takes that step over on Opus. It doesn't relaunch Sonnet on the same step.

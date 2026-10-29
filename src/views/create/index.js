@@ -29,7 +29,6 @@ import {
   narrowCellSize,
 } from '../../create-logic.js';
 
-const PREVIEW_MAX = 320;
 const CSS_ID = 'nng-create-css';
 
 let root = null;
@@ -139,7 +138,6 @@ export function mount(container) {
     blankBtn,
     startOverBtn,
     previewCanvas,
-    previewWrap,
     gridHost,
     emptyNote,
     undoBtn,
@@ -181,31 +179,6 @@ export function mount(container) {
   function currentCrop() {
     const d = dims();
     return centerCrop(state.image.w, state.image.h, d.width, d.height, st.offset);
-  }
-
-  function drawPreview() {
-    previewWrap.hidden = state.image === null;
-    if (!state.image) return;
-    state.previewScale = PREVIEW_MAX / Math.max(state.image.w, state.image.h);
-    const cw = Math.max(1, Math.round(state.image.w * state.previewScale));
-    const ch = Math.max(1, Math.round(state.image.h * state.previewScale));
-    previewCanvas.width = cw;
-    previewCanvas.height = ch;
-    const ctx = previewCanvas.getContext('2d');
-    ctx.drawImage(state.image.canvas, 0, 0, cw, ch);
-    const c = currentCrop();
-    const x = c.x * state.previewScale;
-    const y = c.y * state.previewScale;
-    const w = c.w * state.previewScale;
-    const h = c.h * state.previewScale;
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-    ctx.fillRect(0, 0, cw, y);
-    ctx.fillRect(0, y + h, cw, ch - y - h);
-    ctx.fillRect(0, y, x, h);
-    ctx.fillRect(x + w, y, cw - x - w, h);
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
   }
 
   /** Below 600px wide, size the cells so the grid fits the column. */
@@ -368,7 +341,7 @@ export function mount(container) {
       st.manualEdits = false;
       resetHistory();
       syncControls();
-      drawPreview();
+      ctx.cropPreview.drawPreview();
       renderGridNow();
       return;
     }
@@ -401,7 +374,7 @@ export function mount(container) {
     st.manualEdits = false;
     resetHistory();
     syncControls();
-    drawPreview();
+    ctx.cropPreview.drawPreview();
     renderGridNow();
   }
 
@@ -497,7 +470,7 @@ export function mount(container) {
     resetHistory();
     fileInput.value = '';
     syncControls();
-    drawPreview();
+    ctx.cropPreview.drawPreview();
     renderGridNow();
   }
 
@@ -523,35 +496,8 @@ export function mount(container) {
     fileInput.value = '';
     resetHistory();
     syncControls();
-    drawPreview();
+    ctx.cropPreview.drawPreview();
     renderGridNow();
-  }
-
-  // Crop drag: pointer movement shifts the crop in image pixels.
-  state.drag = null;
-  function onPreviewDown(e) {
-    if (!state.image || e.button !== 0 || !okToDiscard()) return;
-    const d = dims();
-    const base = centerCrop(state.image.w, state.image.h, d.width, d.height);
-    state.drag = { x: e.clientX, y: e.clientY, from: currentCrop(), base };
-    previewCanvas.setPointerCapture(e.pointerId);
-    previewCanvas.classList.add('dragging');
-  }
-  function onPreviewMove(e) {
-    if (!state.drag) return;
-    const rect = previewCanvas.getBoundingClientRect();
-    const k = state.previewScale * (rect.width / previewCanvas.width);
-    const d = dims();
-    const crop = centerCrop(state.image.w, state.image.h, d.width, d.height, {
-      dx: state.drag.from.x - state.drag.base.x + (e.clientX - state.drag.x) / k,
-      dy: state.drag.from.y - state.drag.base.y + (e.clientY - state.drag.y) / k,
-    });
-    st.offset = { dx: crop.x - state.drag.base.x, dy: crop.y - state.drag.base.y };
-    regenerate();
-  }
-  function onPreviewUp() {
-    state.drag = null;
-    previewCanvas.classList.remove('dragging');
   }
 
   fileInput.addEventListener('change', onFile);
@@ -576,10 +522,10 @@ export function mount(container) {
   titleInput.addEventListener('input', () => {
     state.titleTouched = true;
   });
-  previewCanvas.addEventListener('pointerdown', onPreviewDown);
-  previewCanvas.addEventListener('pointermove', onPreviewMove);
-  previewCanvas.addEventListener('pointerup', onPreviewUp);
-  previewCanvas.addEventListener('pointercancel', onPreviewUp);
+  previewCanvas.addEventListener('pointerdown', (e) => ctx.cropPreview.onPreviewDown(e));
+  previewCanvas.addEventListener('pointermove', (e) => ctx.cropPreview.onPreviewMove(e));
+  previewCanvas.addEventListener('pointerup', () => ctx.cropPreview.onPreviewUp());
+  previewCanvas.addEventListener('pointercancel', () => ctx.cropPreview.onPreviewUp());
 
   // The shared context for the Wave 2 modules. Built here because every field
   // is initialized by now (state, refs, solver) and the shell functions are
@@ -602,6 +548,7 @@ export function mount(container) {
       onStartOver,
       onResize,
       currentCrop: () => currentCrop(),
+      regenerate: () => regenerate(),
     },
     imageSource: null,
     cropPreview: null,
@@ -617,7 +564,7 @@ export function mount(container) {
 
   liveUnsaved = () => hasUnsavedWork(st, state.savedSig);
   syncControls();
-  drawPreview();
+  ctx.cropPreview.drawPreview();
   renderGridNow();
 
   teardown = () => {

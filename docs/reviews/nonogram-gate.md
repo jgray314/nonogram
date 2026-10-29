@@ -626,10 +626,27 @@ Checked and fine: test, UX and feature counts; line counts; no `void ctx`, `@ts-
 
 **Measured after the fixes:** `test:ux` 11.8s and 12.2s for 51 checks (documented about 10s by the owner's 2026-10-29 decision, band 1.5x); full check 4.7s; `test:solver_slow` 8.3s; 518 fast tests; 26 of 26 feature rows passing.
 
-## Retrospective (pass 8, open)
+## Retrospective (pass 8)
 
-**Owner note, 2026-10-29, on the planning questions:** "Sounds like not engaging with the existing plan review was the biggest problem."
-- **Applied:** feedback memory `feedback-run-plan-review-before-lanes` (run `/plan-review` before the first lane or feature of any plan). The plan-review gate itself (a sealed record that `features.py activate` checks) is proposed in the session and not built; it waits on two owner decisions (default on for new projects, exemption policy).
-- **Not yet applied:** extending the `/plan-review` checklist with the refactor-specific items this round exposed (the equivalence proof and a mutation audit of the code to be moved, hunk-level lane disjointness, setup and teardown order for closure extractions). Trigger: the next plan that moves or restructures code.
+### The owner's lessons (her words)
 
-Draft lessons from the record, awaiting the owner's other answers (what surprised her, what cost more time than it should have, what to do differently at the start of the next round, where the assistant got in the way): a mutation sweep before a move would have shown the thin safety net early; lane briefs carried ordering errors the lanes caught; every Wave 2 merge needed hand-resolved conflicts in the shared file; the timing lesson from pass 7 recurred because a tolerance band hid the drift (now a test); the first lint tests probed only the cases the author thought of.
+- **Surprise:** "skip / ignore plan guidance -> implement checks to require". Earlier note: "Sounds like not engaging with the existing plan review was the biggest problem."
+- **Took longer:** "gaps that more structured planning cycle should have handled, worktree folder failures in executing waves".
+- **Worked:** "Mutation proofs seemed to pull weight."
+- Not answered: what to do differently at the start of the next round, and where the assistant got in the way.
+
+| Lesson | Disposition |
+|---|---|
+| Plan guidance was skipped, so require it | **Applied.** `features.py` plan gate (`plan_gate`, `plan-reviewed`, `plan-gate`, `activate --skip-plan-review`) in the harness kit with 14 tests, six mutations caught; on in new scaffolds (template ledger and AGENTS rule); on in nonogram, `93cee01` (26 rows marked as predating it, AGENTS rule 11); workspace `CLAUDE.md`; `/plan-review` skill "Record the run"; memory `feedback-run-plan-review-before-lanes`. **Deferred:** repos that carry their own `features.py` (jscc and others); trigger: the next work in each. |
+| Structured planning should have handled the gaps | **Applied.** `/plan-review` checklist items 14 to 18: equivalence proof and a mutation audit before a "no behavior change" plan starts, hunk-level lane disjointness, setup and teardown order for closure extractions, pricing "mechanical" claims, and the lane brief template. |
+| Worktree folder failures during waves | **Applied** `999eb79`: `.claude/worktrees/` is ignored by eslint, prettier, git and the public-docs scan. **Proof: mutation-verified guard.** With a fake worktree holding a lint error, badly formatted code and a private path, lint, format and the scan pass; removing the scan's skip makes it fail. |
+| Mutation proofs pulled their weight | **Applied (kept and made standard).** Named in plan-review items 14 and 18 and in every lane brief; they found about 20 coverage gaps and caught the wrong-order and stale-state mistakes in the briefs. |
+| A mutation sweep before the move would have shown the thin safety net early | **Applied** in plan-review item 14. |
+| Briefs carried ordering errors the lanes caught | **Applied** in plan-review items 16 and 18. |
+| Every Wave 2 merge needed hand-resolved conflicts in `index.js` | **Applied** in plan-review item 15. **Deferred:** the delegating-wrapper design itself, to the next plan that restructures code. |
+| A timing lesson from pass 7 came back because the tolerance band hid the drift | **Applied** `285e1ae`: a test that every doc quotes one time per suite. |
+| The first lint tests probed only the cases the author thought of | **Applied** to this rule (`70a6704`, bypass probes and store-glob, blank-line and glob mutations). **Noted only** as general practice: rule tests carry a list of bypass attempts. |
+| Lane start and finish by hand, no pure-move verifier, free-text maps and gap lists | **Deferred.** Candidates for the harness kit (`lane-start` and `lane-finish`, a moved-lines verifier, machine-readable maps, a gap ledger). Trigger: the next multi-lane round. |
+| The gate lenses were interrupted by a usage limit and re-run | **Noted only.** Nothing to change; the second run was complete. |
+
+**Pass 8 closed 2026-10-29.** Nothing is pushed.

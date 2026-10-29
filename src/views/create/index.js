@@ -601,9 +601,13 @@ export function mount(container) {
       onBlank,
       onStartOver,
       onResize,
-      // @ts-expect-error not in CreateShell yet; the image-source lane moves currentCrop
       currentCrop: () => currentCrop(),
     },
+    imageSource: null,
+    cropPreview: null,
+    gridView: null,
+    report: null,
+    save: null,
   };
   ctx.imageSource = createImageSource(ctx);
   ctx.cropPreview = createCropPreview(ctx);

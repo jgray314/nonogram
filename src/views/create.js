@@ -2,6 +2,7 @@
 // live solver report (11b), save to library (11c), tile sets (12c).
 import { cellLuminance, otsu } from '../image.js';
 import { puzzleClues } from '../clues.js';
+import { el } from './dom.js';
 import { renderGrid, gutterSize } from './grid.js';
 import { applyStroke } from '../play-state.js';
 import { createHistory } from '../game.js';
@@ -63,17 +64,6 @@ if (typeof window !== 'undefined') {
       e.returnValue = '';
     }
   });
-}
-
-function el(tag, props = {}, ...children) {
-  const node = document.createElement(tag);
-  for (const [k, v] of Object.entries(props)) {
-    if (k === 'className') node.className = v;
-    else if (k === 'text') node.textContent = v;
-    else node[k] = v;
-  }
-  node.append(...children);
-  return node;
 }
 
 function sizeSelect(value, values = SIZES) {

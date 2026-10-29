@@ -10,7 +10,7 @@ Both views are one `mount()` closure over shared mutable state (create: `st`, `i
 
 ## Target layout
 
-- `src/views/dom.js`: the shared `el()` helpers. The two views define `el` with different signatures (create: `el(tag, props, ...children)`, 57 call sites; play: `el(tag, className, text)`, 47 call sites). They are not merged: `dom.js` exports `el` (create's form) and `elc` (play's form), and play's call sites are renamed to `elc`. Lint (`no-undef`) and typecheck prove no site was missed.
+- `src/views/dom.js`: the shared `el()` helpers. The two views define `el` with different signatures (create: `el(tag, props, ...children)`, 56 call sites; play: `el(tag, className, text)`, 47 call sites). They are not merged: `dom.js` exports `el` (create's form) and `elc` (play's form), and play's call sites are renamed to `elc`. Lint (`no-undef`) and typecheck prove no site was missed.
 - `src/views/create/`: `index.js` (mount, wiring), `build.js` (DOM construction), plus the Wave 2 modules below.
 - `src/views/play/`: `index.js`, `build.js`, plus the Wave 2 modules below.
 - `eslint.config.js`: three additions.

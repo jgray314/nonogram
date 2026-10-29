@@ -6,7 +6,7 @@ Browser nonogram maker and player: turns an image into a fair puzzle, then plays
 
 - Serve: `python -m http.server 8123` from this folder, then open http://127.0.0.1:8123/ (use 127.0.0.1, not localhost).
 - Full check, same as CI: `npm test && npm run lint && npm run format:check && npm run typecheck` (about 5 seconds).
-- Area suites, run after changes in those areas, not in CI: `npm run test:solver_slow` (about 10s), `npm run test:difficulty_very_slow` (about a minute).
+- Area suites, run after changes in those areas, not in CI: `npm run test:solver_slow` (about 8s), `npm run test:difficulty_very_slow` (about a minute).
 - UX checks: `npm run test:ux` (headless Chrome, runs in CI and pre-push), or open `/ux-checks.html` on the running server to watch them.
 - Setup on a fresh clone: `npm ci`, then `git config core.hooksPath .githooks` (once; enables the commit-msg and pre-push hooks).
 
@@ -14,7 +14,7 @@ Browser nonogram maker and player: turns an image into a fair puzzle, then plays
 
 - `FEATURES.json` is the verification ledger: each entry is a check gate with a command that proves it. `PROGRESS.md` is generated from it and lists those gates only. What the product does and what is open is in `README.md` and the backlog in `PLAN.md`.
 - The Create and Play views are folders, `src/views/create/` and `src/views/play/`: `index.js` owns `mount`/`unmount`, and each module gets one shared context (`context.js` documents its shape) and reaches the others as `ctx.<module>.fn()` at call time. ESLint rejects any `src/` file over 500 lines and any storage access outside `src/store.js`; inline `eslint-disable` comments are ignored.
-- `PLAN.md` holds decisions D1 to D24, contracts and the backlog. `docs/` holds research and review records, `docs/plans/` the plans for upcoming work, and `FUTURE-WORK.md` the agreed next improvements.
+- `PLAN.md` holds decisions D1 to D29, contracts and the backlog. `docs/` holds research and review records, `docs/plans/` the plans for upcoming work, and `FUTURE-WORK.md` the agreed next improvements.
 
 ## Rules
 

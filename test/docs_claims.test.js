@@ -167,6 +167,21 @@ if (!CHILD) {
     },
   );
 
+  t('docs: every doc quotes the same time for one suite (the tolerance band hides drift)', () => {
+    const bySuite = new Map();
+    // The fast suite has its own live check above, and PLAN.md keeps dated history.
+    for (const c of timingClaims().filter((x) => x.suite && x.suite !== 'npm test')) {
+      bySuite.set(c.suite, [...(bySuite.get(c.suite) ?? []), c]);
+    }
+    for (const [suite, claims] of bySuite) {
+      const seconds = new Set(claims.map((c) => c.seconds));
+      assert.ok(
+        seconds.size === 1,
+        `${suite} is quoted with different times: ${claims.map((c) => `${c.file}:${c.n}=${c.seconds}s`).join(', ')}`,
+      );
+    }
+  });
+
   t('docs: a named test title in a doc exists in the test sources', () => {
     const planLine = allLines.find(
       (l) => l.file === 'PLAN.md' && l.text.includes('25x25 completes'),

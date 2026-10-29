@@ -217,6 +217,20 @@
         "exit_code": 0,
         "seal": "hjllbiooekecoehd"
       }
+    },
+    {
+      "id": "e2e-pipeline-helpers",
+      "behavior": "The UX harness has upload, create-and-save, download-capture, file-pick and store-reset helpers, a synthetic color fixture and a PIPELINE_CHECKS registration hook, so pipeline checks can drive the real app end to end. No behavior change; failing-first is N/A.",
+      "verify": "npm run test:ux",
+      "state": "passing",
+      "source": "docs/e2e-pipeline-checks.md Wave 0",
+      "evidence": {
+        "commit": "07e695042dc67e579abb3eed89288f21af6e7f8a",
+        "dirty": true,
+        "at": "2026-10-29T17:01:17Z",
+        "exit_code": 0,
+        "seal": "lmhjkllagjdjdefl"
+      }
     }
   ]
 }

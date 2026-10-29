@@ -231,6 +231,20 @@
         "exit_code": 0,
         "seal": "lmhjkllagjdjdefl"
       }
+    },
+    {
+      "id": "e2e-pipeline-backup",
+      "behavior": "Exporting the library, wiping the store and importing a backup whose verdicts were tampered with restores both the mono and color puzzles with the worker's re-rated verdicts, not the file's.",
+      "verify": "npm run test:ux",
+      "state": "passing",
+      "source": "docs/plans/e2e-pipeline-checks.md Wave 1 C",
+      "evidence": {
+        "commit": "4707b0966934d10553ff30b67d373dbc92c8fe4b",
+        "dirty": true,
+        "at": "2026-10-29T17:05:53Z",
+        "exit_code": 0,
+        "seal": "pkjpgdhecjoicgpl"
+      }
     }
   ]
 }

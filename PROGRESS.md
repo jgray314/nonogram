@@ -6,7 +6,7 @@ This is the verification ledger: check gates and controls, each with a command t
 It is not the product roadmap. What the product does and what is open lives in the README
 and plan docs that AGENTS.md lists under 'Where things are'.
 
-Commit: `01f5b7c`  
+Commit: `e867c9f`  
 Full check: `npm test && npm run lint && npm run format:check && npm run typecheck`
 
 ## Done
@@ -26,6 +26,11 @@ Full check: `npm test && npm run lint && npm run format:check && npm run typeche
 - **color-library-label**: Library rows mark a color puzzle with a Color badge and one dot per ink color (screen readers hear how many colors); two-tone rows are unchanged. (verified at `cf5813e`)
 - **color-pixel-palette**: Image to color grid takes its palette from the pixels (16-level color histogram, weighted k-means seeded far apart, Chang et al. 2015) and gives each cell its majority color: antialiased edges add no extra color, a small vivid subject keeps its color, and a 3% crop move barely changes the palette. (verified at `fe08554`)
 - **color-blank-display**: A color puzzle stores its blank (background) color, and Create and Play draw empty and crossed cells in it, with the cross white on a dark blank and dark on a light one; two-tone puzzles are unchanged. (verified at `32e637f`)
+- **e2e-pipeline-helpers**: The UX harness has upload, create-and-save, download-capture, file-pick and store-reset helpers, a synthetic color fixture and a PIPELINE_CHECKS registration hook, so pipeline checks can drive the real app end to end. No behavior change; failing-first is N/A. (verified at `07e6950`)
+- **e2e-pipeline-mono**: End to end: uploading cat-15x15 in Create and saving stores a 15x15 puzzle with a real worker verdict, and the library lists it with a Play button that opens a 15x15 grid. (verified at `4707b09`)
+- **e2e-pipeline-backup**: Exporting the library, wiping the store and importing a backup whose verdicts were tampered with restores both the mono and color puzzles with the worker's re-rated verdicts, not the file's. (verified at `4707b09`)
+- **e2e-pipeline-color**: A color image uploaded in Create (4 colors chosen) reaches the library through the real worker: palette of 2 to 4 inks plus a valid distinct blank hex, a real stored verdict, a Color badge with one dot per ink, and one swatch per ink in Play. (verified at `4707b09`)
+- **e2e-pipeline-webpbn**: A puzzle created from an image through the real Create flow exports webpbn XML from the Library whose root, dimensions and row and column clues match the stored solution, with expected clues derived independently in the check. (verified at `4707b09`)
 
 ## In progress
 

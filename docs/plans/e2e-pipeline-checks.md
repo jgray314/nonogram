@@ -61,6 +61,38 @@ Record each result in the matching feature row's evidence. A mutation that does 
 ```
 A0 ──► A1, B, C, D (independent of each other) ──► mutation proofs ──► gate
 ```
+
+## Results (2026-10-29)
+
+Waves 0 to 2 ran on local `main`; nothing is pushed. `npm run test:ux` went from 45 to 49 checks and from about 9s to about 11s.
+
+Changes from the plan as written:
+
+- Create defaults to two-tone, so `createAndSave` gained a `{ colors }` option. Lane C's first "color" puzzle was two-tone because the helper could not ask for color.
+- The color PNG lives at `test/ux/color-3ink.png`, not under `fixtures/`: the encoding test scans every file under a `fixtures/` directory as UTF-8 text.
+- Lane worktrees may be cut from `origin/main`, not local `main`. Each lane brief starts with `git reset --hard main`.
+
+Mutation results (each run in a scratch worktree, reverted):
+
+| Mutation | Caught by | Gap found and fixed |
+|---|---|---|
+| Palette collapsed to one color | color, backup (and an older Create check) | none |
+| Blank equal to an ink | color (and an older Create check) | none |
+| Import keeps the file's verdict (full or partial) | backup; 6 unit tests for the full case, none for the partial case | none |
+| Webpbn row and column clue blocks swapped | webpbn only (unit tests miss it) | none |
+| Webpbn run lengths off by one or last clue dropped | webpbn | none |
+| Webpbn image rows reversed | unit tests only | webpbn check now compares image rows to the solution |
+| Worker returns a fixed `unique-line-solvable` | nothing | mono, color and backup now compare the stored verdict (status and sweeps) to the pure solver run on the stored solution (`test/ux/expected-verdict.js`) |
+| Worker returns `unknown` | mono, color | backup now also fails (its snapshot is pinned to the pure solver) |
+| Worker never replies | all four, by waiting for Save | the client has no timeout; a hung worker waits forever in the real UI |
+
+Known gaps that remain:
+
+- The webpbn export writes no width or height, and every sample image is square, so a width and height confusion cannot be tested without a non-square sample.
+- The `total <= 5` colors assertion in the color check was not exercised by a mutation.
+- The backup check's tamper rule flips each verdict to a different one; a mutation that trusted only a faked `unique-line-solvable` verdict is caught only if one of the two puzzles is truly `multiple`.
+- The solver client has no timeout (found by the hung-worker mutation); that is an app question, not a test gap.
+
 ## Decisions
 
 - Upload source is the repo's own sample PNGs plus one new synthetic color PNG. No third-party images.

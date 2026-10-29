@@ -68,6 +68,15 @@ export const WEBPBN_CHECKS = [
         'solution image rows are not 15 cells wide',
       );
 
+      // The picture itself, not just its size: a filled cell is any char but '.'.
+      for (let r = 0; r < 15; r += 1) {
+        const want = solution[r].map((v) => (v ? 'X' : '.')).join('');
+        const got = [...image[r].trim().slice(1, -1)]
+          .map((ch) => (ch === '.' ? '.' : 'X'))
+          .join('');
+        assert(got === want, `image row ${r + 1}: expected ${want}, got ${got}`);
+      }
+
       for (let r = 0; r < 15; r += 1) {
         const want = runs(solution[r]).join(',');
         const got = lineValues(rows[r]).join(',');

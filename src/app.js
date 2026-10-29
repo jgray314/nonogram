@@ -1,7 +1,7 @@
 // Hash router. Each route maps to a view module exporting mount(el, params)
 // and unmount(). Routes: #/library (default), #/create, #/play/<id>, #/print/<id>.
 import * as library from './views/library.js';
-import * as create from './views/create.js';
+import * as create from './views/create/index.js';
 import * as play from './views/play.js';
 import * as print from './views/print.js';
 import { createStore } from './store.js';

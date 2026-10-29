@@ -3,6 +3,7 @@
 // and prove the worker re-rated every puzzle (AGENTS rule 6: a file's verdict is
 // only a claim). Nothing is seeded.
 import { createStore } from '../../src/store.js';
+import { assertWorkerVerdict } from './expected-verdict.js';
 import { captureDownload, createAndSave, pickFile, resetStore, waitFor } from './harness.js';
 
 function assert(ok, message) {
@@ -27,7 +28,8 @@ export const BACKUP_CHECKS = [
       for (const id of [monoId, colorId]) {
         const p = stored(id);
         assert(p?.verdict?.status, `puzzle ${id} should be stored with a verdict`);
-        original[id] = p.verdict.status;
+        // Pinned to what the pure solver says, not to the worker's own earlier output.
+        original[id] = assertWorkerVerdict(p, `puzzle ${id}`).status;
       }
 
       await app.open('#/library');
@@ -76,6 +78,7 @@ export const BACKUP_CHECKS = [
           p.verdict.status === original[id],
           `${label} verdict should be re-rated to ${original[id]}, got ${p.verdict.status}`,
         );
+        assertWorkerVerdict(p, `imported ${label} puzzle`);
       }
       const rows = app.$$('.nng-lib-content a[href^="#/play/"]').map((a) => a.getAttribute('href'));
       for (const id of [monoId, colorId]) {

@@ -1,6 +1,7 @@
 // End-to-end color pipeline: a color image goes through Create (image.js,
 // color.js, the solver worker), is saved, and shows up as a color puzzle in the
 // library and in Play. Nothing is seeded.
+import { assertWorkerVerdict } from './expected-verdict.js';
 import { createAndSave, resetStore, waitFor } from './harness.js';
 
 const FIXTURE = 'test/ux/color-3ink.png';
@@ -35,8 +36,7 @@ export const COLOR_CHECKS = [
       assert(new Set(inks).size === inks.length, `duplicate inks: ${inks}`);
       const total = inks.length + 1;
       assert(total >= 3 && total <= 5, `expected 3 to 5 colors in total, got ${total}`);
-      const status = puzzle.verdict?.status;
-      assert(status && status !== 'unknown', `no real worker verdict stored: ${status}`);
+      assertWorkerVerdict(puzzle, 'color puzzle');
 
       // Library: Color badge, one dot per ink.
       await app.open('#/library');

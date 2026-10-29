@@ -1,13 +1,12 @@
 // End-to-end check: a photo goes in through Create and comes out as a rated,
 // playable puzzle in the library. Nothing is seeded, so the stored verdict can
 // only have come from the real solver worker.
+import { assertWorkerVerdict } from './expected-verdict.js';
 import { createAndSave, resetStore, waitFor } from './harness.js';
 
 function assert(ok, message) {
   if (!ok) throw new Error(message);
 }
-
-const WORKER_STATUSES = ['unique-line-solvable', 'unique-needs-guessing', 'multiple'];
 
 export const MONO_CHECKS = [
   {
@@ -27,11 +26,7 @@ export const MONO_CHECKS = [
         puzzle.width === 15 && puzzle.height === 15,
         `stored size is ${puzzle.width}x${puzzle.height}, expected 15x15`,
       );
-      const status = puzzle.verdict?.status;
-      assert(
-        WORKER_STATUSES.includes(status),
-        `stored verdict "${status}" is not a worker verdict (${WORKER_STATUSES.join(', ')})`,
-      );
+      assertWorkerVerdict(puzzle, 'mono puzzle');
 
       await app.open('#/library');
       const rows = app.$$('.nng-lib-row');

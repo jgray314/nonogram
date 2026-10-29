@@ -625,3 +625,11 @@ Checked and fine: test, UX and feature counts; line counts; no `void ctx`, `@ts-
 | L2-11 | **Accepted residual.** Recorded in the plan's Results as manual checks; crop-box drag is still owed in a real browser. Trigger: the next structural refactor scripts the comparison as a UX check. |
 
 **Measured after the fixes:** `test:ux` 11.8s and 12.2s for 51 checks (documented about 10s by the owner's 2026-10-29 decision, band 1.5x); full check 4.7s; `test:solver_slow` 8.3s; 518 fast tests; 26 of 26 feature rows passing.
+
+## Retrospective (pass 8, open)
+
+**Owner note, 2026-10-29, on the planning questions:** "Sounds like not engaging with the existing plan review was the biggest problem."
+- **Applied:** feedback memory `feedback-run-plan-review-before-lanes` (run `/plan-review` before the first lane or feature of any plan). The plan-review gate itself (a sealed record that `features.py activate` checks) is proposed in the session and not built; it waits on two owner decisions (default on for new projects, exemption policy).
+- **Not yet applied:** extending the `/plan-review` checklist with the refactor-specific items this round exposed (the equivalence proof and a mutation audit of the code to be moved, hunk-level lane disjointness, setup and teardown order for closure extractions). Trigger: the next plan that moves or restructures code.
+
+Draft lessons from the record, awaiting the owner's other answers (what surprised her, what cost more time than it should have, what to do differently at the start of the next round, where the assistant got in the way): a mutation sweep before a move would have shown the thin safety net early; lane briefs carried ordering errors the lanes caught; every Wave 2 merge needed hand-resolved conflicts in the shared file; the timing lesson from pass 7 recurred because a tolerance band hid the drift (now a test); the first lint tests probed only the cases the author thought of.

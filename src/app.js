@@ -2,7 +2,7 @@
 // and unmount(). Routes: #/library (default), #/create, #/play/<id>, #/print/<id>.
 import * as library from './views/library.js';
 import * as create from './views/create/index.js';
-import * as play from './views/play.js';
+import * as play from './views/play/index.js';
 import * as print from './views/print.js';
 import { createStore } from './store.js';
 import { initTheme } from './theme.js';

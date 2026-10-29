@@ -41,11 +41,11 @@ export function createSave(ctx) {
     return pickArt((side, quality) => {
       const size = artSize(rect.w, rect.h, side);
       const canvas = el('canvas', { width: size.width, height: size.height });
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#ffffff'; // JPEG has no alpha: transparent pixels would turn black
-      ctx.fillRect(0, 0, size.width, size.height);
-      ctx.imageSmoothingEnabled = size.width <= rect.w; // upscaled pixel art stays blocky
-      ctx.drawImage(
+      const g = canvas.getContext('2d');
+      g.fillStyle = '#ffffff'; // JPEG has no alpha: transparent pixels would turn black
+      g.fillRect(0, 0, size.width, size.height);
+      g.imageSmoothingEnabled = size.width <= rect.w; // upscaled pixel art stays blocky
+      g.drawImage(
         state.image.canvas,
         rect.x,
         rect.y,

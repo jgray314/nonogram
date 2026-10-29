@@ -1,5 +1,5 @@
-// Pins the play view's module layout (view-split plan, step 1c): the files exist,
-// the old single file is gone, and each module exports what the other lanes rely on.
+// Pins the play view's module layout: the files exist, the old single file is gone,
+// each module exports what the others rely on, and the functions live in the modules.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
@@ -55,7 +55,7 @@ test('index.js exports exactly mount and unmount', async () => {
 });
 
 test('index.js wires the four module slots, in order', () => {
-  const src = readFileSync(path('index.js'), 'utf8');
+  const src = code('index.js');
   const slots = [
     ['hud', 'createHud'],
     ['persist', 'createPersist'],
@@ -69,3 +69,45 @@ test('index.js wires the four module slots, in order', () => {
     last = at;
   }
 });
+
+// Comments do not count: a wiring line or a function that only appears in a
+// comment must not satisfy the checks below.
+const code = (file) =>
+  readFileSync(path(file), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^\s*\/\/.*$/gm, '');
+const defines = (text, name) =>
+  new RegExp(String.raw`(?:function\s+${name}\b|(?:const|let)\s+${name}\s*=)`).test(text);
+
+/** @type {Record<string, string[]>} */
+const FUNCTIONS = {
+  'hud.js': ['refresh', 'reduceMotion', 'showStrip', 'clearReveal', 'syncReveal'],
+  'persist.js': ['snapshot', 'persist', 'loadSave', 'attachHandlers'],
+  'rules-layout.js': ['pickBrush', 'syncMode', 'syncCoarse', 'sizeGrid', 'settle', 'rememberRule'],
+  'session.js': [
+    'startClock',
+    'commit',
+    'onPointer',
+    'tick',
+    'onVisibility',
+    'step',
+    'restart',
+    'onKey',
+    'preview',
+    'zen',
+    'outOfHearts',
+    'attachHandlers',
+  ],
+  'util.js': ['reveal', 'sameGrid'],
+};
+
+for (const [file, names] of Object.entries(FUNCTIONS)) {
+  test(`${file} defines its functions and index.js no longer does`, () => {
+    const mod = code(file);
+    const index = code('index.js');
+    for (const name of names) {
+      assert.ok(defines(mod, name), `${file} must define ${name}`);
+      assert.ok(!defines(index, name), `index.js must not define ${name} any more`);
+    }
+  });
+}

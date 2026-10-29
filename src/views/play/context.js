@@ -33,8 +33,6 @@
  * @property {{ zen: boolean, autoCross: boolean }} rules  The same object as state.rules.
  * @property {any} clues
  * @property {any} refs  The object returned by buildView.
- * @property {HTMLElement} container
- * @property {Array<() => void>} cleanup  This mount's cleanup list.
  * @property {boolean} heartsOk
  * @property {any} helpers
  * @property {() => any} grid  The module-level grid, read at call time.
@@ -44,8 +42,6 @@
  * @property {Map<string, string>} pendingNotes  The module-level notes shown after an import remount.
  * @property {() => void} clearPersistNow  Makes unmount's final save a no-op (the import handler's remount).
  * @property {(params: { id: string }) => void} remount  Unmounts and mounts this view again.
- * @property {() => boolean} zen  Forwarded until the session module owns it.
- * @property {() => boolean} outOfHearts  Forwarded until the session module owns it.
  * @property {any} hud  Set by index.js after construction.
  * @property {any} persist
  * @property {any} rulesLayout

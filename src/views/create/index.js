@@ -219,7 +219,7 @@ export function mount(container) {
   previewCanvas.addEventListener('pointerup', () => ctx.cropPreview.onPreviewUp());
   previewCanvas.addEventListener('pointercancel', () => ctx.cropPreview.onPreviewUp());
 
-  // The shared context for the Wave 2 modules. Built here because every field
+  // The shared context for the view's modules. Built here because every field
   // is initialized by now (state, refs, solver) and the shell functions are
   // declared above; the modules are constructed in this one block, in order.
   /** @type {import('./context.js').CreateContext} */
@@ -236,9 +236,6 @@ export function mount(container) {
       tiled,
       okToDiscard,
       newBlank,
-      onBlank,
-      onStartOver,
-      onResize,
     },
     imageSource: null,
     cropPreview: null,

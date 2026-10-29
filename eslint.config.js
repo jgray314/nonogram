@@ -10,6 +10,17 @@ const HTML_BANS = [
 
 const STORAGE_MESSAGE = 'Only src/store.js touches web storage.';
 const STORAGE_NAMES = ['localStorage', 'sessionStorage'];
+// Catches the property wherever it hangs (self.localStorage, an alias of window,
+// document.defaultView.localStorage, top, parent), not only window and globalThis.
+// A computed key built at run time still gets through: this guards against accidents.
+const STORAGE_PATTERN = '/^(local|session)Storage$/';
+const STORAGE_SYNTAX = [
+  { selector: `MemberExpression[property.name=${STORAGE_PATTERN}]`, message: STORAGE_MESSAGE },
+  {
+    selector: `MemberExpression[computed=true][property.value=${STORAGE_PATTERN}]`,
+    message: STORAGE_MESSAGE,
+  },
+];
 
 // A later config object replaces an earlier one's options for the same rule,
 // so the src/** object repeats HTML_BANS from this one shared constant.
@@ -32,13 +43,14 @@ export default [
     },
   },
   {
-    files: ['src/**/*.js'],
+    files: ['src/**/*.{js,mjs,cjs}'],
     rules: {
       'no-restricted-globals': [
         'error',
         ...STORAGE_NAMES.map((name) => ({ name, message: STORAGE_MESSAGE })),
       ],
       'no-restricted-properties': ['error', ...HTML_BANS, ...STORAGE_PROPERTY_BANS],
+      'no-restricted-syntax': ['error', ...STORAGE_SYNTAX],
       // A ratchet against growth, counting every line (docs/plans/line-cap-300.md lowers it).
       'max-lines': ['error', { max: 500 }],
     },
@@ -48,6 +60,7 @@ export default [
     files: ['src/store.js'],
     rules: {
       'no-restricted-globals': 'off',
+      'no-restricted-syntax': 'off',
       'no-restricted-properties': ['error', ...HTML_BANS],
     },
   },

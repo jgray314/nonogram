@@ -127,8 +127,6 @@ export function mount(container, params = {}) {
     clues,
     refs,
     prefKeys: PREF_KEYS,
-    container,
-    cleanup,
     heartsOk,
     helpers,
     grid: () => grid,
@@ -146,8 +144,6 @@ export function mount(container, params = {}) {
     persist: null,
     rulesLayout: null,
     session: null,
-    zen: () => ctx.session.zen(),
-    outOfHearts: () => ctx.session.outOfHearts(),
   };
   ctx.hud = createHud(ctx);
   ctx.persist = createPersist(ctx);

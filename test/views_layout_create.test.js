@@ -22,6 +22,62 @@ const modules = {
   'context.js': [],
 };
 
+// Comments do not count: a wiring line or a function that only appears in a
+// comment must not satisfy the checks below.
+const code = (file) =>
+  readFileSync(dir + file, 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^\s*\/\/.*$/gm, '');
+const defines = (text, name) =>
+  new RegExp(String.raw`(?:function\s+${name}\b|(?:const|let)\s+${name}\s*=)`).test(text);
+
+/** @type {Record<string, string[]>} */
+const functions = {
+  'image-source.js': [
+    'currentCrop',
+    'regenerate',
+    'onFile',
+    'onSize',
+    'onSlider',
+    'onReset',
+    'onColors',
+    'onInvert',
+  ],
+  'crop-preview.js': ['drawPreview', 'onPreviewDown', 'onPreviewMove', 'onPreviewUp'],
+  'grid-view.js': [
+    'fitCells',
+    'renderGridNow',
+    'markTileBoundaries',
+    'onGridPointer',
+    'syncBrushes',
+    'syncHistoryButtons',
+    'resetHistory',
+    'stepHistory',
+    'onKeydown',
+  ],
+  'report.js': ['showReport', 'scheduleReport'],
+  'save.js': ['showSaveMessage', 'artFor', 'onSave', 'saveSingle', 'saveSet'],
+};
+
+// index.js keeps one stable listener reference so teardown can remove it; the
+// wrapper must only delegate to the module.
+const WRAPPERS = new Set(['onKeydown']);
+test('index.js keeps onKeydown only as a delegating wrapper', () => {
+  assert.match(code('index.js'), /const onKeydown = \(e\) => ctx\.gridView\.onKeydown\(e\);/);
+});
+
+for (const [file, names] of Object.entries(functions)) {
+  test(`${file} defines its functions and index.js no longer does`, () => {
+    const mod = code(file);
+    const index = code('index.js');
+    for (const name of names) {
+      assert.ok(defines(mod, name), `${file} must define ${name}`);
+      if (WRAPPERS.has(name)) continue;
+      assert.ok(!defines(index, name), `index.js must not define ${name} any more`);
+    }
+  });
+}
+
 test('the old single-file view is gone', () => {
   assert.equal(existsSync(oldFile), false);
 });
@@ -47,7 +103,7 @@ test('index.js exports exactly mount and unmount', () => {
 });
 
 test('index.js builds each module slot on ctx from its factory', () => {
-  const text = readFileSync(dir + 'index.js', 'utf8');
+  const text = code('index.js');
   const slots = {
     imageSource: 'createImageSource',
     cropPreview: 'createCropPreview',

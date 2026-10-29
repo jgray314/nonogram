@@ -31,9 +31,6 @@
  * @property {() => boolean} tiled
  * @property {() => boolean} okToDiscard
  * @property {() => void} newBlank
- * @property {() => void} onBlank
- * @property {() => void} onStartOver
- * @property {() => void} onResize
  */
 
 /**

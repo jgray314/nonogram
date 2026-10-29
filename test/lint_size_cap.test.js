@@ -13,7 +13,13 @@ async function ruleIds(lineCount, filePath, head = '') {
   return result.messages.map((m) => m.ruleId);
 }
 
-for (const filePath of ['src/views/create/x.js', 'src/views/play/x.js', 'src/color.js']) {
+for (const filePath of [
+  'src/views/create/x.js',
+  'src/views/play/x.js',
+  'src/color.js',
+  'src/views/library.js',
+  'src/views/x.mjs',
+]) {
   test(`${MAX + 1} lines at ${filePath} is max-lines`, async () => {
     const ids = await ruleIds(MAX + 1, filePath);
     assert.ok(ids.includes('max-lines'), String(ids));
@@ -33,4 +39,13 @@ test('an eslint-disable comment cannot switch the cap off', async () => {
 test('the cap is scoped to src/ (tests and scripts may be longer)', async () => {
   const ids = await ruleIds(MAX + 1, 'test/x.js');
   assert.ok(!ids.includes('max-lines'), String(ids));
+});
+
+test('blank lines count: the cap has no skipBlankLines exemption', async () => {
+  const blanks = '\n'.repeat(MAX + 1);
+  const [result] = await eslint.lintText(blanks, { filePath: 'src/views/x.js' });
+  assert.ok(
+    result.messages.some((m) => m.ruleId === 'max-lines'),
+    JSON.stringify(result.messages.map((m) => m.ruleId)),
+  );
 });

@@ -28,10 +28,9 @@ export function createHud(ctx) {
     strip,
     stripText,
   } = refs;
-  // zen and outOfHearts stay in index.js until the session module takes them;
-  // index.js forwards them on ctx.
-  const zen = () => /** @type {any} */ (ctx).zen();
-  const outOfHearts = () => /** @type {any} */ (ctx).outOfHearts();
+  // The session module owns these two predicates; read them at call time.
+  const zen = () => ctx.session.zen();
+  const outOfHearts = () => ctx.session.outOfHearts();
 
   function refresh() {
     const out = outOfHearts();

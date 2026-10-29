@@ -109,16 +109,32 @@ export function mount(container) {
   const restored = draft;
   draft = null;
   const st = restored?.st ?? newEditorState({ width: 15, height: 15 });
-  let image = restored?.image ?? null; // { canvas, w, h, rgba } once decoded
-  let gridView = null;
-  let previewScale = 1;
+  /** @type {Record<string, any>} */
+  const state = {
+    st,
+    image: null,
+    gridView: null,
+    previewScale: null,
+    reportTimer: null,
+    reportRun: null,
+    titleTouched: null,
+    history: null,
+    baseline: null,
+    savedSig: null,
+    reports: null,
+    stroke: null,
+    drag: null,
+  };
+  state.image = restored?.image ?? null; // { canvas, w, h, rgba } once decoded
+  state.gridView = null;
+  state.previewScale = 1;
   const solver = createSolverClient();
-  let reportTimer = null;
-  let reportRun = 0; // id of the newest report request; older results are dropped
-  let titleTouched = restored?.titleTouched ?? false; // true once the title was typed by hand
-  let history = restored?.history ?? createHistory(st.grid); // hand edits since the last regenerate
-  let baseline = restored?.baseline ?? JSON.stringify(st.grid); // the grid as generated, before hand edits
-  let savedSig = restored?.savedSig ?? null; // gridSig of the last successful save
+  state.reportTimer = null;
+  state.reportRun = 0; // id of the newest report request; older results are dropped
+  state.titleTouched = restored?.titleTouched ?? false; // true once the title was typed by hand
+  state.history = restored?.history ?? createHistory(st.grid); // hand edits since the last regenerate
+  state.baseline = restored?.baseline ?? JSON.stringify(st.grid); // the grid as generated, before hand edits
+  state.savedSig = restored?.savedSig ?? null; // gridSig of the last successful save
 
   // --- DOM ---
   const refs = buildView(st, restored);
@@ -170,7 +186,7 @@ export function mount(container) {
     sliderValue.textContent = String(st.threshold);
     invertBox.checked = st.invert;
     colorsSel.value = String(st.colors);
-    const imgControls = image !== null;
+    const imgControls = state.image !== null;
     // The threshold and invert only shape a two-tone grid.
     const twoTone = imgControls && !st.colors;
     slider.disabled = !twoTone;
@@ -185,24 +201,24 @@ export function mount(container) {
 
   function currentCrop() {
     const d = dims();
-    return centerCrop(image.w, image.h, d.width, d.height, st.offset);
+    return centerCrop(state.image.w, state.image.h, d.width, d.height, st.offset);
   }
 
   function drawPreview() {
-    previewWrap.hidden = image === null;
-    if (!image) return;
-    previewScale = PREVIEW_MAX / Math.max(image.w, image.h);
-    const cw = Math.max(1, Math.round(image.w * previewScale));
-    const ch = Math.max(1, Math.round(image.h * previewScale));
+    previewWrap.hidden = state.image === null;
+    if (!state.image) return;
+    state.previewScale = PREVIEW_MAX / Math.max(state.image.w, state.image.h);
+    const cw = Math.max(1, Math.round(state.image.w * state.previewScale));
+    const ch = Math.max(1, Math.round(state.image.h * state.previewScale));
     previewCanvas.width = cw;
     previewCanvas.height = ch;
     const ctx = previewCanvas.getContext('2d');
-    ctx.drawImage(image.canvas, 0, 0, cw, ch);
+    ctx.drawImage(state.image.canvas, 0, 0, cw, ch);
     const c = currentCrop();
-    const x = c.x * previewScale;
-    const y = c.y * previewScale;
-    const w = c.w * previewScale;
-    const h = c.h * previewScale;
+    const x = c.x * state.previewScale;
+    const y = c.y * state.previewScale;
+    const w = c.w * state.previewScale;
+    const h = c.h * state.previewScale;
     ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
     ctx.fillRect(0, 0, cw, y);
     ctx.fillRect(0, y + h, cw, ch - y - h);
@@ -224,7 +240,7 @@ export function mount(container) {
   }
 
   function renderGridNow() {
-    gridView?.destroy();
+    state.gridView?.destroy();
     const d = dims();
     // Clues belong to each tile, not the mosaic, so a tile set shows none here.
     const clues = tiled()
@@ -234,7 +250,7 @@ export function mount(container) {
         }
       : puzzleClues(st.grid);
     fitCells(d.width, gutterSize(clues).left);
-    gridView = renderGrid(gridHost, {
+    state.gridView = renderGrid(gridHost, {
       width: d.width,
       height: d.height,
       clues,
@@ -246,11 +262,11 @@ export function mount(container) {
     syncBrushes();
     if (tiled()) markTileBoundaries(d);
     // In color, an image whose colors all merge into one gives an empty grid: say why.
-    const merged = image !== null && st.colors > 0 && !hasFilledCell(st.grid);
+    const merged = state.image !== null && st.colors > 0 && !hasFilledCell(st.grid);
     emptyNote.textContent = merged
       ? "This image's colors are too close together to tell apart, so the grid is empty. Try Two-tone."
       : 'Choose an image above, or draw on the grid below.';
-    emptyNote.hidden = !merged && (image !== null || hasFilledCell(st.grid));
+    emptyNote.hidden = !merged && (state.image !== null || hasFilledCell(st.grid));
     syncHistoryButtons();
     scheduleReport();
   }
@@ -268,7 +284,7 @@ export function mount(container) {
   // --- live solver report (11b), one per tile (12c) ---
   // reports[i] is row-major; phase is 'pending' (checking or stale), 'fresh'
   // (matches st.grid) or 'error'. A 1x1 grid has exactly one report.
-  let reports = [{ phase: 'pending', result: null }];
+  state.reports = [{ phase: 'pending', result: null }];
 
   function showReport() {
     const multi = tiled();
@@ -279,7 +295,7 @@ export function mount(container) {
       reportStatus.textContent = 'Fill in some cells to see a report.';
       reportBadge.textContent = 'Unchecked';
       reportBadge.dataset.label = 'Unchecked';
-      gridView?.setHighlight([]);
+      state.gridView?.setHighlight([]);
       saveBtn.textContent = multi ? 'Save set' : 'Save to library';
       saveBtn.disabled = true;
       saveNote.textContent = '';
@@ -288,7 +304,7 @@ export function mount(container) {
     badgeLine.hidden = multi;
     tileList.replaceChildren();
     const highlight = [];
-    reports.forEach((rep, i) => {
+    state.reports.forEach((rep, i) => {
       if (rep.phase !== 'fresh') return;
       const row = Math.floor(i / st.tileCols);
       const col = i % st.tileCols;
@@ -297,7 +313,7 @@ export function mount(container) {
       }
     });
     if (!multi) {
-      const rep = reports[0];
+      const rep = state.reports[0];
       const view = reportView(rep.phase === 'fresh' ? rep.result : null, st);
       if (rep.phase === 'error') {
         reportStatus.textContent = 'The solver could not run, so this grid is unchecked.';
@@ -309,11 +325,11 @@ export function mount(container) {
       reportBadge.dataset.label = reportBadge.textContent;
     } else {
       const flags = sliceTiles(st.grid, st.tileRows, st.tileCols).flat().map(tileFlags);
-      const done = reports.filter((x) => x.phase === 'fresh').length;
-      reportStatus.textContent = reports.some((x) => x.phase === 'error')
+      const done = state.reports.filter((x) => x.phase === 'fresh').length;
+      reportStatus.textContent = state.reports.some((x) => x.phase === 'error')
         ? 'The solver could not run, so these tiles are unchecked.'
-        : `${done} of ${reports.length} tiles checked.`;
-      reports.forEach((rep, i) => {
+        : `${done} of ${state.reports.length} tiles checked.`;
+      state.reports.forEach((rep, i) => {
         const row = Math.floor(i / st.tileCols);
         const col = i % st.tileCols;
         const text =
@@ -323,11 +339,11 @@ export function mount(container) {
         tileList.append(el('li', { text }));
       });
     }
-    gridView?.setHighlight(highlight);
+    state.gridView?.setHighlight(highlight);
 
     saveBtn.textContent = multi ? 'Save set' : 'Save to library';
-    saveBtn.disabled = !(multi ? canSaveSet(reports) : canSave(reports[0]));
-    const unfair = reports.filter((x) => x.phase === 'fresh' && !isFair(x.result)).length;
+    saveBtn.disabled = !(multi ? canSaveSet(state.reports) : canSave(state.reports[0]));
+    const unfair = state.reports.filter((x) => x.phase === 'fresh' && !isFair(x.result)).length;
     if (unfair === 0) {
       saveNote.textContent = '';
     } else if (multi) {
@@ -350,7 +366,7 @@ export function mount(container) {
    * undefined for a blank-grid puzzle or when no attempt fits the size limit.
    */
   function artFor(row, col) {
-    if (!image) return undefined;
+    if (!state.image) return undefined;
     const rect = tileCropRect(currentCrop(), st.tileRows, st.tileCols, row, col);
     return pickArt((side, quality) => {
       const size = artSize(rect.w, rect.h, side);
@@ -359,7 +375,17 @@ export function mount(container) {
       ctx.fillStyle = '#ffffff'; // JPEG has no alpha: transparent pixels would turn black
       ctx.fillRect(0, 0, size.width, size.height);
       ctx.imageSmoothingEnabled = size.width <= rect.w; // upscaled pixel art stays blocky
-      ctx.drawImage(image.canvas, rect.x, rect.y, rect.w, rect.h, 0, 0, size.width, size.height);
+      ctx.drawImage(
+        state.image.canvas,
+        rect.x,
+        rect.y,
+        rect.w,
+        rect.h,
+        0,
+        0,
+        size.width,
+        size.height,
+      );
       return canvas.toDataURL('image/jpeg', quality);
     });
   }
@@ -369,12 +395,12 @@ export function mount(container) {
   }
 
   async function saveSingle() {
-    const run = reportRun;
-    if (!canSave(reports[0])) return;
+    const run = state.reportRun;
+    if (!canSave(state.reports[0])) return;
     const puzzle = buildPuzzleRecord(
       st.grid,
       titleInput.value,
-      reports[0].result,
+      state.reports[0].result,
       artFor(0, 0),
       st.palette ?? DEFAULT_PALETTE,
       st.blank ?? undefined,
@@ -382,7 +408,7 @@ export function mount(container) {
     puzzle.id = await puzzleId(puzzle);
     // The grid may have changed while the id was computed: never save a verdict
     // that does not match the current grid.
-    if (run !== reportRun || !canSave(reports[0])) return;
+    if (run !== state.reportRun || !canSave(state.reports[0])) return;
     const check = validatePuzzle(puzzle);
     if (!check.ok) {
       showSaveMessage('Could not save: ' + check.error);
@@ -404,7 +430,7 @@ export function mount(container) {
       showSaveMessage('Could not save: browser storage is full or unavailable.');
       return;
     }
-    savedSig = gridSig(st);
+    state.savedSig = gridSig(st);
     showSaveMessage('Saved.', [
       ['Play it', '#/play/' + encodeURIComponent(puzzle.id)],
       ['Library', '#/library'],
@@ -413,15 +439,15 @@ export function mount(container) {
 
   /** Save every tile puzzle, then the set record (see setWrites). */
   async function saveSet() {
-    const run = reportRun;
-    if (!canSaveSet(reports)) return;
+    const run = state.reportRun;
+    if (!canSaveSet(state.reports)) return;
     const title = titleInput.value.trim() || 'Untitled';
     const tiles = sliceTiles(st.grid, st.tileRows, st.tileCols);
     const palette = (st.palette ?? DEFAULT_PALETTE).map((p) => ({ ...p }));
     const made = await makeSet({ title, tiles, palette, blank: st.blank });
-    if (run !== reportRun || !canSaveSet(reports)) return;
+    if (run !== state.reportRun || !canSaveSet(state.reports)) return;
     const arts = made.puzzles.map((_, i) => artFor(Math.floor(i / st.tileCols), i % st.tileCols));
-    const puzzles = withArts(withVerdicts(made.puzzles, reports), arts);
+    const puzzles = withArts(withVerdicts(made.puzzles, state.reports), arts);
     const bad = puzzles.map(validatePuzzle).find((v) => !v.ok) ?? validateSet(made.set);
     if (!bad.ok) {
       showSaveMessage('Could not save: ' + bad.error);
@@ -452,19 +478,19 @@ export function mount(container) {
       showSaveMessage('Could not save: browser storage is full or unavailable.');
       return;
     }
-    savedSig = gridSig(st);
+    state.savedSig = gridSig(st);
     showSaveMessage('Saved set.', [['Library', '#/library']]);
   }
 
   function scheduleReport() {
-    clearTimeout(reportTimer);
-    const run = ++reportRun;
+    clearTimeout(state.reportTimer);
+    const run = ++state.reportRun;
     const tiles = sliceTiles(st.grid, st.tileRows, st.tileCols).flat();
-    reports = tiles.map(() => ({ phase: 'pending', result: null }));
+    state.reports = tiles.map(() => ({ phase: 'pending', result: null }));
     saveMsg.replaceChildren();
     showReport();
     if (!hasFilledCell(st.grid)) return; // nothing to solve yet
-    reportTimer = setTimeout(async () => {
+    state.reportTimer = setTimeout(async () => {
       // One tile at a time through the worker.
       for (let i = 0; i < tiles.length; i++) {
         const { rows, cols } = puzzleClues(tiles[i]);
@@ -475,11 +501,12 @@ export function mount(container) {
             rows,
             cols,
           });
-          if (run !== reportRun) return; // a newer edit superseded this one
-          reports[i] = { phase: 'fresh', result };
+          if (run !== state.reportRun) return; // a newer edit superseded this one
+          state.reports[i] = { phase: 'fresh', result };
         } catch {
-          if (run !== reportRun) return;
-          for (let j = i; j < tiles.length; j++) reports[j] = { phase: 'error', result: null };
+          if (run !== state.reportRun) return;
+          for (let j = i; j < tiles.length; j++)
+            state.reports[j] = { phase: 'error', result: null };
           break;
         }
         showReport();
@@ -491,23 +518,23 @@ export function mount(container) {
   // Editor: left-drag paints/clears via applyStroke. The grid is only updated
   // in place during a stroke (its DOM must survive the drag); the clues are
   // rebuilt by re-rendering when the stroke ends. The right button is ignored.
-  let stroke = null; // [r, c][] while a left stroke is held
+  state.stroke = null; // [r, c][] while a left stroke is held
   const strokeOf = (path) => ({ button: 'left', path });
 
   function onGridPointer({ type, r, c, button }) {
     if (type === 'down') {
-      if (button === 'left' && r !== null) stroke = [[r, c]];
+      if (button === 'left' && r !== null) state.stroke = [[r, c]];
       return;
     }
-    if (!stroke || button !== 'left') return;
-    if (r !== null) stroke.push([r, c]);
+    if (!state.stroke || button !== 'left') return;
+    if (r !== null) state.stroke.push([r, c]);
     if (type === 'enter') {
-      gridView.update(applyStroke(st.grid, strokeOf(stroke), st.brush));
+      state.gridView.update(applyStroke(st.grid, strokeOf(state.stroke), st.brush));
     } else if (type === 'up') {
-      const next = applyStroke(st.grid, strokeOf(stroke), st.brush);
-      stroke = null;
+      const next = applyStroke(st.grid, strokeOf(state.stroke), st.brush);
+      state.stroke = null;
       if (JSON.stringify(next) !== JSON.stringify(st.grid)) {
-        history.push(next);
+        state.history.push(next);
         st.manualEdits = true;
       }
       st.grid = next;
@@ -536,23 +563,23 @@ export function mount(container) {
   }
 
   function syncHistoryButtons() {
-    undoBtn.disabled = !history.canUndo();
-    redoBtn.disabled = !history.canRedo();
+    undoBtn.disabled = !state.history.canUndo();
+    redoBtn.disabled = !state.history.canRedo();
   }
 
   /** A fresh history for the grid as it now stands (after a regenerate or a blank). */
   function resetHistory() {
-    history = createHistory(st.grid);
-    baseline = JSON.stringify(st.grid);
+    state.history = createHistory(st.grid);
+    state.baseline = JSON.stringify(st.grid);
     syncHistoryButtons();
   }
 
   function stepHistory(back) {
-    if (stroke) return; // never swap the grid under a held stroke
-    if (back ? !history.canUndo() : !history.canRedo()) return;
-    st.grid = back ? history.undo() : history.redo();
+    if (state.stroke) return; // never swap the grid under a held stroke
+    if (back ? !state.history.canUndo() : !state.history.canRedo()) return;
+    st.grid = back ? state.history.undo() : state.history.redo();
     // Back at the generated grid, there is nothing left to discard.
-    st.manualEdits = JSON.stringify(st.grid) !== baseline;
+    st.manualEdits = JSON.stringify(st.grid) !== state.baseline;
     renderGridNow();
   }
 
@@ -579,12 +606,12 @@ export function mount(container) {
 
   /** Rebuild the grid from the image with the current settings. */
   function regenerate() {
-    if (!image) return;
+    if (!state.image) return;
     const d = dims();
     const crop = currentCrop();
     if (st.colors) {
       // One palette over the whole crop, so the tiles of a set share it.
-      const q = colorGrid(image.rgba, image.w, crop, d.width, d.height, st.colors);
+      const q = colorGrid(state.image.rgba, state.image.w, crop, d.width, d.height, st.colors);
       st.grid = q.grid;
       st.palette = q.palette;
       st.blank = q.blank; // D29: Create and Play draw blank cells in it
@@ -598,14 +625,21 @@ export function mount(container) {
     st.palette = null;
     st.blank = null;
     if (st.autoThreshold) {
-      const lum = cellLuminance(image.rgba, image.w, image.h, crop, d.width, d.height);
+      const lum = cellLuminance(
+        state.image.rgba,
+        state.image.w,
+        state.image.h,
+        crop,
+        d.width,
+        d.height,
+      );
       st.threshold = otsu(lum.flat());
     }
     // One global threshold over the whole crop, so tiles show no seams.
     const { full } = tileGrid(
-      image.rgba,
-      image.w,
-      image.h,
+      state.image.rgba,
+      state.image.w,
+      state.image.h,
       crop,
       st.width,
       st.height,
@@ -637,12 +671,12 @@ export function mount(container) {
       fileInput.value = '';
       return;
     }
-    image = decoded;
-    if (!titleTouched) titleInput.value = titleFromFile(file.name);
+    state.image = decoded;
+    if (!state.titleTouched) titleInput.value = titleFromFile(file.name);
     st.hasImage = true;
     st.offset = { dx: 0, dy: 0 };
     st.autoThreshold = true;
-    const size = defaultSize(image.w / st.tileCols, image.h / st.tileRows);
+    const size = defaultSize(state.image.w / st.tileCols, state.image.h / st.tileRows);
     st.width = size.width;
     st.height = size.height;
     regenerate();
@@ -657,7 +691,7 @@ export function mount(container) {
     st.height = Number(heightSel.value);
     st.tileRows = Number(tileRowsSel.value);
     st.tileCols = Number(tileColsSel.value);
-    if (image) {
+    if (state.image) {
       regenerate();
     } else {
       newBlank();
@@ -701,7 +735,7 @@ export function mount(container) {
 
   /** Start the editor from an all-zero grid at the chosen size, no image. */
   function newBlank() {
-    image = null;
+    state.image = null;
     st.hasImage = false;
     st.offset = { dx: 0, dy: 0 };
     const d = dims();
@@ -725,16 +759,16 @@ export function mount(container) {
   /** Throw the draft away and return to the editor as first opened. */
   function onStartOver() {
     if (
-      hasUnsavedWork(st, savedSig) &&
+      hasUnsavedWork(st, state.savedSig) &&
       !confirm('Start over? This discards the image and everything you have drawn.')
     ) {
       return;
     }
     Object.assign(st, newEditorState({ width: 15, height: 15 }));
-    image = null;
+    state.image = null;
     titleInput.value = 'Untitled';
-    titleTouched = false;
-    savedSig = null;
+    state.titleTouched = false;
+    state.savedSig = null;
     showError(null);
     fileInput.value = '';
     resetHistory();
@@ -744,29 +778,29 @@ export function mount(container) {
   }
 
   // Crop drag: pointer movement shifts the crop in image pixels.
-  let drag = null;
+  state.drag = null;
   function onPreviewDown(e) {
-    if (!image || e.button !== 0 || !okToDiscard()) return;
+    if (!state.image || e.button !== 0 || !okToDiscard()) return;
     const d = dims();
-    const base = centerCrop(image.w, image.h, d.width, d.height);
-    drag = { x: e.clientX, y: e.clientY, from: currentCrop(), base };
+    const base = centerCrop(state.image.w, state.image.h, d.width, d.height);
+    state.drag = { x: e.clientX, y: e.clientY, from: currentCrop(), base };
     previewCanvas.setPointerCapture(e.pointerId);
     previewCanvas.classList.add('dragging');
   }
   function onPreviewMove(e) {
-    if (!drag) return;
+    if (!state.drag) return;
     const rect = previewCanvas.getBoundingClientRect();
-    const k = previewScale * (rect.width / previewCanvas.width);
+    const k = state.previewScale * (rect.width / previewCanvas.width);
     const d = dims();
-    const crop = centerCrop(image.w, image.h, d.width, d.height, {
-      dx: drag.from.x - drag.base.x + (e.clientX - drag.x) / k,
-      dy: drag.from.y - drag.base.y + (e.clientY - drag.y) / k,
+    const crop = centerCrop(state.image.w, state.image.h, d.width, d.height, {
+      dx: state.drag.from.x - state.drag.base.x + (e.clientX - state.drag.x) / k,
+      dy: state.drag.from.y - state.drag.base.y + (e.clientY - state.drag.y) / k,
     });
-    st.offset = { dx: crop.x - drag.base.x, dy: crop.y - drag.base.y };
+    st.offset = { dx: crop.x - state.drag.base.x, dy: crop.y - state.drag.base.y };
     regenerate();
   }
   function onPreviewUp() {
-    drag = null;
+    state.drag = null;
     previewCanvas.classList.remove('dragging');
   }
 
@@ -786,35 +820,43 @@ export function mount(container) {
   redoBtn.addEventListener('click', () => stepHistory(false));
   document.addEventListener('keydown', onKeydown);
   const onResize = () => {
-    if (!stroke) renderGridNow();
+    if (!state.stroke) renderGridNow();
   };
   window.addEventListener('resize', onResize);
   titleInput.addEventListener('input', () => {
-    titleTouched = true;
+    state.titleTouched = true;
   });
   previewCanvas.addEventListener('pointerdown', onPreviewDown);
   previewCanvas.addEventListener('pointermove', onPreviewMove);
   previewCanvas.addEventListener('pointerup', onPreviewUp);
   previewCanvas.addEventListener('pointercancel', onPreviewUp);
 
-  liveUnsaved = () => hasUnsavedWork(st, savedSig);
+  liveUnsaved = () => hasUnsavedWork(st, state.savedSig);
   syncControls();
   drawPreview();
   renderGridNow();
 
   teardown = () => {
     // Keep unsaved work for the next visit; a saved or empty editor leaves nothing.
-    draft = hasUnsavedWork(st, savedSig)
-      ? { st, image, history, baseline, titleTouched, title: titleInput.value, savedSig }
+    draft = hasUnsavedWork(st, state.savedSig)
+      ? {
+          st,
+          image: state.image,
+          history: state.history,
+          baseline: state.baseline,
+          titleTouched: state.titleTouched,
+          title: titleInput.value,
+          savedSig: state.savedSig,
+        }
       : null;
     liveUnsaved = null;
     document.removeEventListener('keydown', onKeydown);
     window.removeEventListener('resize', onResize);
-    clearTimeout(reportTimer);
-    reportRun++;
+    clearTimeout(state.reportTimer);
+    state.reportRun++;
     solver.terminate();
-    gridView?.destroy();
-    gridView = null;
+    state.gridView?.destroy();
+    state.gridView = null;
   };
 }
 

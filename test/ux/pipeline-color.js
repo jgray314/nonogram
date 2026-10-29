@@ -1,7 +1,7 @@
 // End-to-end color pipeline: a color image goes through Create (image.js,
 // color.js, the solver worker), is saved, and shows up as a color puzzle in the
 // library and in Play. Nothing is seeded.
-import { resetStore, uploadImage, waitFor } from './harness.js';
+import { createAndSave, resetStore, waitFor } from './harness.js';
 
 const FIXTURE = 'test/ux/color-3ink.png';
 const HEX = /^#[0-9a-f]{6}$/i;
@@ -18,31 +18,8 @@ export const COLOR_CHECKS = [
       await app.open('#/library');
       resetStore(app);
 
-      // Upload, ask for 4 colors in total (cream blank + 3 inks), wait for the worker.
-      await app.open('#/create');
-      await uploadImage(app, FIXTURE);
-      const select = [...app.$$('.nng-create select')].find((s) =>
-        [...s.options].some((o) => o.text === 'Two-tone'),
-      );
-      assert(select, 'no Colors select in Create');
-      select.value = '4';
-      select.dispatchEvent(new (app.win().Event)('change', { bubbles: true }));
-      await waitFor(() => app.$('.nng-create .nng-cell'), 'color grid', 5000);
-      const save = await waitFor(
-        () => {
-          const b = app.buttonByText('Save to library');
-          return b && !b.disabled ? b : null;
-        },
-        'solver verdict (Save enabled)',
-        15000,
-      );
-      save.click();
-      const link = await waitFor(
-        () => app.$('.nng-create-save-msg a[href^="#/play/"]'),
-        'saved message with Play link',
-        5000,
-      );
-      const id = decodeURIComponent(link.getAttribute('href').slice('#/play/'.length));
+      // Ask for 4 colors in total (cream blank + 3 inks) and let the real worker rate it.
+      const id = await createAndSave(app, FIXTURE, { colors: 4 });
 
       // The stored record: inks (palette) plus the blank are 3 to 5 colors.
       const raw = app.win().localStorage.getItem(`nng:puzzle:${id}`);

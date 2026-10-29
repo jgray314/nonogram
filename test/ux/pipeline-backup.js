@@ -17,8 +17,10 @@ export const BACKUP_CHECKS = [
       await app.open('#/library');
       resetStore(app);
       const monoId = await createAndSave(app, 'sample-images/cat-15x15.png');
-      const colorId = await createAndSave(app, 'test/ux/color-3ink.png');
+      const colorId = await createAndSave(app, 'test/ux/color-3ink.png', { colors: 4 });
       assert(monoId !== colorId, 'mono and color puzzles should have different ids');
+      const colorPuzzle = createStore(app.win().localStorage).get('puzzle', colorId);
+      assert(colorPuzzle?.palette.length >= 2, 'the color puzzle should have at least 2 inks');
 
       const stored = (id) => createStore(app.win().localStorage).get('puzzle', id);
       const original = {};
@@ -30,8 +32,7 @@ export const BACKUP_CHECKS = [
 
       await app.open('#/library');
       const exported = await captureDownload(app, () => app.buttonByText('Export library').click());
-      // captureDownload's inferred return type is `never` (harness.js `let captured = null`).
-      const backup = JSON.parse(await /** @type {{ text(): Promise<string> }} */ (exported).text());
+      const backup = JSON.parse(await exported.text());
 
       // Tamper: give every puzzle a false, attractive verdict.
       let tampered = 0;

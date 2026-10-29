@@ -50,10 +50,24 @@ export async function uploadImage(app, url) {
  * from the real worker, press Save to library, and return the saved puzzle id.
  * The id is read from the "Play it" link the save message renders
  * (href #/play/<id>), which only appears after a successful store write.
+ * Create defaults to two-tone: pass `opts.colors` (3 to 5, the total including
+ * the blank) to make a color puzzle.
+ * @param {ReturnType<typeof createApp>} app
+ * @param {string} url
+ * @param {{ colors?: number }} [opts]
  */
-export async function createAndSave(app, url) {
+export async function createAndSave(app, url, opts = {}) {
   await app.open('#/create');
   await uploadImage(app, url);
+  if (opts.colors) {
+    const select = [...app.$$('.nng-create select')].find((s) =>
+      [...s.options].some((o) => o.text === 'Two-tone'),
+    );
+    if (!select) throw new Error('no Colors select in Create');
+    select.value = String(opts.colors);
+    select.dispatchEvent(new (app.win().Event)('change', { bubbles: true }));
+    await waitFor(() => app.$('.nng-create .nng-cell'), 'color grid', 5000);
+  }
   const save = await waitFor(
     () => {
       const b = app.buttonByText('Save to library');
@@ -82,6 +96,7 @@ export async function captureDownload(app, fn) {
   const realCreate = win.URL.createObjectURL;
   const realClick = win.HTMLAnchorElement.prototype.click;
   const blobs = new Map();
+  /** @type {{ name: string, blob: Blob, text: () => Promise<string> } | null} */
   let captured = null;
   win.URL.createObjectURL = (obj) => {
     const url = realCreate.call(win.URL, obj);

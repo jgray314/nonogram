@@ -29,6 +29,8 @@ const STORAGE_PROPERTY_BANS = ['globalThis', 'window'].flatMap((object) =>
 );
 
 export default [
+  // Agent worktrees are scratch copies of this repo, not part of it.
+  { ignores: ['.claude/worktrees/**'] },
   js.configs.recommended,
   {
     // An inline /* eslint-disable */ comment must not switch a rule off.

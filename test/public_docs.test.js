@@ -12,11 +12,14 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const SKIP_DIRS = new Set(['node_modules', '.git']);
+// Agent worktrees are scratch copies of this repo, not part of it.
+const SKIP_PATHS = new Set(['.claude/worktrees']);
 
 function walk(dir, out = []) {
   for (const e of readdirSync(ROOT + dir, { withFileTypes: true })) {
     if (SKIP_DIRS.has(e.name)) continue;
     const rel = dir ? `${dir}/${e.name}` : e.name;
+    if (SKIP_PATHS.has(rel)) continue;
     if (e.isDirectory()) walk(rel, out);
     else out.push(rel);
   }

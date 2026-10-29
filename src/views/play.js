@@ -125,24 +125,45 @@ export function mount(container, params = {}) {
     belowRow,
   } = refs;
   container.append(root);
-  let brush = 1;
+  // All mutable per-mount values live here; each is assigned at its original
+  // declaration site below. Always read as state.x at call time.
+  const state = {
+    brush: 1,
+    touchMode: 'fill',
+    cells: /** @type {number[][]} */ ([]),
+    elapsedMs: 0,
+    solvedAt: /** @type {number | null} */ (null),
+    hearts: 0,
+    hints: 0,
+    wrongMark: /** @type {number[] | null} */ (null),
+    dirty: false,
+    started: false,
+    history: /** @type {ReturnType<typeof createHistory>} */ (/** @type {unknown} */ (null)),
+    drag: /** @type {{ button: any, path: number[][] } | null} */ (null),
+    revealed: false,
+    animateReveal: false,
+    revealTimer: /** @type {any} */ (null),
+    lastTick: 0,
+    rules: { zen: false, autoCross: true },
+  };
+  state.brush = 1;
   swatches.forEach((b, i) => b.addEventListener('click', () => pickBrush(i + 1)));
   function pickBrush(v) {
-    brush = v;
-    swatches.forEach((b, i) => b.setAttribute('aria-pressed', String(i + 1 === brush)));
+    state.brush = v;
+    swatches.forEach((b, i) => b.setAttribute('aria-pressed', String(i + 1 === state.brush)));
   }
   pickBrush(1);
-  let touchMode = 'fill';
+  state.touchMode = 'fill';
   for (const [mode, b] of Object.entries(modeBtns)) {
     b.addEventListener('click', () => {
-      touchMode = mode;
+      state.touchMode = mode;
       syncMode();
     });
   }
   function syncMode() {
     for (const [mode, b] of Object.entries(modeBtns)) {
-      b.setAttribute('aria-pressed', String(mode === touchMode));
-      b.classList.toggle('nng-mode-on', mode === touchMode);
+      b.setAttribute('aria-pressed', String(mode === state.touchMode));
+      b.classList.toggle('nng-mode-on', mode === state.touchMode);
     }
   }
   syncMode();
@@ -159,13 +180,14 @@ export function mount(container, params = {}) {
   const clues = puzzleClues(puzzle.solution);
   // v1's `check` rule is gone (D13): every wrong fill is now flagged on the spot.
   const rules = { zen: false, autoCross: true };
-  let cells = restartCells(clues, puzzle.width, puzzle.height); // a fresh game starts where Restart does
-  let elapsedMs = 0;
-  let solvedAt = null;
-  let hearts = MAX_HEARTS;
-  let hints = 0; // reveals used on this play-through; undo doesn't refund them (D18)
-  let wrongMark = null; // [r, c] of the last wrong fill; memory only, cleared on the next move
-  let dirty = false;
+  state.rules = rules;
+  state.cells = restartCells(clues, puzzle.width, puzzle.height); // a fresh game starts where Restart does
+  state.elapsedMs = 0;
+  state.solvedAt = null;
+  state.hearts = MAX_HEARTS;
+  state.hints = 0; // reveals used on this play-through; undo doesn't refund them (D18)
+  state.wrongMark = null; // [r, c] of the last wrong fill; memory only, cleared on the next move
+  state.dirty = false;
   const existing = store ? store.get('save', puzzle.id) : null;
   const loaded = existing && validateSave(existing, puzzle).ok ? existing : null;
   // No save yet: the rule switches start from what the player last chose (D16).
@@ -177,42 +199,43 @@ export function mount(container, params = {}) {
     rules.autoCross = store.getPref(PREF_KEYS.autoCross, true) !== false;
   }
   if (loaded) {
-    cells = loaded.cells.map((row) => row.slice());
-    elapsedMs = loaded.elapsedMs;
-    solvedAt = loaded.solvedAt;
-    hearts = loaded.hearts ?? MAX_HEARTS;
-    hints = loaded.hints ?? 0;
+    state.cells = loaded.cells.map((row) => row.slice());
+    state.elapsedMs = loaded.elapsedMs;
+    state.solvedAt = loaded.solvedAt;
+    state.hearts = loaded.hearts ?? MAX_HEARTS;
+    state.hints = loaded.hints ?? 0;
     for (const key of Object.keys(rules)) rules[key] = loaded.rules[key] === true;
   }
   // A loaded save gets empty lines crossed too (v1 saves had none), and an
   // all-filled puzzle filled (D24), before the history, so they are not an
   // undo step. It does not mark the save dirty. A save that ran out of hearts
   // is not filled: that would turn a lost game into a solve.
-  cells = crossEmptyLines(cells, clues);
-  const lost = loaded && rules.zen !== true && hearts === 0 && solvedAt === null;
-  if (!lost) cells = fillFullPuzzle(cells, clues);
+  state.cells = crossEmptyLines(state.cells, clues);
+  const lost = loaded && rules.zen !== true && state.hearts === 0 && state.solvedAt === null;
+  if (!lost) state.cells = fillFullPuzzle(state.cells, clues);
   // The clock starts with the first move, so opening or restarting a puzzle and
   // looking at it leaves it "not started" in the library.
-  let started = elapsedMs > 0 || !sameGrid(cells, restartCells(clues, puzzle.width, puzzle.height));
-  let history = createHistory(cells);
+  state.started =
+    state.elapsedMs > 0 || !sameGrid(state.cells, restartCells(clues, puzzle.width, puzzle.height));
+  state.history = createHistory(state.cells);
   // A puzzle can be satisfied before any move: an all-blank or all-filled tile.
   // Count it solved on open.
-  if (solvedAt === null && isSolved(cells, clues)) {
-    solvedAt = Date.now();
-    dirty = true;
+  if (state.solvedAt === null && isSolved(state.cells, clues)) {
+    state.solvedAt = Date.now();
+    state.dirty = true;
   }
 
   const snapshot = () => ({
     puzzleId: puzzle.id,
-    cells,
-    elapsedMs,
+    cells: state.cells,
+    elapsedMs: state.elapsedMs,
     rules: { ...rules },
-    solvedAt,
-    hearts,
-    hints,
+    solvedAt: state.solvedAt,
+    hearts: state.hearts,
+    hints: state.hints,
   });
   function persist() {
-    if (!store || !(dirty || loaded)) return;
+    if (!store || !(state.dirty || loaded)) return;
     try {
       store.put('save', snapshot());
     } catch {
@@ -220,84 +243,84 @@ export function mount(container, params = {}) {
     }
   }
   persistNow = persist;
-  let drag = null; // {button, path}
+  state.drag = null; // {button, path}
 
   const preview = () => {
-    if (!drag) return;
-    grid.update(applyStroke(cells, drag, brush));
-    count.textContent = `${strokeCells(cells, drag).length} cells`;
+    if (!state.drag) return;
+    grid.update(applyStroke(state.cells, state.drag, state.brush));
+    count.textContent = `${strokeCells(state.cells, state.drag).length} cells`;
   };
 
   const helpers = helpersAvailability(puzzle.verdict);
   // Hearts need a unique solution, so a puzzle that isn't fair is forced into Zen mode.
   const heartsOk = heartsAvailable(puzzle.verdict);
   const zen = () => rules.zen || !heartsOk;
-  const outOfHearts = () => !zen() && hearts === 0 && solvedAt === null;
+  const outOfHearts = () => !zen() && state.hearts === 0 && state.solvedAt === null;
 
   function refresh() {
     const out = outOfHearts();
-    grid.setWrong(wrongMark && solvedAt === null ? [wrongMark] : []);
+    grid.setWrong(state.wrongMark && state.solvedAt === null ? [state.wrongMark] : []);
     for (const key of Object.keys(toggles)) {
       toggles[key].checked = key === 'zen' ? zen() : rules[key];
       toggles[key].disabled = out || (key !== 'autoCross' && !helpers.enabled);
     }
     heartsEl.hidden = zen();
-    heartsEl.setAttribute('aria-label', `${hearts} of ${MAX_HEARTS} hearts`);
+    heartsEl.setAttribute('aria-label', `${state.hearts} of ${MAX_HEARTS} hearts`);
     heartNodes.forEach((node, i) => {
-      const full = i < hearts;
+      const full = i < state.hearts;
       node.textContent = full ? '♥' : '♡';
       node.classList.toggle('nng-heart-full', full);
     });
     outPanel.hidden = !out;
     restartBtn.hidden = out; // the panel has its own Restart; show only one
     holder.classList.toggle('nng-locked', out);
-    hintBtn.disabled = !helpers.enabled || solvedAt !== null || out;
-    undoBtn.disabled = !history.canUndo() || solvedAt !== null || out;
-    redoBtn.disabled = !history.canRedo() || solvedAt !== null || out;
-    hintCount.textContent = `Hints used: ${hints}`;
+    hintBtn.disabled = !helpers.enabled || state.solvedAt !== null || out;
+    undoBtn.disabled = !state.history.canUndo() || state.solvedAt !== null || out;
+    redoBtn.disabled = !state.history.canRedo() || state.solvedAt !== null || out;
+    hintCount.textContent = `Hints used: ${state.hints}`;
     ruleNote.textContent = helpers.note;
-    timerEl.textContent = formatTime(elapsedMs);
-    grid.update(solvedAt === null ? cells : reveal(cells));
+    timerEl.textContent = formatTime(state.elapsedMs);
+    grid.update(state.solvedAt === null ? state.cells : reveal(state.cells));
     // With a unique solution every wrong fill is caught on the spot, in both
     // modes, so numbers can follow the solution (D11, D13). Without one there is
     // no answer to compare against, so the logic-only fenced rule applies.
     grid.setClueDone(
-      heartsOk ? solutionProgress(cells, puzzle.solution) : clueProgress(cells, clues),
+      heartsOk ? solutionProgress(state.cells, puzzle.solution) : clueProgress(state.cells, clues),
     );
-    holder.classList.toggle('nng-celebrate', solvedAt !== null); // styling hook for the solve glow
-    solvedMsg.hidden = solvedAt === null;
-    solvedMsg.textContent = solvedAt === null ? '' : 'Solved';
+    holder.classList.toggle('nng-celebrate', state.solvedAt !== null); // styling hook for the solve glow
+    solvedMsg.hidden = state.solvedAt === null;
+    solvedMsg.textContent = state.solvedAt === null ? '' : 'Solved';
     count.textContent = '';
     syncReveal();
   }
 
   // Solve reveal (D14): the original crop fades in over the cells. A puzzle with
   // no art, a reopened solved puzzle and reduced motion skip the fade.
-  let revealed = false;
-  let animateReveal = false; // set by the move that solves the puzzle
-  let revealTimer = null;
+  state.revealed = false;
+  state.animateReveal = false; // set by the move that solves the puzzle
+  state.revealTimer = null;
   const reduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   function showStrip() {
-    clearTimeout(revealTimer);
-    stripText.textContent = solvedSummary(elapsedMs, hints);
+    clearTimeout(state.revealTimer);
+    stripText.textContent = solvedSummary(state.elapsedMs, state.hints);
     strip.hidden = false;
   }
   function clearReveal() {
-    clearTimeout(revealTimer);
-    revealed = false;
+    clearTimeout(state.revealTimer);
+    state.revealed = false;
     grid.setOverlay(null);
     holder.classList.remove('nng-revealed', 'nng-reveal-anim');
     strip.hidden = true;
   }
   function syncReveal() {
-    if (solvedAt === null) {
-      if (revealed || !strip.hidden) clearReveal();
+    if (state.solvedAt === null) {
+      if (state.revealed || !strip.hidden) clearReveal();
       return;
     }
-    if (revealed) return;
-    revealed = true;
-    const animate = animateReveal && !reduceMotion();
-    animateReveal = false;
+    if (state.revealed) return;
+    state.revealed = true;
+    const animate = state.animateReveal && !reduceMotion();
+    state.animateReveal = false;
     if (!puzzle.art) {
       showStrip();
       return;
@@ -322,19 +345,19 @@ export function mount(container, params = {}) {
     img.classList.add('nng-art-in');
     holder.classList.add('nng-revealed');
     img.addEventListener('transitionend', showStrip, { once: true });
-    revealTimer = setTimeout(showStrip, 1600); // in case transitionend never fires
+    state.revealTimer = setTimeout(showStrip, 1600); // in case transitionend never fires
   }
 
   function startClock() {
-    if (started) return;
-    started = true;
-    lastTick = Date.now();
+    if (state.started) return;
+    state.started = true;
+    state.lastTick = Date.now();
   }
 
   /** One committed move (a stroke or a hint) is one undo step. */
   function commit(next, wrong = null) {
     // A wrong color leaves the grid as it was, but still counts and is marked.
-    const changed = !sameGrid(cells, next);
+    const changed = !sameGrid(state.cells, next);
     if (!changed && !wrong) return;
     startClock(); // a hint can be the first move
     // Auto-cross rides in the same undo step as the move that completed a line,
@@ -342,47 +365,47 @@ export function mount(container, params = {}) {
     let swept = [];
     if (rules.autoCross) {
       const moved = next;
-      next = autoCross(next, clues, cells);
+      next = autoCross(next, clues, state.cells);
       swept = changedCells(moved, next);
     }
-    cells = next;
-    if (changed) history.push(cells);
-    wrongMark = wrong;
+    state.cells = next;
+    if (changed) state.history.push(state.cells);
+    state.wrongMark = wrong;
     // Zen shows the same red cross but costs nothing (D13).
     if (wrong && !zen()) {
-      if (hearts === 1) tick(); // bank the time up to the losing move, before the timer locks
-      hearts -= 1;
+      if (state.hearts === 1) tick(); // bank the time up to the losing move, before the timer locks
+      state.hearts -= 1;
     }
-    if (isSolved(cells, clues)) {
+    if (isSolved(state.cells, clues)) {
       tick(); // bank the time up to the solving move
-      solvedAt = Date.now();
-      animateReveal = true;
+      state.solvedAt = Date.now();
+      state.animateReveal = true;
     }
-    dirty = true;
+    state.dirty = true;
     refresh();
     grid.sweep(swept);
     persist();
   }
 
   function onPointer({ type, r, c, button }) {
-    if (solvedAt !== null || outOfHearts()) return;
+    if (state.solvedAt !== null || outOfHearts()) return;
     if (type === 'down') {
       startClock(); // the first click on the grid starts the timer
-      drag = { button, path: [[r, c]] };
+      state.drag = { button, path: [[r, c]] };
       preview();
-    } else if (drag && type === 'enter' && r !== null) {
-      drag.path.push([r, c]);
+    } else if (state.drag && type === 'enter' && r !== null) {
+      state.drag.path.push([r, c]);
       preview();
-    } else if (drag && type === 'up') {
-      if (r !== null) drag.path.push([r, c]);
-      const finished = drag;
-      drag = null;
+    } else if (state.drag && type === 'up') {
+      if (r !== null) state.drag.path.push([r, c]);
+      const finished = state.drag;
+      state.drag = null;
       if (heartsOk) {
         // Hearts and Zen alike: a wrong fill becomes a red cross on the spot.
-        const result = heartsStroke(cells, finished, puzzle.solution, brush);
+        const result = heartsStroke(state.cells, finished, puzzle.solution, state.brush);
         commit(result.next, result.wrong);
       } else {
-        commit(applyStroke(cells, finished, brush)); // no unique solution to check against
+        commit(applyStroke(state.cells, finished, state.brush)); // no unique solution to check against
       }
     }
   }
@@ -391,9 +414,9 @@ export function mount(container, params = {}) {
     width: puzzle.width,
     height: puzzle.height,
     clues,
-    cells,
+    cells: state.cells,
     onPointer,
-    touchButton: () => (touchMode === 'cross' ? 'right' : 'left'),
+    touchButton: () => (state.touchMode === 'cross' ? 'right' : 'left'),
     zeroClues: true,
     palette: puzzle.palette,
     blank: puzzle.blank,
@@ -458,7 +481,7 @@ export function mount(container, params = {}) {
       // Zen can be switched on any time, but hearts come back only with a
       // fresh start, so Zen can't be used to dodge a heart and switch back (D12).
       if (key === 'zen' && !box.checked) {
-        const fresh = sameGrid(cells, restartCells(clues, puzzle.width, puzzle.height));
+        const fresh = sameGrid(state.cells, restartCells(clues, puzzle.width, puzzle.height));
         if (!fresh && !confirm('Playing with hearts starts this puzzle over. Restart now?')) {
           box.checked = true;
           return;
@@ -470,36 +493,36 @@ export function mount(container, params = {}) {
       }
       rules[key] = box.checked;
       rememberRule(key, box.checked);
-      dirty = true;
+      state.dirty = true;
       refresh();
       persist();
     });
   }
   hintBtn.addEventListener('click', () => {
-    if (solvedAt !== null || drag || outOfHearts() || !helpers.enabled) return;
-    const hint = hintCell(cells, puzzle.solution);
+    if (state.solvedAt !== null || state.drag || outOfHearts() || !helpers.enabled) return;
+    const hint = hintCell(state.cells, puzzle.solution);
     if (!hint) {
       // Only an imported save can get here: every fill is in, so a filled square is wrong.
       message.textContent = 'Nothing left to reveal: a filled square is wrong somewhere.';
       return;
     }
-    const next = cells.map((row) => row.slice());
+    const next = state.cells.map((row) => row.slice());
     next[hint.r][hint.c] = hint.value;
     // Undo doesn't refund (D18), so reveal, undo, reveal counts twice. The save
     // format caps the count at the cell count as a sanity bound, so it stops there.
-    hints = Math.min(hints + 1, puzzle.width * puzzle.height);
+    state.hints = Math.min(state.hints + 1, puzzle.width * puzzle.height);
     commit(next);
   });
 
   // Timer: accumulate while mounted, the document is visible, and unsolved.
-  let lastTick = Date.now();
+  state.lastTick = Date.now();
   const tick = () => {
     const now = Date.now();
-    if (started && !document.hidden && solvedAt === null && !outOfHearts()) {
-      elapsedMs += now - lastTick;
+    if (state.started && !document.hidden && state.solvedAt === null && !outOfHearts()) {
+      state.elapsedMs += now - state.lastTick;
     }
-    lastTick = now;
-    timerEl.textContent = formatTime(elapsedMs);
+    state.lastTick = now;
+    timerEl.textContent = formatTime(state.elapsedMs);
   };
   const timer = setInterval(tick, 500);
   const onVisibility = () => tick();
@@ -507,31 +530,31 @@ export function mount(container, params = {}) {
   cleanup.push(() => {
     tick();
     clearInterval(timer);
-    clearTimeout(revealTimer);
+    clearTimeout(state.revealTimer);
     document.removeEventListener('visibilitychange', onVisibility);
   });
 
   function step(fn) {
-    if (solvedAt !== null || drag || outOfHearts()) return;
-    wrongMark = null;
-    cells = fn();
-    dirty = true;
+    if (state.solvedAt !== null || state.drag || outOfHearts()) return;
+    state.wrongMark = null;
+    state.cells = fn();
+    state.dirty = true;
     refresh();
     persist();
   }
 
   function restart() {
-    cells = restartCells(clues, puzzle.width, puzzle.height);
-    history = createHistory(cells);
-    elapsedMs = 0;
-    started = false;
-    hearts = MAX_HEARTS;
-    hints = 0;
-    wrongMark = null;
-    drag = null;
-    lastTick = Date.now();
-    solvedAt = isSolved(cells, clues) ? Date.now() : null; // an all-blank or all-filled tile starts solved
-    dirty = true;
+    state.cells = restartCells(clues, puzzle.width, puzzle.height);
+    state.history = createHistory(state.cells);
+    state.elapsedMs = 0;
+    state.started = false;
+    state.hearts = MAX_HEARTS;
+    state.hints = 0;
+    state.wrongMark = null;
+    state.drag = null;
+    state.lastTick = Date.now();
+    state.solvedAt = isSolved(state.cells, clues) ? Date.now() : null; // an all-blank or all-filled tile starts solved
+    state.dirty = true;
     refresh();
     persist();
   }
@@ -545,8 +568,8 @@ export function mount(container, params = {}) {
   // doesn't write the play.zen pref (D16).
   outZenBtn.addEventListener('click', () => {
     rules.zen = true;
-    lastTick = Date.now();
-    dirty = true;
+    state.lastTick = Date.now();
+    state.dirty = true;
     refresh();
     persist();
   });
@@ -650,13 +673,13 @@ export function mount(container, params = {}) {
     }
     if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
     const k = (e.key ?? '').toLowerCase(); // synthetic events can lack a key
-    if (k === 'z' && !e.shiftKey) step(history.undo);
-    else if (k === 'y' || (k === 'z' && e.shiftKey)) step(history.redo);
+    if (k === 'z' && !e.shiftKey) step(state.history.undo);
+    else if (k === 'y' || (k === 'z' && e.shiftKey)) step(state.history.redo);
     else return;
     e.preventDefault();
   };
-  undoBtn.addEventListener('click', () => step(history.undo));
-  redoBtn.addEventListener('click', () => step(history.redo));
+  undoBtn.addEventListener('click', () => step(state.history.undo));
+  redoBtn.addEventListener('click', () => step(state.history.redo));
   document.addEventListener('keydown', onKey);
   cleanup.push(() => document.removeEventListener('keydown', onKey));
 }

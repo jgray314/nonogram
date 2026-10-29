@@ -1,48 +1,108 @@
 # Plan: split the view files and enforce the storage rule
 
-Goal: make `src/views/create.js` (922 lines) and `src/views/play.js` (778 lines) smaller and easier to change, and enforce the "only `store.js` touches localStorage" contract with a lint rule. Behavior must not change (AGENTS rule 9).
+Goal: make `src/views/create.js` (922 lines) and `src/views/play.js` (778 lines) smaller and easier to change, enforce the "only `store.js` touches localStorage" contract with a lint rule, and keep the views from growing back with a size cap. Behavior must not change (AGENTS rule 9).
 
-Independent of the end-to-end checks plan (`e2e-pipeline-checks.md`). The existing safety net is `create.test.js`, `game.test.js`, `play-state.test.js`, the UX checks, lint and typecheck; all must pass after every move.
+Independent of the end-to-end checks plan (`e2e-pipeline-checks.md`), which has been gated and pushed on its own. The existing safety net is `create.test.js`, `game.test.js`, `play-state.test.js`, the UX checks, lint and typecheck; all must pass after every move.
 
 ## Decision: pure move
 
-Both views are one `mount()` closure over shared mutable state (create: `st`, `image`, `history`, `savedSig`, the solver client and timers). Functions move to new modules and receive a small context object (state plus callbacks). State is not redesigned or reduced in this plan.
+Both views are one `mount()` closure over shared mutable state (create: `st`, `image`, `history`, `savedSig`, the solver client and timers; play: `cells`, `hearts`, `elapsedMs`, `drag`, `brush` and more). Functions move to new modules and receive a context object (state, DOM refs and callbacks). Two mechanical steps make that possible and neither changes behavior: the DOM-building block moves out (Wave 1a), and the closure's `let` variables become fields of one state object so a moved function can assign them (Wave 1b). State is not otherwise redesigned or reduced in this plan.
 
 ## Target layout
 
-- `src/views/dom.js`: the shared `el()` helper (create.js and play.js each define their own, with different signatures; reconcile to one, or keep two named helpers if the signatures cannot merge).
-- `src/views/create/`: `index.js` (mount, state wiring), `image-source.js` (decodeFile, file input, offset, threshold), `preview.js` (rendering, grid view, scale), `report.js` (live solver report, current lines about 364 to 720), `save.js` (draft, save, okToDiscard).
-- `src/views/play/`: cut decided by Step 0's map; likely `index.js`, `hud.js` (hearts, timer, rules), `input.js` (strokes), `clues.js`, `finish.js` (solve and reveal).
-- `eslint.config.js`: `no-restricted-globals` for `localStorage` and `sessionStorage`, plus `no-restricted-properties` for `globalThis.localStorage` (which `store.js` uses as a default argument), on `src/**`, with an override for `src/store.js`. Grep shows no violations today.
+- `src/views/dom.js`: the shared `el()` helpers. The two views define `el` with different signatures (create: `el(tag, props, ...children)`, 57 call sites; play: `el(tag, className, text)`, 48 call sites). They are not merged: `dom.js` exports `el` (create's form) and `elc` (play's form), and play's call sites are renamed to `elc`. Lint (`no-undef`) and typecheck prove no site was missed.
+- `src/views/create/`: `index.js` (mount, wiring), `build.js` (DOM construction), plus the Wave 2 modules below.
+- `src/views/play/`: `index.js`, `build.js`, plus the Wave 2 modules below.
+- `eslint.config.js`: three additions.
+  - `no-restricted-globals` for `localStorage` and `sessionStorage`, and `no-restricted-properties` for `globalThis.localStorage` (which `store.js` uses as a default argument), on `src/**`, with an override for `src/store.js`. Grep shows no violations today.
+  - `linterOptions.noInlineConfig: true`, so a `/* eslint-disable */` comment cannot switch a rule off. No inline directives exist in the repo today, so this costs nothing.
+  - `max-lines` at 500 on `src/**` (Wave 4). 500 passes every current file except the two views (the next largest is `color.js` at 457). It counts raw lines, with no blank-line or comment exemptions, so it cannot be argued around. 500 is a ratchet against growth, not the target: bringing every file down to 300 is the follow-up plan, [line-cap-300.md](line-cap-300.md), which starts only after this one is gated.
+
+### Provisional module cut (from the current function list; Wave 0b replaces this with measured ranges)
+
+Create (922 lines, `mount` spans 119 to 916):
+
+| Module | Functions today | About lines |
+|---|---|---|
+| `image-source` | `decodeFile`, `currentCrop`, `regenerate`, `onFile`, `onSize`, `onSlider`, `onReset`, `onColors`, `onInvert` | 200 |
+| `crop-preview` | `drawPreview`, `onPreviewDown`, `onPreviewMove`, `onPreviewUp` | 100 |
+| `grid-view` | `fitCells`, `renderGridNow`, `markTileBoundaries`, `artFor`, `onGridPointer`, `syncBrushes`, the history functions, `onKeydown` | 190 |
+| `report` | `showReport`, `scheduleReport` | 110 |
+| `save` | `showSaveMessage`, `onSave`, `saveSingle`, `saveSet`, `okToDiscard`, the draft handoff | 130 |
+
+Play (778 lines, `mount` spans 82 to 766; the first 165 lines are DOM construction):
+
+| Module | Functions today | About lines |
+|---|---|---|
+| `hud` | `refresh`, `showStrip`, `clearReveal`, `syncReveal`, `startClock`, `tick`, `onVisibility` | 150 |
+| `input` | `onPointer`, `onKey`, the drag preview | 90 |
+| `actions` | `commit`, `step`, `restart`, the hint/reveal path | 150 |
+| `persist` | `snapshot`, `persist`, export and import save (location confirmed by the map) | 80 |
+| `rules-layout` | `rememberRule`, `sizeGrid`, `syncMode`, `syncCoarse`, the swatch picker | 120 |
+
+## Effort check
+
+Estimates are rough agent-lane hours including verification. No chunk is above 4. The two that carry risk are marked.
+
+| Chunk | Est. hours |
+|---|---|
+| 0a lint rules plus rule test | 1.5 |
+| 0b map, create | 1.5 |
+| 0b map, play | 2 |
+| 0c `dom.js` | 1 |
+| 1a DOM builder out, create | 2.5 |
+| 1a DOM builder out, play (its block interleaves swatch and mode handlers) | 3.5 (risk) |
+| 1b state object, create | 2.5 |
+| 1b state object, play | 3.5 (risk) |
+| 1c context contract, folder move, stubs, layout test (each view) | 2.5 |
+| 2 extraction lanes (each of the ten above) | 2 to 3.5 |
+| Wave 3 merge and verify (per lane) | 0.5 |
+| 4 size cap, docs, restamp | 1.5 |
+
+If the 0b map shows more than about 25 mutable bindings in play, split 1b by region (state loading and persistence, then the interaction state) rather than run it as one lane. If `image-source` measures over 250 lines, split `regenerate` and the control handlers into two modules.
 
 ## Steps and parallelism
 
-**Wave 0: three independent lanes, run at the same time (disjoint files).**
+Before any lane starts, the orchestrator pre-registers the feature rows (`storage-lint-rule`, `split-create-view`, `split-play-view`, `view-size-cap`) with verify commands that fail, so lanes never edit `FEATURES.json` (the e2e round's conflicts were all there). Layout tests are one per view (`test/views_layout_create.test.js`, `test/views_layout_play.test.js`) so each row's verify command fails if only its own view's modules go missing (AGENTS rule 10).
 
-- 0a. Storage lint rule (`eslint.config.js` only). Prove it with a probe file that must fail, then delete the probe.
-- 0b. Read-only maps of both closures: for each view, list every inner function, the state it reads and writes, and the proposed module. Output is a doc in `docs/plans/`, no code. Two maps can be two lanes (create, play).
-- 0c. `views/dom.js` extraction, touching only the `el` definitions and their import lines.
+**Wave 0: four lanes at the same time (disjoint files).**
 
-0b feeds Wave 1; 0a and 0c have no dependency on it. 0c must merge before Wave 2 so the extraction lanes do not collide on `el`.
+- 0a. Lint rules (`eslint.config.js`, new `test/lint_rules.test.js`). The test uses ESLint's `lintText` against the repo config and asserts: `localStorage` in `src/views/x.js` is an error; the same text in `src/store.js` is not; `globalThis.localStorage` is an error elsewhere; a file that starts with an eslint-disable comment still errors (proves `noInlineConfig`). No probe file is left in the tree.
+- 0b. Read-only maps of both closures, two lanes (create, play). For each: every inner function with its current line range, the state it reads and writes, the proposed module, every `let` binding, and a count of module-crossing writes. Output is a doc in `docs/plans/`, no code.
+- 0c. `views/dom.js`, touching only the `el` definitions, their call sites in play (rename to `elc`), and the import lines.
 
-**Wave 1: context contract per view, two lanes (create, play), at the same time.**
+0b feeds Wave 1. 0c must merge before Wave 1 starts (not Wave 2 as first drafted): Wave 1a moves the DOM block, and the new `build.js` files import from `dom.js`. 0a depends on nothing and nothing depends on it; it can finish at any point before Wave 4.
 
-Each lane turns its map into the context object shape and makes the view's `index.js` skeleton: `mount()` builds the state and context, and calls into modules that are still empty stubs re-exporting the old inner functions. The tests stay green because nothing has moved yet. This is the step that must be sequential within a view and cannot be skipped: it fixes the interface the Wave 2 lanes code against.
+**Wave 1: per view, three steps in order; the two views run side by side.**
 
-**Wave 2: extraction lanes, in parallel.**
+Sequential inside a view because all three edit the same file; the order puts the stateless move first so the state conversion has fewer references to touch.
 
-Per view, one lane per module (create: image-source, preview, report, save; play: per the map). They run at the same time only where their source regions do not overlap, which is why the map must list line ranges. Every lane deletes its functions from the old file and nothing else; adjacent-region deletions merge cleanly, and overlapping ones go to the same lane. Cap at about three live lanes per view: the merge cost beyond that outweighs the speedup. If two modules share a helper, it goes to the earlier merged one.
+- 1a. Move the DOM-construction block into `build.js`. It takes the initial values it needs (create: `st`, the restored draft title; play: the puzzle, store prefs) and returns one refs object. Event listeners that call closure functions stay in `mount` and attach to the returned refs. Behavior and DOM are identical.
+- 1b. In place, turn the closure's `let` variables into fields of one `state` object and update every reference. No file moves; the diff is mechanical and the full check plus UX checks prove nothing changed.
+- 1c. `git mv` the view into its folder as `index.js` and update the import in `app.js`. Define the context shape (state, refs, callbacks) as a JSDoc typedef so typecheck enforces it. Create every Wave 2 module as an empty factory (`createReport(ctx)` returning `{}`), call each factory once in `index.js` in one pre-registered block, and add the view's layout test pinning the module paths and export names. Nothing has moved yet, so everything stays green. Wave 2 lanes then edit only their own module and delete from `index.js`.
 
-Create and play lanes never touch each other's files, so the create group and the play group run in parallel with one another as well.
+**Wave 2: extraction lanes, in rounds.**
 
-**Wave 3: sequential.** After each merge: `npm test && npm run lint && npm run format:check && npm run typecheck` and `npm run test:ux`. The orchestrator drives the manual checks in the browser pane (Create with a photo, play a puzzle on a narrow and wide width), one at a time, since the pane is shared.
+One lane per module. Each lane moves its functions into its module's factory, deletes them from `index.js`, and changes callers elsewhere in `index.js` to `module.fn(...)`. Those one-line caller edits are the expected merge conflicts; the orchestrator resolves them at merge. Lanes touch only their own module, `index.js`, and nothing else. A shared helper goes to the earlier merged module.
 
-Feature rows: one per view split (`split-create-view`, `split-play-view`) and one for the lint rule (`storage-lint-rule`). The verify command for a split is the full check plus `npm run test:ux`.
+Cap: at most 3 live lanes per view and 4 in flight in total (the e2e round ran four cleanly). Each round is cut from the merged result of the previous one, so rounds are also the merge points.
+
+- Round 2.1: create `report`, create `save`, play `hud`, play `input`.
+- Round 2.2: create `crop-preview`, create `grid-view`, play `actions`, play `rules-layout`.
+- Round 2.3: create `image-source` (last, because `regenerate` touches state used by most other modules), play `persist`.
+
+The rounds follow the 0b map; if it shows a different cut, the rounds are re-planned from it before Wave 2 starts, not during it.
+
+**Wave 3: sequential, after every merge.** `npm test && npm run lint && npm run format:check && npm run typecheck` and `npm run test:ux`. The orchestrator drives the manual checks in the browser pane after each round (Create with a photo; play a puzzle at a narrow and a wide width), one at a time, since the pane is shared.
+
+**Wave 4: close.** Turn on `max-lines` 500 for `src/**` and add `test/lint_size_cap.test.js` (written first, so it fails until the rule is on) to assert it: a 501-line text at `src/views/create/x.js`, at `src/views/play/x.js` and at `src/color.js` errors (including with a disable comment at the top); a 500-line text passes. Every file must already be at or under 500 when this lands; the provisional cut puts the largest new module at about 200, so a module that measures over 500 after its lane is split further rather than exempted, and no lane adds an override. Update the AGENTS "Where things are" line and the README file map. Restamp the feature rows at a clean commit (`python scripts/features.py restamp`), regenerate `PROGRESS.md`, then the gate.
+
+Feature rows: `storage-lint-rule` (verify: `node --test test/lint_rules.test.js`), `split-create-view` and `split-play-view` (verify: their layout test, the view's logic tests, and `npm run test:ux`), `view-size-cap` (verify: `node --test test/lint_size_cap.test.js` plus `npm run lint`; the file does not exist until Wave 4, so the row cannot pass early; it fails if the rule is removed, if its scope narrows, or if any file under `src/` passes 500 lines).
 
 ## Open item for Step 0b
 
-Whether `play.js` splits cleanly depends on how much of its 680-line closure is shared state. If the map shows more than a few module-crossing writes, narrow that view's split rather than force it, and note what was left out.
+Whether `play.js` splits cleanly depends on how much of its closure is shared state. If the map shows more than a few module-crossing writes after the state object (1b) is in place, narrow that view's split rather than force it, and note what was left out.
 
 ## Gate
 
-The maintainer wants one gate check on the whole round once every lane of both plans is done, before anything is pushed to `main` on GitHub. Nothing in this plan pushes. Lanes merge to local `main` only.
+This plan gets its own gate: a `/gate-review` scoped to this round, run once every lane is done and merged, before anything from this plan is pushed. It is not combined with the end-to-end checks round, which was gated (pass 7) and pushed separately. Nothing in this plan pushes. Lanes merge to local `main` only.

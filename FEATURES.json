@@ -287,6 +287,34 @@
         "exit_code": 0,
         "seal": "fhodolckhbnihgie"
       }
+    },
+    {
+      "id": "storage-lint-rule",
+      "behavior": "Only src/store.js may use localStorage or sessionStorage: ESLint rejects them (and globalThis.localStorage) anywhere else in src, and inline eslint-disable comments cannot switch the rule off.",
+      "verify": "node --test test/lint_rules.test.js",
+      "state": "not_started",
+      "source": "docs/plans/view-split.md"
+    },
+    {
+      "id": "split-create-view",
+      "behavior": "src/views/create.js is split into src/views/create/ modules (build, image-source, crop-preview, grid-view, report, save, index) with no change in behavior; the layout test pins the modules and their exports.",
+      "verify": "node --test test/views_layout_create.test.js test/create.test.js && npm run test:ux",
+      "state": "not_started",
+      "source": "docs/plans/view-split.md"
+    },
+    {
+      "id": "split-play-view",
+      "behavior": "src/views/play.js is split into src/views/play/ modules (build, hud, input, actions, persist, rules-layout, index) with no change in behavior; the layout test pins the modules and their exports.",
+      "verify": "node --test test/views_layout_play.test.js test/game.test.js test/play-state.test.js && npm run test:ux",
+      "state": "not_started",
+      "source": "docs/plans/view-split.md"
+    },
+    {
+      "id": "view-size-cap",
+      "behavior": "No file under src/ is longer than 500 lines: max-lines is on, inline disables are ignored, and a test pins the rule and its scope.",
+      "verify": "node --test test/lint_size_cap.test.js && npm run lint",
+      "state": "not_started",
+      "source": "docs/plans/view-split.md"
     }
   ]
 }

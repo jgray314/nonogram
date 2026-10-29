@@ -6,7 +6,7 @@ This is the verification ledger: check gates and controls, each with a command t
 It is not the product roadmap. What the product does and what is open lives in the README
 and plan docs that AGENTS.md lists under 'Where things are'.
 
-Commit: `b31ff28`  
+Commit: `d670153`  
 Full check: `npm test && npm run lint && npm run format:check && npm run typecheck`
 
 ## Done
@@ -42,4 +42,11 @@ None.
 
 ## Not started
 
-None.
+- **storage-lint-rule**: Only src/store.js may use localStorage or sessionStorage: ESLint rejects them (and globalThis.localStorage) anywhere else in src, and inline eslint-disable comments cannot switch the rule off.
+  - done when: `node --test test/lint_rules.test.js`
+- **split-create-view**: src/views/create.js is split into src/views/create/ modules (build, image-source, crop-preview, grid-view, report, save, index) with no change in behavior; the layout test pins the modules and their exports.
+  - done when: `node --test test/views_layout_create.test.js test/create.test.js && npm run test:ux`
+- **split-play-view**: src/views/play.js is split into src/views/play/ modules (build, hud, input, actions, persist, rules-layout, index) with no change in behavior; the layout test pins the modules and their exports.
+  - done when: `node --test test/views_layout_play.test.js test/game.test.js test/play-state.test.js && npm run test:ux`
+- **view-size-cap**: No file under src/ is longer than 500 lines: max-lines is on, inline disables are ignored, and a test pins the rule and its scope.
+  - done when: `node --test test/lint_size_cap.test.js && npm run lint`

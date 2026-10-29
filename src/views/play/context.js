@@ -39,7 +39,8 @@
  * @property {any} helpers
  * @property {() => any} grid  The module-level grid, read at call time.
  * @property {() => number} generation  The module-level mount counter, read at call time.
- * @property {any} loaded  The save loaded for this puzzle (or null), read once by persist.
+ * @property {{ zen: string, autoCross: string }} prefKeys  The pref key for each remembered rule switch.
+ * @property {any} loaded The save loaded for this puzzle (or null), read once by persist.
  * @property {Map<string, string>} pendingNotes  The module-level notes shown after an import remount.
  * @property {() => void} clearPersistNow  Makes unmount's final save a no-op (the import handler's remount).
  * @property {(params: { id: string }) => void} remount  Unmounts and mounts this view again.

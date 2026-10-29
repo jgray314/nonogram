@@ -4,6 +4,7 @@
 import { BACKUP_CHECKS } from './pipeline-backup.js';
 import { COLOR_CHECKS } from './pipeline-color.js';
 import { MONO_CHECKS } from './pipeline-mono.js';
+import { SAVEFILE_CHECKS } from './pipeline-savefile.js';
 import { WEBPBN_CHECKS } from './pipeline-webpbn.js';
 
 export const PIPELINE_CHECKS = [
@@ -11,4 +12,5 @@ export const PIPELINE_CHECKS = [
   ...COLOR_CHECKS,
   ...BACKUP_CHECKS,
   ...WEBPBN_CHECKS,
+  ...SAVEFILE_CHECKS,
 ];

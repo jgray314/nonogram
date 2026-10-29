@@ -8,6 +8,26 @@ function assert(ok, message) {
   if (!ok) throw new Error(message);
 }
 
+// The picture cat-15x15.png should become: '#' filled, '.' blank. A golden, so a
+// converter that ignored or inverted the pixels cannot pass on self-consistency.
+const CAT_15 = [
+  '...#...#.......',
+  '...##.##.......',
+  '...#####.......',
+  '...#.#.#.......',
+  '...#####.......',
+  '....###........',
+  '...#####.......',
+  '..#######......',
+  '..#######......',
+  '..########.....',
+  '..########...#.',
+  '..#########..#.',
+  '..#########..#.',
+  '..##########.#.',
+  '..############.',
+];
+
 export const MONO_CHECKS = [
   {
     id: 'pipeline-mono-upload-to-library',
@@ -27,6 +47,11 @@ export const MONO_CHECKS = [
         `stored size is ${puzzle.width}x${puzzle.height}, expected 15x15`,
       );
       assertWorkerVerdict(puzzle, 'mono puzzle');
+      const picture = puzzle.solution.map((r) => r.map((v) => (v ? '#' : '.')).join(''));
+      assert(
+        picture.join('|') === CAT_15.join('|'),
+        `picture differs from the golden: ${picture.join('|')}`,
+      );
 
       await app.open('#/library');
       const rows = app.$$('.nng-lib-row');

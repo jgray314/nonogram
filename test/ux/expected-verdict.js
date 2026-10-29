@@ -4,23 +4,33 @@
 // right shape with wrong content) is caught; the worker path is what is tested,
 // not the solver.
 import { puzzleClues } from '../../src/clues.js';
-import { verdictOf } from '../../src/create-logic.js';
 import { solveAndRate } from '../../src/personas.js';
 
-/** The verdict Create and import should store for `puzzle`, via the same steps as the worker. */
+/**
+ * The verdict Create and import should store for `puzzle`: the solver's status
+ * and sweeps, plus the persona tier when it has one. Spelled out here rather
+ * than through `verdictOf`, so a bug in `verdictOf` (a dropped field) is caught.
+ */
 export function expectedVerdict(puzzle) {
   const { rows, cols } = puzzleClues(puzzle.solution);
-  return verdictOf(solveAndRate({ width: puzzle.width, height: puzzle.height, rows, cols }, {}));
+  const r = solveAndRate({ width: puzzle.width, height: puzzle.height, rows, cols }, {});
+  return { status: r.status, sweeps: r.sweeps, ...(r.tier ? { tier: r.tier } : {}) };
 }
 
-/** Throws unless `puzzle.verdict` has the expected status and sweep count. */
+/** Key-sorted JSON, so two equal verdicts compare equal whatever their key order. */
+const stable = (v) =>
+  JSON.stringify(v, (_, x) =>
+    x && typeof x === 'object' && !Array.isArray(x)
+      ? Object.fromEntries(Object.entries(x).sort(([a], [b]) => a.localeCompare(b)))
+      : x,
+  );
+
+/** Throws unless `puzzle.verdict` equals the expected verdict: status, sweeps and tier. */
 export function assertWorkerVerdict(puzzle, label = 'puzzle') {
   const want = expectedVerdict(puzzle);
   const got = puzzle.verdict;
-  if (!got || got.status !== want.status || got.sweeps !== want.sweeps) {
-    throw new Error(
-      `${label} verdict is ${JSON.stringify(got)}, the solver says ${JSON.stringify(want)}`,
-    );
+  if (stable(got) !== stable(want)) {
+    throw new Error(`${label} verdict is ${stable(got)}, the solver says ${stable(want)}`);
   }
   return want;
 }

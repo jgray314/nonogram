@@ -2,7 +2,7 @@
 
 Goal: make `src/views/create.js` (922 lines) and `src/views/play.js` (778 lines) smaller and easier to change, and enforce the "only `store.js` touches localStorage" contract with a lint rule. Behavior must not change (AGENTS rule 9).
 
-Independent of the end-to-end checks plan (`e2e-pipeline-checks.md`). The existing safety net is `create.test.js`, `game.test.js`, `play-state.test.js`, the 45 UX checks, lint and typecheck; all must pass after every move.
+Independent of the end-to-end checks plan (`e2e-pipeline-checks.md`). The existing safety net is `create.test.js`, `game.test.js`, `play-state.test.js`, the UX checks, lint and typecheck; all must pass after every move.
 
 ## Decision: pure move
 

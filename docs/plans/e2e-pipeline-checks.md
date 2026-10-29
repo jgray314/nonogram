@@ -18,7 +18,7 @@ Owns `test/ux/harness.js` additions, the color fixture, and no checks. Deliverab
 - `pickFile(app, inputSelector, blob, name)`: set a file on any input in the frame and fire `change`, for import.
 - `resetStore(app)`: clear `nng:` keys in the frame's storage.
 - One synthetic color PNG (a few flat regions, 3 to 5 distinct inks), in `test/ux/`.
-- The registration line in `test/ux/checks.js` (`...PIPELINE_CHECKS`, imported from `test/ux/pipeline-*.js`), with empty arrays or absent files guarded, so later lanes never edit the `CHECKS` array itself.
+- The registration line in `test/ux/checks.js` (`...PIPELINE_CHECKS`, imported from `test/ux/pipeline-*.js`), so later lanes never edit the `CHECKS` array itself.
 
 Done when: each helper has a smoke use in a throwaway check (deleted before merge), `npm run test:ux` still passes, lint and typecheck are clean.
 
@@ -46,10 +46,10 @@ Each mutation is independent and runs in its own scratch copy of merged `main`, 
 |---|---|
 | Break `pixelColorGrid` | B |
 | Stop re-rating imports (trust the file's verdict) | C |
-| Swap the webpbn width and height | D |
+| Swap the webpbn width and height (not testable: the export writes neither, see Results) | D |
 | Make the worker return a fixed verdict | A1 |
 
-Record each result in the matching feature row's evidence. A mutation that does not turn its check red means the check does not guard that path; fix the check before moving on.
+This table is the plan as written; what actually ran, and what it found, is under Results. Record each result in the matching feature row's evidence. A mutation that does not turn its check red means the check does not guard that path; fix the check before moving on.
 
 ### Wave 3: wrap-up (sequential)
 

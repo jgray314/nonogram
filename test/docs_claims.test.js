@@ -21,7 +21,7 @@ const FULL_CHECK = JSON.parse(read('FEATURES.json')).check_command;
 // Seconds, measured on the owner's machine. Docs may quote within these factors.
 const RECORDED_SECONDS = {
   [FULL_CHECK]: 5,
-  'npm run test:ux': 8,
+  'npm run test:ux': 11,
   'npm run test:solver_slow': 8,
   'npm run test:difficulty_very_slow': 47,
 };

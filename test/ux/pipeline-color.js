@@ -36,6 +36,9 @@ export const COLOR_CHECKS = [
       assert(new Set(inks).size === inks.length, `duplicate inks: ${inks}`);
       const total = inks.length + 1;
       assert(total >= 3 && total <= 5, `expected 3 to 5 colors in total, got ${total}`);
+      // Four were asked for (blank + 3 inks) and the fixture has exactly that many
+      // distinct regions, so a Colors option that is ignored shows up here.
+      assert(total === 4, `asked for 4 colors in total, got ${total}`);
       assertWorkerVerdict(puzzle, 'color puzzle');
 
       // Library: Color badge, one dot per ink.

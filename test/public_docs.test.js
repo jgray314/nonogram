@@ -105,7 +105,8 @@ const PRIVATE_PATH =
 const OWNER_REF = /\bthe owner\b|\bowner's\b|\bJess\b/i;
 
 const PUBLIC_DOCS = files.filter(
-  (f) => f === 'README.md' || (/^docs\/[^/]+\.md$/.test(f) && !f.startsWith('docs/reviews/')),
+  (f) =>
+    f === 'README.md' || (/^docs\/(?!reviews\/).+\.md$/.test(f) && !f.startsWith('docs/reviews/')),
 );
 
 // ---- tests ------------------------------------------------------------------

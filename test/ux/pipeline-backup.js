@@ -25,11 +25,14 @@ export const BACKUP_CHECKS = [
 
       const stored = (id) => createStore(app.win().localStorage).get('puzzle', id);
       const original = {};
+      const bare = (rec) => JSON.stringify({ ...rec, verdict: undefined }); // a record without its verdict
+      const before = {}; // each record minus its verdict, to compare after the round trip
       for (const id of [monoId, colorId]) {
         const p = stored(id);
         assert(p?.verdict?.status, `puzzle ${id} should be stored with a verdict`);
         // Pinned to what the pure solver says, not to the worker's own earlier output.
         original[id] = assertWorkerVerdict(p, `puzzle ${id}`).status;
+        before[id] = bare(p);
       }
 
       await app.open('#/library');
@@ -79,6 +82,11 @@ export const BACKUP_CHECKS = [
           `${label} verdict should be re-rated to ${original[id]}, got ${p.verdict.status}`,
         );
         assertWorkerVerdict(p, `imported ${label} puzzle`);
+        // Everything but the verdict must survive: title, blank, art, palette names.
+        assert(
+          bare(p) === before[id],
+          `${label} record changed in the round trip (title, blank, art or palette)`,
+        );
       }
       const rows = app.$$('.nng-lib-content a[href^="#/play/"]').map((a) => a.getAttribute('href'));
       for (const id of [monoId, colorId]) {

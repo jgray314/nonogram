@@ -30,7 +30,7 @@ function setFile(app, sel, blob, name) {
 /**
  * Fetch `url` (relative to the app origin) and set it on the Create view's file
  * input, which must already be mounted (#/create). Resolves once the crop
- * preview and the grid have rendered.
+ * preview has rendered.
  */
 export async function uploadImage(app, url) {
   const res = await app.win().fetch(url);
@@ -42,14 +42,14 @@ export async function uploadImage(app, url) {
     `preview for ${url}`,
     5000,
   );
-  await waitFor(() => app.$('.nng-create .nng-cell'), `grid for ${url}`, 5000);
 }
 
 /**
  * Open #/create, upload `url`, wait for the live solver report to show a verdict
  * from the real worker, press Save to library, and return the saved puzzle id.
- * The id is read from the "Play it" link the save message renders
- * (href #/play/<id>), which only appears after a successful store write.
+ * The message must read "Saved." (a refused duplicate says otherwise); the id is
+ * read from the Play link it renders
+ * (href #/play/<id>).
  * Create defaults to two-tone: pass `opts.colors` (3 to 5, the total including
  * the blank) to make a color puzzle.
  * @param {ReturnType<typeof createApp>} app
@@ -66,7 +66,6 @@ export async function createAndSave(app, url, opts = {}) {
     if (!select) throw new Error('no Colors select in Create');
     select.value = String(opts.colors);
     select.dispatchEvent(new (app.win().Event)('change', { bubbles: true }));
-    await waitFor(() => app.$('.nng-create .nng-cell'), 'color grid', 5000);
   }
   const save = await waitFor(
     () => {
@@ -77,11 +76,18 @@ export async function createAndSave(app, url, opts = {}) {
     15000,
   );
   save.click();
-  const link = await waitFor(
-    () => app.$('.nng-create-save-msg a[href^="#/play/"]'),
-    'saved message with Play link',
+  const msg = await waitFor(
+    () => app.$('.nng-create-save-msg')?.textContent.trim() && app.$('.nng-create-save-msg'),
+    'a save message',
     5000,
   );
+  // A grid already in the library gets "already in your library" plus an "Open it"
+  // link to the same href, so the link alone cannot tell a new save from a refused one.
+  if (!msg.textContent.trim().startsWith('Saved.')) {
+    throw new Error(`the puzzle was not saved: "${msg.textContent.trim()}"`);
+  }
+  const link = msg.querySelector('a[href^="#/play/"]');
+  if (!link) throw new Error('the save message has no Play link');
   return decodeURIComponent(link.getAttribute('href').slice('#/play/'.length));
 }
 

@@ -559,3 +559,69 @@ Owner, on the findings: "skip medium and lows for now", W1 as below, W2 option (
 9. **The two process trials fired at this gate (feature rows per committed piece; one combined round summary).** The owner did not rule on either. **Noted only:** the evidence is mixed (the rows gave a visible ledger per lane, but their evidence was stale until restamped). Both trials continue to the next gate.
 
 **Pass closed.**
+
+# Pass 8: slim gate on the view split, 2026-10-29
+
+**Run:** 2026-10-29 · **Scope:** commits `d670153..` (the Create and Play views split into folders, the storage and size lint rules, one new UX check; plan in `docs/plans/view-split.md`), local `main`, unpushed. The e2e round (pass 7) was gated and pushed separately.
+**Prior runs:** passes 1 to 7 above. Both lenses were read-only Explore agents and read the code cold (no prior review records, no plan documents until their own findings were written).
+**Rubric (trial):** L1 2/1/2/2, L2 2/1/2/2. Fix durability is 1 on both: most proposed fixes were a rule or a test, but the typing and scaffolding items were prose.
+**Owner override:** none.
+**Step 0:** backlog sweep run first (`event sweep backlog-prune`): two items closed as done (the save-file round trip, `050fd12`; the storage lint rule), no stale item found.
+
+## Lens 1: Adversarial
+
+No Critical or High. The lens diffed both views line by line against `d670153` and found no behavior difference from the move.
+
+- **L1-1 (NEW, Medium).** Leaving a puzzle was unguarded: deleting `persistNow = ctx.persist.persist`, deleting the `persistNow()` call in `unmount`, or removing the final clock tick all passed every test. Also unguarded: create's draft fields (dropping `baseline`, `history`, `titleTouched`, `savedSig`, `image` or `title` from the draft), `solver.terminate()`, the keydown removal, the resize cleanup, the `live()` aborts in the import handler.
+- **L1-2 (NEW, Medium).** Cross-module calls are untyped: `ctx.rulesLayout.pickBrushX(digit)` passes `tsc`, because the module slots resolve to `any` (play by declaration, create probably through a circular type). Control cases (`state.imagee`, `ctx.shell.showErrorX`) are caught.
+- **L1-3 (NEW, Medium).** The storage rule was bypassed by `self.localStorage`, an alias of `window`, `top.`, `parent.`, `document.defaultView.localStorage`, `this.localStorage`, a computed key and `Reflect.get(window, ...)`.
+- **L1-4 (NEW, Medium).** Both layout tests passed when a wiring line was only a comment (`// ctx.session = createSession(ctx);`).
+- **L1-5 (NEW, Low).** Lint coverage narrower than the claim: `files: ['src/**/*.js']` skipped `.mjs` and `.cjs`; widening the store override to `src/**/store.js`, or adding `skipBlankLines`, passed the tests.
+- **L1-6 (NEW, Low).** Scaffolding left behind: unread context members (`cleanup`, `container`, three shell functions), unused return members, double initialisation in both `state` objects, stale comments.
+- **L1-7 (NEW, Low).** `save.js` `artFor` shadowed the factory's `ctx` with the canvas context (correct today, a trap for the next edit).
+- **L1-8 (NEW, Low).** The new save-file check does not exercise the `pendingNotes` note, the solver-failure branch, the storage-write failure or the `live()` aborts.
+- **L1-9 (NEW, Medium, pre-existing, not part of the move).** The always-ask question about content-derived ids: `saveSingle` refuses to overwrite an existing id, `saveSet` has no such guard (its rollback code shows ids can collide). Read from the code, not reproduced.
+- **L1-11 (NEW, Low).** The fast-suite timing test failed once on a cold run (3.1s against "under 1s", band 3x) and passed warm.
+
+Checked and correct: build order and DOM, setup order in `mount`, cleanup push order and `unmount` order, `persistNow`/`generation`/`pendingNotes` in the import path, live reads of `history`, `drag`, `cells`, the draft and teardown order in create, listener equivalence, `save.js` verbatim including the never-overwrite check in `saveSingle`.
+
+## Lens 2: Outside-reviewer walkthrough
+
+No High.
+
+- **L2-1 (NEW, Medium).** Stale "until the session module owns it" comments and a cast to `any` in `hud.js`, `context.js` and `index.js`, after the session module had taken them over.
+- **L2-2 (NEW, Medium).** Play's `PlayContext` is much looser than create's (`any` slots; 33 `any` hits across both views): documentation, not enforcement. Same cause as L1-2.
+- **L2-3 (CONTRADICTS pass 7 W8, Medium).** README quoted `test:ux` as "about 10s" in the table and "about 8s" in the paragraph; AGENTS and README gave `solver_slow` as 10s and 11s. Pass 7 fixed the line it cited and the 1.5x band hid the rest.
+- **L2-4 (NEW, Low).** AGENTS said D1 to D24; PLAN has D29. The line was edited in this round.
+- **L2-5 (NEW, Low).** README said four `pipeline-*` checks; there were five (now six). No README text on the new folders.
+- **L2-6 (NEW, Low).** Plan jargon ("Wave 2", "step 1c") in source and test comments.
+- **L2-7 (NEW, Low).** The plan fixed play's call-site count (47, not 48) but not create's (56, not 57).
+- **L2-8 (NEW, Low).** One commit (`5c56afb`) mixes the cap, its test, an AGENTS edit and the Results write-up.
+- **L2-9 (NEW, Medium).** The layout tests prove file existence and export names, not that extraction happened: an empty factory returning `{}` passes both.
+- **L2-10 (NEW, Low).** The `split-*` feature rows cite the plan file but no section.
+- **L2-11 (NEW, Low).** The byte-identical page comparisons in the Results section ran in the browser pane and cannot be regenerated from the repo; crop-box drag was never run.
+
+Checked and fine: test, UX and feature counts; line counts; no `void ctx`, `@ts-`, `eslint-disable` or `TODO` in `src`; no stale references to the old paths; the lint tests assert what their titles say; the verify commands fail when their subject is deleted; the plan's rejected alternatives are substantive.
+
+## Disposition
+
+| Finding | Disposition |
+|---|---|
+| L1-1 | **Fixed in part** (`b753cc7`, merged `bfd462a`): `pipeline-leave-puzzle-saves-time`, feature row `leave-saves-time-ux-check`. **Proof: mutation-verified guard.** Deleting `persistNow = ctx.persist.persist` and deleting the `persistNow()` call in `unmount` each fail it. **Accepted residual:** removing the final clock tick, or running `persistNow()` before the cleanup, is not caught, because the 500 ms interval already banks time in memory and the final tick adds under 500 ms; a check tight enough to see it would be flaky. **Deferred:** create's draft fields, `solver.terminate()`, the keydown and resize cleanups, the import handler's `live()` aborts. Trigger: the next change to create's `teardown`/draft or to play's import handler. Recorded in `PLAN.md`. |
+| L1-2, L2-2 | **Deferred.** The slots resolve to `any` through a circular type reference (a module's factory takes the context that holds its own slot). The cure is explicit per-module API typedefs, a larger change. Trigger: the first time a module method is renamed, or the 300-line plan, whichever comes first. The `any` cast in `hud.js` was removed (L2-1, `70a6704`). |
+| L1-3 | **Fixed** `70a6704`: a `no-restricted-syntax` selector flags any `.localStorage`/`.sessionStorage` property or computed string key under `src`. **Proof: mutation-verified guard.** Removing the selector fails 4 tests in `test/lint_rules.test.js`. **Accepted residual:** a computed key built at run time and `Reflect.get` still get through; the rule guards against accidents, not an attacker (comment in `eslint.config.js`). |
+| L1-4, L2-9 | **Fixed** `70a6704`: both layout tests strip comments, and each module's functions must be defined in the module and not in `index.js`. **Proof: mutation-verified guard.** A commented-out wiring line, an emptied `report.js` and an emptied `hud.js` each fail the layout tests. `onKeydown` stays in `index.js` as a delegating wrapper and the test pins that. |
+| L1-5 | **Fixed** `70a6704`: glob widened to `.js/.mjs/.cjs`; tests pin `src/views/store.js` (not the storage module), blank lines, `.mjs` and `src/views/library.js`. **Proof:** the `skipBlankLines`, store-glob and glob mutations each fail a test. **Accepted residual:** an `ignores` entry for a path none of the tests probe. |
+| L1-6 | **Fixed** `70a6704`: dead context members and typedef lines removed. **Accepted residual:** unused return members of a few factories, and the double initialisation of `state` fields (kept deliberately, each mirrors the original declaration site). |
+| L1-7 | **Fixed** `70a6704`: renamed to `g`. |
+| L1-8 | **Deferred.** Trigger: the next change to play's import handler. |
+| L1-9 | **Deferred, needs confirming first.** Not part of the move. Backlog entry in `PLAN.md`; trigger: the next change to `saveSet`, or a set tile that matches a saved puzzle. |
+| L1-11 | **Noted only.** The 3x band passed on every warm run; trigger: it fails in CI. |
+| L2-1 | **Fixed** `70a6704`. |
+| L2-3 | **Fixed** `285e1ae` for the values (README test:ux 10s in both places, solver_slow 8s in README, AGENTS and PLAN). **Proof: mutation-verified guard.** A new test, "every doc quotes the same time for one suite", fails when README says 8s in one place and 10s in another (it also found PLAN at 11s). This is the structural fix pass 7 W2 left as a residual. |
+| L2-4, L2-5, L2-7 | **Fixed** `285e1ae`. |
+| L2-6 | **Fixed** `70a6704`. |
+| L2-8, L2-10 | **Noted only.** The merge structure is readable; the rows cite the plan file. |
+| L2-11 | **Accepted residual.** Recorded in the plan's Results as manual checks; crop-box drag is still owed in a real browser. Trigger: the next structural refactor scripts the comparison as a UX check. |
+
+**Measured after the fixes:** `test:ux` 11.8s and 12.2s for 51 checks (documented about 10s by the owner's 2026-10-29 decision, band 1.5x); full check 4.7s; `test:solver_slow` 8.3s; 518 fast tests; 26 of 26 feature rows passing.

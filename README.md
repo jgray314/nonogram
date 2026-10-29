@@ -49,7 +49,7 @@ npm run test:difficulty_very_slow # difficulty persona corpus behind docs/diffic
 npm run lint
 npm run format:check
 npm run typecheck                 # tsc --checkJs over src, scripts and test
-npm run test:ux                   # ux-checks.html in headless Chrome, about 11s
+npm run test:ux                   # ux-checks.html in headless Chrome, about 10s
 ```
 
 CI (`.github/workflows/ci.yml`) runs `npm test`, lint, the format check and the type check on every push to `main` and every pull request. Run `test:solver_slow` after solver changes and `test:difficulty_very_slow` after persona or difficulty changes. Those two run locally only. The UX checks run headless in CI and in the pre-push hook (`npm run test:ux`, about 8s, needs Chrome or Edge; set `CHROME=<path>` if it is not found).

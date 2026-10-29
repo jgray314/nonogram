@@ -1,11 +1,8 @@
 // Creator view: image -> grid (step 10), cell editor and blank grid (step 11a),
 // live solver report (11b), save to library (11c), tile sets (12c).
-import { cellLuminance, otsu } from '../../image.js';
 import { el } from '../dom.js';
 import { createHistory } from '../../game.js';
-import { tileGrid } from '../../tiles.js';
 import { createSolverClient } from '../../solver-client.js';
-import { colorGrid } from '../../color.js';
 import { buildView } from './build.js';
 import { createImageSource } from './image-source.js';
 import { createCropPreview } from './crop-preview.js';
@@ -13,11 +10,7 @@ import { createGridView } from './grid-view.js';
 import { createReport } from './report.js';
 import { createSave } from './save.js';
 import {
-  defaultSize,
-  titleFromFile,
   hasUnsavedWork,
-  centerCrop,
-  loadScale,
   blankGrid,
   newEditorState,
   regenerateNeedsConfirm,
@@ -41,39 +34,6 @@ if (typeof window !== 'undefined') {
       e.preventDefault();
       e.returnValue = '';
     }
-  });
-}
-
-/** Decode a File into a canvas capped at 1024px on the long side. */
-function decodeFile(file) {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      const nw = img.naturalWidth;
-      const nh = img.naturalHeight;
-      if (!nw || !nh) {
-        reject(new Error('empty image'));
-        return;
-      }
-      const scale = loadScale(nw, nh);
-      const w = Math.max(1, Math.round(nw * scale));
-      const h = Math.max(1, Math.round(nh * scale));
-      const canvas = el('canvas', { width: w, height: h });
-      const ctx = canvas.getContext('2d', { willReadFrequently: true });
-      ctx.drawImage(img, 0, 0, w, h);
-      try {
-        resolve({ canvas, w, h, rgba: ctx.getImageData(0, 0, w, h).data });
-      } catch (e) {
-        reject(e);
-      }
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error('decode failed'));
-    };
-    img.src = url;
   });
 }
 
@@ -168,11 +128,6 @@ export function mount(container) {
   const dims = () => fullSize(st.width, st.height, st.tileRows, st.tileCols);
   const tiled = () => st.tileRows * st.tileCols > 1;
 
-  function currentCrop() {
-    const d = dims();
-    return centerCrop(state.image.w, state.image.h, d.width, d.height, st.offset);
-  }
-
   // --- live solver report (11b), one per tile (12c) ---
   // reports[i] is row-major; phase is 'pending' (checking or stale), 'fresh'
   // (matches st.grid) or 'error'. A 1x1 grid has exactly one report.
@@ -191,135 +146,7 @@ export function mount(container) {
     );
   }
 
-  /** Rebuild the grid from the image with the current settings. */
-  function regenerate() {
-    if (!state.image) return;
-    const d = dims();
-    const crop = currentCrop();
-    if (st.colors) {
-      // One palette over the whole crop, so the tiles of a set share it.
-      const q = colorGrid(state.image.rgba, state.image.w, crop, d.width, d.height, st.colors);
-      st.grid = q.grid;
-      st.palette = q.palette;
-      st.blank = q.blank; // D29: Create and Play draw blank cells in it
-      st.manualEdits = false;
-      ctx.gridView.resetHistory();
-      syncControls();
-      ctx.cropPreview.drawPreview();
-      ctx.gridView.renderGridNow();
-      return;
-    }
-    st.palette = null;
-    st.blank = null;
-    if (st.autoThreshold) {
-      const lum = cellLuminance(
-        state.image.rgba,
-        state.image.w,
-        state.image.h,
-        crop,
-        d.width,
-        d.height,
-      );
-      st.threshold = otsu(lum.flat());
-    }
-    // One global threshold over the whole crop, so tiles show no seams.
-    const { full } = tileGrid(
-      state.image.rgba,
-      state.image.w,
-      state.image.h,
-      crop,
-      st.width,
-      st.height,
-      st.tileRows,
-      st.tileCols,
-      { threshold: st.threshold, invert: st.invert },
-    );
-    st.grid = full;
-    st.manualEdits = false;
-    ctx.gridView.resetHistory();
-    syncControls();
-    ctx.cropPreview.drawPreview();
-    ctx.gridView.renderGridNow();
-  }
-
   // --- handlers ---
-  async function onFile() {
-    const file = fileInput.files[0];
-    if (!file) return;
-    showError(null);
-    let decoded;
-    try {
-      decoded = await decodeFile(file);
-    } catch {
-      showError(`Could not read "${file.name}" as an image. Try a PNG, JPEG, GIF or WebP file.`);
-      return;
-    }
-    if (!okToDiscard()) {
-      fileInput.value = '';
-      return;
-    }
-    state.image = decoded;
-    if (!state.titleTouched) titleInput.value = titleFromFile(file.name);
-    st.hasImage = true;
-    st.offset = { dx: 0, dy: 0 };
-    st.autoThreshold = true;
-    const size = defaultSize(state.image.w / st.tileCols, state.image.h / st.tileRows);
-    st.width = size.width;
-    st.height = size.height;
-    regenerate();
-  }
-
-  function onSize() {
-    if (!okToDiscard()) {
-      syncControls();
-      return;
-    }
-    st.width = Number(widthSel.value);
-    st.height = Number(heightSel.value);
-    st.tileRows = Number(tileRowsSel.value);
-    st.tileCols = Number(tileColsSel.value);
-    if (state.image) {
-      regenerate();
-    } else {
-      newBlank();
-    }
-  }
-
-  function onSlider() {
-    if (!okToDiscard()) {
-      syncControls();
-      return;
-    }
-    st.autoThreshold = false;
-    st.threshold = Number(slider.value);
-    regenerate();
-  }
-
-  function onReset() {
-    if (!okToDiscard()) return;
-    st.autoThreshold = true;
-    regenerate();
-  }
-
-  function onColors() {
-    if (!okToDiscard()) {
-      syncControls();
-      return;
-    }
-    st.colors = Number(colorsSel.value);
-    st.brush = 1;
-    regenerate();
-  }
-
-  function onInvert() {
-    if (!okToDiscard()) {
-      syncControls();
-      return;
-    }
-    st.invert = invertBox.checked;
-    regenerate();
-  }
-
   /** Start the editor from an all-zero grid at the chosen size, no image. */
   function newBlank() {
     state.image = null;
@@ -364,15 +191,15 @@ export function mount(container) {
     ctx.gridView.renderGridNow();
   }
 
-  fileInput.addEventListener('change', onFile);
-  widthSel.addEventListener('change', onSize);
-  heightSel.addEventListener('change', onSize);
-  tileRowsSel.addEventListener('change', onSize);
-  tileColsSel.addEventListener('change', onSize);
-  slider.addEventListener('input', onSlider);
-  resetBtn.addEventListener('click', onReset);
-  invertBox.addEventListener('change', onInvert);
-  colorsSel.addEventListener('change', onColors);
+  fileInput.addEventListener('change', () => ctx.imageSource.onFile());
+  widthSel.addEventListener('change', () => ctx.imageSource.onSize());
+  heightSel.addEventListener('change', () => ctx.imageSource.onSize());
+  tileRowsSel.addEventListener('change', () => ctx.imageSource.onSize());
+  tileColsSel.addEventListener('change', () => ctx.imageSource.onSize());
+  slider.addEventListener('input', () => ctx.imageSource.onSlider());
+  resetBtn.addEventListener('click', () => ctx.imageSource.onReset());
+  invertBox.addEventListener('change', () => ctx.imageSource.onInvert());
+  colorsSel.addEventListener('change', () => ctx.imageSource.onColors());
   blankBtn.addEventListener('click', onBlank);
   startOverBtn.addEventListener('click', onStartOver);
   saveBtn.addEventListener('click', () => ctx.save.onSave());
@@ -412,8 +239,6 @@ export function mount(container) {
       onBlank,
       onStartOver,
       onResize,
-      currentCrop: () => currentCrop(),
-      regenerate: () => regenerate(),
     },
     imageSource: null,
     cropPreview: null,

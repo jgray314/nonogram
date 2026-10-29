@@ -34,8 +34,6 @@
  * @property {() => void} onBlank
  * @property {() => void} onStartOver
  * @property {() => void} onResize
- * @property {() => any} currentCrop forwarded until the image-source module owns it
- * @property {() => void} regenerate forwarded until the image-source module owns it
  */
 
 /**
@@ -46,11 +44,11 @@
  * @property {ReturnType<typeof import('../../solver-client.js').createSolverClient>} solver
  * @property {() => (HTMLElement | null)} root reads the module-level root in index.js (null after unmount)
  * @property {CreateShell} shell
- * @property {any} imageSource what createImageSource returns
- * @property {any} cropPreview what createCropPreview returns
- * @property {any} gridView what createGridView returns
- * @property {any} report what createReport returns
- * @property {any} save what createSave returns
+ * @property {ReturnType<typeof import('./image-source.js').createImageSource>} imageSource
+ * @property {ReturnType<typeof import('./crop-preview.js').createCropPreview>} cropPreview
+ * @property {ReturnType<typeof import('./grid-view.js').createGridView>} gridView
+ * @property {ReturnType<typeof import('./report.js').createReport>} report
+ * @property {ReturnType<typeof import('./save.js').createSave>} save
  */
 
 export {};

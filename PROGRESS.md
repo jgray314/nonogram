@@ -6,7 +6,7 @@ This is the verification ledger: check gates and controls, each with a command t
 It is not the product roadmap. What the product does and what is open lives in the README
 and plan docs that AGENTS.md lists under 'Where things are'.
 
-Commit: `3e38fea`  
+Commit: `02bfd56`  
 Full check: `npm test && npm run lint && npm run format:check && npm run typecheck`
 
 ## Done

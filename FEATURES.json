@@ -22,7 +22,8 @@
         "at": "2026-10-29T20:55:58Z",
         "exit_code": 0,
         "seal": "moaamadmkkibnplg"
-      }
+      },
+      "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
     {
       "id": "lint-clean",
@@ -35,7 +36,8 @@
         "at": "2026-10-29T20:55:59Z",
         "exit_code": 0,
         "seal": "hapdikidgmfnlekb"
-      }
+      },
+      "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
     {
       "id": "format-clean",
@@ -48,7 +50,8 @@
         "at": "2026-10-29T20:56:00Z",
         "exit_code": 0,
         "seal": "dbkjbdmkicecgbco"
-      }
+      },
+      "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
     {
       "id": "import-bounds-registry",
@@ -62,7 +65,8 @@
         "at": "2026-10-29T20:56:00Z",
         "exit_code": 0,
         "seal": "caenihjpodmmhodf"
-      }
+      },
+      "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
     {
       "id": "public-docs-denylist",
@@ -76,7 +80,8 @@
         "at": "2026-10-29T20:56:01Z",
         "exit_code": 0,
         "seal": "fllleccidflacbpc"
-      }
+      },
+      "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
     {
       "id": "encoding-guard",
@@ -90,7 +95,8 @@
         "at": "2026-10-29T20:56:01Z",
         "exit_code": 0,
         "seal": "cpmggfndbpdclaea"
-      }
+      },
+      "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
     {
       "id": "docs-claims-pinned",
@@ -104,7 +110,8 @@
         "at": "2026-10-29T20:56:01Z",
         "exit_code": 0,
         "seal": "plbmhijbicpkmmij"
-      }
+      },
+      "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
     {
       "id": "typecheck-clean",
@@ -118,7 +125,8 @@
         "at": "2026-10-29T20:56:03Z",
         "exit_code": 0,
         "seal": "fpgahpgadebeigkg"
-      }
+      },
+      "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
     {
       "id": "ux-checks-headless",
@@ -132,7 +140,8 @@
         "at": "2026-10-29T20:56:15Z",
         "exit_code": 0,
         "seal": "eojnbkfcagnhakoo"
-      }
+      },
+      "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
     {
       "id": "color-blank-rule",
@@ -146,7 +155,8 @@
         "at": "2026-10-29T20:56:27Z",
         "exit_code": 0,
         "seal": "nejjecdokfcpigkb"
-      }
+      },
+      "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
     {
       "id": "color-play",
@@ -160,7 +170,8 @@
         "at": "2026-10-29T20:56:39Z",
         "exit_code": 0,
         "seal": "cmecapiibnccabje"
-      }
+      },
+      "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
     {
       "id": "color-first-class",
@@ -174,7 +185,8 @@
         "at": "2026-10-29T20:56:51Z",
         "exit_code": 0,
         "seal": "baiaehfnjgddophh"
-      }
+      },
+      "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
     {
       "id": "color-library-label",
@@ -188,7 +200,8 @@
         "at": "2026-10-29T20:57:04Z",
         "exit_code": 0,
         "seal": "loddlijljbpggbdc"
-      }
+      },
+      "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
     {
       "id": "color-pixel-palette",
@@ -202,7 +215,8 @@
         "at": "2026-10-29T20:57:15Z",
         "exit_code": 0,
         "seal": "meiaklbckglhahhh"
-      }
+      },
+      "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
     {
       "id": "color-blank-display",
@@ -216,7 +230,8 @@
         "at": "2026-10-29T20:57:27Z",
         "exit_code": 0,
         "seal": "ocnenbioelldnlln"
-      }
+      },
+      "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
     {
       "id": "e2e-pipeline-helpers",
@@ -230,7 +245,8 @@
         "at": "2026-10-29T20:57:39Z",
         "exit_code": 0,
         "seal": "iofofcifdeamncag"
-      }
+      },
+      "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
     {
       "id": "e2e-pipeline-mono",
@@ -244,7 +260,8 @@
         "at": "2026-10-29T20:57:51Z",
         "exit_code": 0,
         "seal": "ekacjlmgdomofkbd"
-      }
+      },
+      "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
     {
       "id": "e2e-pipeline-backup",
@@ -258,7 +275,8 @@
         "at": "2026-10-29T20:58:03Z",
         "exit_code": 0,
         "seal": "kaklfkpllkndehba"
-      }
+      },
+      "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
     {
       "id": "e2e-pipeline-color",
@@ -272,7 +290,8 @@
         "at": "2026-10-29T20:58:15Z",
         "exit_code": 0,
         "seal": "gjdignodnohmhkie"
-      }
+      },
+      "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
     {
       "id": "e2e-pipeline-webpbn",
@@ -286,7 +305,8 @@
         "at": "2026-10-29T20:58:27Z",
         "exit_code": 0,
         "seal": "jiagmaoldlenefia"
-      }
+      },
+      "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
     {
       "id": "storage-lint-rule",
@@ -300,7 +320,8 @@
         "at": "2026-10-29T20:58:27Z",
         "exit_code": 0,
         "seal": "dpjampmflaedklcb"
-      }
+      },
+      "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
     {
       "id": "split-create-view",
@@ -314,7 +335,8 @@
         "at": "2026-10-29T20:58:39Z",
         "exit_code": 0,
         "seal": "doghgbkpbdkidldp"
-      }
+      },
+      "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
     {
       "id": "split-play-view",
@@ -328,7 +350,8 @@
         "at": "2026-10-29T20:58:50Z",
         "exit_code": 0,
         "seal": "elbfmpglldpeaone"
-      }
+      },
+      "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
     {
       "id": "view-size-cap",
@@ -342,7 +365,8 @@
         "at": "2026-10-29T20:58:52Z",
         "exit_code": 0,
         "seal": "hcblpiekkppilojn"
-      }
+      },
+      "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
     {
       "id": "save-file-ux-check",
@@ -356,7 +380,8 @@
         "at": "2026-10-29T20:59:04Z",
         "exit_code": 0,
         "seal": "gphnomjcbedklepm"
-      }
+      },
+      "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
     {
       "id": "leave-saves-time-ux-check",
@@ -370,7 +395,9 @@
         "at": "2026-10-29T20:59:16Z",
         "exit_code": 0,
         "seal": "gjlibanlojlnmnhm"
-      }
+      },
+      "plan_review_skipped": "predates the plan gate (2026-10-29)"
     }
-  ]
+  ],
+  "plan_gate": true
 }

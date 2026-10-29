@@ -29,6 +29,7 @@ Browser nonogram maker and player: turns an image into a fair puzzle, then plays
 8. Every number a doc quotes (counts, timings) must be reproducible from this repo. Re-time before quoting.
 9. Stay inside the active feature: no refactors, renames or fixes to unrelated code in the same change. Note them for later instead.
 10. A `verify` command must fail if the thing it verifies is deleted or unregistered. `npm run test:ux` alone exits 0 with a check missing, so chain a test that pins the check's id (see `test/ux_registry.test.js`).
+11. The plan gate is on (`"plan_gate": true` in `FEATURES.json`). A new feature row names its plan (`"plan": "docs/plans/..."`); run `/plan-review` on it and record the review with `python scripts/features.py plan-reviewed <plan> --findings <review doc>` before `activate` will accept the feature. A plan edited after its review needs another one. To skip it, say why: `activate <id> --skip-plan-review "<reason>"`; `status` lists every override. Rows from before the gate are marked as predating it.
 
 ## End of a session
 

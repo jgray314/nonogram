@@ -25,13 +25,29 @@ lockfile, CI workflow, enough features, full check green); `init-check --complet
 --fresh-session-tested` records a sealed checkpoint at a clean HEAD and lifts the
 gate. A FEATURES.json with no `init` key is a legacy project and is not gated.
 
+Plan review is a gate too. With `"plan_gate": true`, `activate` refuses a feature
+unless its plan (the `plan` key on the feature) has a recorded `/plan-review`: after
+the review, `plan-reviewed <plan> --findings <doc>` stores the plan's and the findings'
+hashes, sealed, and `activate` checks the plan has not changed since. The override is
+explicit and visible: `activate <id> --skip-plan-review "<reason>"` writes the reason
+on the feature, and `status` lists every override. `check` fails a gated feature that
+has neither a valid record nor a reason. `plan-gate on` turns the gate on for an
+existing project and marks rows already past not_started as predating it. A
+FEATURES.json without `plan_gate` is not gated. Like the seals above, this is tamper
+evidence and friction, not proof that the review was good.
+
 Every command appends one line to .harness/events.jsonl (gitignored; command, feature id, ok),
 as do the commit-msg hook (via `event`) and the subagent guard. That file is how
 /harness-audit shows whether a control fired. A write failure is swallowed.
 
 Usage: features.py {list,status,activate,verify,verify-all,block,check,progress,clean,full-check,restamp,init-check} [id] [reason]
        features.py event <source> <name> [key=value ...]
+       features.py lane start <name>
+       features.py lane end <name> [ok|fail]
        features.py init-check [--complete] [--fresh-session-tested] [--skip-run]
+       features.py activate <id> [--skip-plan-review "<reason>"]
+       features.py plan-reviewed <plan.md> --findings <review doc>
+       features.py plan-gate {on|off}
 """
 
 import hashlib
@@ -69,6 +85,43 @@ def log_event(source, event, **fields):
             fh.write(json.dumps(rec, ensure_ascii=False) + "\n")
     except Exception:
         pass
+
+
+def lane_duration(name):
+    """Seconds since the most recent unmatched lane start for `name`, or None.
+    Never raises: unreadable or malformed log lines are skipped."""
+    try:
+        open_starts = []
+        for line in EVENTS.read_text(encoding="utf-8").splitlines():
+            try:
+                rec = json.loads(line)
+                if rec["source"] != "lane" or rec["name"] != name:
+                    continue
+                if rec["event"] == "start":
+                    open_starts.append(datetime.fromisoformat(rec["at"]))
+                elif rec["event"] == "end" and open_starts:
+                    open_starts.pop()
+            except Exception:
+                continue
+        if not open_starts:
+            return None
+        return round((datetime.now(UTC) - open_starts[-1]).total_seconds(), 1)
+    except Exception:
+        return None
+
+
+def cmd_lane(rest):
+    """lane start <name> | lane end <name> [ok|fail]; runs before FEATURES.json loads."""
+    if len(rest) < 2 or rest[0] not in ("start", "end"):
+        sys.exit(__doc__)
+    action, name = rest[0], rest[1]
+    if action == "start":
+        log_event("lane", "start", name=name)
+        return
+    status = rest[2] if len(rest) > 2 else "ok"
+    if status not in ("ok", "fail"):
+        sys.exit(__doc__)
+    log_event("lane", "end", name=name, ok=status == "ok", duration_s=lane_duration(name))
 
 
 def env():
@@ -125,6 +178,114 @@ def seal_v1(f, ev):
     """The original hex seal. Still accepted by `check` so existing evidence stays
     valid until a restamp rewrites it; remove once every repo has restamped."""
     return hashlib.sha256(_seal_raw(f, ev, "v1").encode()).hexdigest()[:16]
+
+
+PLAN_KEYS = ("plan", "plan_sha", "findings", "findings_sha", "commit", "at")
+
+
+def plan_seal(r):
+    """Letters only, like `seal`. Covers the plan and findings hashes and the commit."""
+    raw = "|".join(str(r.get(k, "")) for k in PLAN_KEYS) + "|plan-review-v1"
+    digest = hashlib.sha256(raw.encode()).hexdigest()[:16]
+    return digest.translate(str.maketrans(string.digits, "ghijklmnop"))
+
+
+def file_sha(rel):
+    return hashlib.sha256((ROOT / rel).read_bytes()).hexdigest()
+
+
+def cmd_plan_reviewed(data, rest):
+    """Record that /plan-review was run on a plan: plan-reviewed <plan> --findings <doc>."""
+    if len(rest) != 3 or rest[1] != "--findings":
+        sys.exit(__doc__)
+    plan, findings = rest[0].replace("\\", "/"), rest[2].replace("\\", "/")
+    if plan == findings:
+        sys.exit("the findings document must be a different file from the plan")
+    for rel, what in ((plan, "plan"), (findings, "findings document")):
+        if not (ROOT / rel).is_file():
+            sys.exit(f"{what} not found: {rel}")
+        if not git("ls-files", "--", rel):
+            sys.exit(f"{what} {rel} is not tracked by git: `git add` it so the review leaves a trail")
+    head = git("rev-parse", "HEAD")
+    if not head:
+        sys.exit("plan-reviewed needs a commit to point at (no HEAD yet)")
+    rec = {
+        "plan": plan,
+        "plan_sha": file_sha(plan),
+        "findings": findings,
+        "findings_sha": file_sha(findings),
+        "commit": head,
+        "at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
+    rec["seal"] = plan_seal(rec)
+    reviews = [r for r in data.get("plan_reviews", []) if r.get("plan") != plan]
+    data["plan_reviews"] = [*reviews, rec]
+    save(data)
+    log_event("plan", "reviewed", plan=plan)
+    print(f"recorded plan review for {plan} (findings: {findings})")
+
+
+def cmd_plan_gate(data, rest):
+    if rest not in (["on"], ["off"]):
+        sys.exit(__doc__)
+    if rest == ["off"]:
+        data.pop("plan_gate", None)
+        save(data)
+        print("plan gate off")
+        return
+    data["plan_gate"] = True
+    stamped = []
+    today = datetime.now(UTC).strftime("%Y-%m-%d")
+    for f in data["features"]:
+        if f.get("state") != "not_started" and not f.get("plan_review") and not f.get(
+            "plan_review_skipped"
+        ):
+            f["plan_review_skipped"] = f"predates the plan gate ({today})"
+            stamped.append(f["id"])
+    save(data)
+    print(f"plan gate on; {len(stamped)} feature(s) already past not_started marked as predating it")
+
+
+def apply_plan_gate(data, f, skip):
+    """Called by activate when plan_gate is on. Sets plan_review or plan_review_skipped."""
+    fid = f["id"]
+    if skip is not None:
+        if not skip.strip():
+            sys.exit("--skip-plan-review needs a reason")
+        f.pop("plan_review", None)
+        f["plan_review_skipped"] = skip.strip()
+        log_event("plan", "skipped", id=fid, reason=skip.strip())
+        return f"plan review skipped: {skip.strip()}"
+    plan = f.get("plan")
+    if not plan:
+        if (f.get("plan_review_skipped") or "").strip():
+            return f"plan review skipped: {f['plan_review_skipped']}"
+        sys.exit(
+            f"cannot activate {fid}: the plan gate is on and the feature names no plan. Add a "
+            f"'plan' path to its row, run /plan-review on it and record it with "
+            f"`plan-reviewed <plan> --findings <doc>`, or override with "
+            f'`activate {fid} --skip-plan-review "<reason>"`.'
+        )
+    rec = next((r for r in data.get("plan_reviews", []) if r.get("plan") == plan), None)
+    howto = (
+        f"run /plan-review on {plan}, then `python scripts/features.py plan-reviewed {plan} "
+        f"--findings <review doc>`, or override with "
+        f'`activate {fid} --skip-plan-review "<reason>"`'
+    )
+    if rec is None:
+        sys.exit(f"cannot activate {fid}: {plan} has no recorded plan review. First {howto}.")
+    if rec.get("seal") != plan_seal(rec):
+        sys.exit(f"cannot activate {fid}: the plan review record for {plan} fails its seal. {howto}.")
+    if not (ROOT / plan).is_file():
+        sys.exit(f"cannot activate {fid}: plan file {plan} not found")
+    if file_sha(plan) != rec["plan_sha"]:
+        sys.exit(
+            f"cannot activate {fid}: {plan} changed since its review ({rec['at']}). Review it "
+            f"again: {howto}."
+        )
+    f["plan_review"] = {k: rec[k] for k in (*PLAN_KEYS, "seal")}
+    f.pop("plan_review_skipped", None)
+    return f"plan reviewed ({plan}, {rec['at']})"
 
 
 def init_seal(rec):
@@ -186,6 +347,16 @@ def problems(data):
         out.append(f"init: state '{istate}' is not 'pending' or 'complete'")
     for f in data["features"]:
         fid = f.get("id", "?")
+        if data.get("plan_gate") and f.get("state") in ("active", "blocked", "passing"):
+            pr = f.get("plan_review")
+            if pr:
+                if pr.get("seal") != plan_seal(pr):
+                    out.append(f"{fid}: plan review record fails its seal (edited by hand?)")
+            elif not (f.get("plan_review_skipped") or "").strip():
+                out.append(
+                    f"{fid}: plan gate is on but the feature has no plan review and no "
+                    f"override (use `activate` with a recorded review or --skip-plan-review)"
+                )
         for key in ("id", "behavior", "verify", "state"):
             if not f.get(key):
                 out.append(f"{fid}: missing '{key}'")
@@ -218,12 +389,24 @@ def cmd_status(data):
     p, a = vcr(data)
     rate = f"{p}/{a} = {p / a:.2f}" if a else "n/a (nothing activated)"
     print(f"\nVerified completion rate: {rate}")
+    if data.get("plan_gate"):
+        skipped = [
+            f"{f['id']}: {f['plan_review_skipped']}"
+            for f in data["features"]
+            if (f.get("plan_review_skipped") or "").strip()
+        ]
+        old = [x for x in skipped if ": predates the plan gate" in x]
+        shown = [x for x in skipped if x not in old]
+        print(
+            f"Plan gate: on. Overrides: {'; '.join(shown) if shown else 'none'}"
+            + (f" ({len(old)} row(s) predate the gate)" if old else "")
+        )
     stale = sweep_note(data)
     if stale:
         print("Periodic sweeps due: " + "; ".join(stale) + " (offer to run them)")
 
 
-def cmd_activate(data, fid):
+def cmd_activate(data, fid, rest=()):
     if init_state(data) == "pending":
         sys.exit(
             f"cannot activate {fid}: initialization is not complete. Work through "
@@ -241,9 +424,15 @@ def cmd_activate(data, fid):
         )
     if f["state"] == "passing":
         sys.exit(f"{fid} is already passing")
+    note = ""
+    if data.get("plan_gate"):
+        skip = None
+        if "--skip-plan-review" in rest:
+            skip = " ".join(rest[list(rest).index("--skip-plan-review") + 1 :])
+        note = " (" + apply_plan_gate(data, f, skip) + ")"
     f["state"] = "active"
     save(data)
-    print(f"{fid} active. Done means: {f['verify']}")
+    print(f"{fid} active{note}. Done means: {f['verify']}")
 
 
 def run_verify(f):
@@ -679,11 +868,16 @@ def main(argv):
             sys.exit(__doc__)
         log_event(rest[0], rest[1], **dict(kv.split("=", 1) for kv in rest[2:] if "=" in kv))
         return
+    if cmd == "lane":
+        cmd_lane(rest)
+        return
     data = load()
     table = {
         "list": lambda: cmd_list(data),
         "status": lambda: cmd_status(data),
-        "activate": lambda: cmd_activate(data, rest[0]),
+        "activate": lambda: cmd_activate(data, rest[0], rest[1:]),
+        "plan-reviewed": lambda: cmd_plan_reviewed(data, rest),
+        "plan-gate": lambda: cmd_plan_gate(data, rest),
         "verify": lambda: cmd_verify(data, rest[0]),
         "verify-all": lambda: cmd_verify_all(data),
         "block": lambda: cmd_block(data, rest[0], " ".join(rest[1:])),

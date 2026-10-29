@@ -37,13 +37,7 @@ export function createSave(ctx) {
    */
   function artFor(row, col) {
     if (!state.image) return undefined;
-    const rect = tileCropRect(
-      /** @type {any} */ (ctx.shell).currentCrop(),
-      st.tileRows,
-      st.tileCols,
-      row,
-      col,
-    );
+    const rect = tileCropRect(ctx.imageSource.currentCrop(), st.tileRows, st.tileCols, row, col);
     return pickArt((side, quality) => {
       const size = artSize(rect.w, rect.h, side);
       const canvas = el('canvas', { width: size.width, height: size.height });

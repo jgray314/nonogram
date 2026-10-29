@@ -17,7 +17,7 @@ export function createCropPreview(ctx) {
     previewCanvas.height = ch;
     const g = previewCanvas.getContext('2d');
     g.drawImage(state.image.canvas, 0, 0, cw, ch);
-    const c = ctx.shell.currentCrop();
+    const c = ctx.imageSource.currentCrop();
     const x = c.x * state.previewScale;
     const y = c.y * state.previewScale;
     const w = c.w * state.previewScale;
@@ -38,7 +38,7 @@ export function createCropPreview(ctx) {
     if (!state.image || e.button !== 0 || !ctx.shell.okToDiscard()) return;
     const d = ctx.shell.dims();
     const base = centerCrop(state.image.w, state.image.h, d.width, d.height);
-    state.drag = { x: e.clientX, y: e.clientY, from: ctx.shell.currentCrop(), base };
+    state.drag = { x: e.clientX, y: e.clientY, from: ctx.imageSource.currentCrop(), base };
     previewCanvas.setPointerCapture(e.pointerId);
     previewCanvas.classList.add('dragging');
   }
@@ -52,7 +52,7 @@ export function createCropPreview(ctx) {
       dy: state.drag.from.y - state.drag.base.y + (e.clientY - state.drag.y) / k,
     });
     st.offset = { dx: crop.x - state.drag.base.x, dy: crop.y - state.drag.base.y };
-    ctx.shell.regenerate();
+    ctx.imageSource.regenerate();
   }
   function onPreviewUp() {
     state.drag = null;

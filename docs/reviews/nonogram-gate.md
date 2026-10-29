@@ -483,3 +483,61 @@ Owner, on the findings: "skip medium and lows for now", W1 as below, W2 option (
 5. **Color has no obvious consistent path the way two-tone did.** The owner's plan is a cheap feel test first, then adjust; the same lesson as pass 5's check 10. **Noted only:** the research items (L5, W3 to W6, W10, L12) stay deferred until the feel test says the photo numbers will drive a build plan. **Gate pass 7 prune (2026-10-29):** the feel test ran on 2026-10-23 and the owner named no specifics, so the trigger fired without a build plan. Re-deferred with a new trigger: the owner names what is still wrong with photo colors (`FUTURE-WORK.md`, item 4).
 
 **Pass closed.**
+
+# Pass 7: slim gate on the e2e pipeline checks, 2026-10-29
+
+**Run:** 2026-10-29. **Scope:** `772868d..e5efbb6` on local `main` (unpushed): the four end-to-end UX checks (`test/ux/pipeline-*.js`), the harness helpers, `test/ux/expected-verdict.js`, the color fixture, the `e2e-pipeline-*` FEATURES rows, and how the docs describe them. The view-split plan is not in this slice.
+**Prior runs:** passes 1 to 6 above. Neither reviewer was shown them.
+**Reviewers:** two read-only Explore subagents, cold. Rubric L1 1/2/1/2, L2 2/1/2/2. **Owner override:** none.
+**Step 0, backlog prune.** Six items, all applied as proposed (`9bb85ba`), with one correction: "kill as done" for the harness item was only half true (the save-file round trip was not built), so it is marked mostly done with that part left open.
+**Before the lenses:** the four lanes' own mutation proofs (Wave 2) had already found and fixed three weak checks (webpbn image rows, a plausible constant worker verdict, a two-tone "color" puzzle in the backup check); see `docs/plans/e2e-pipeline-checks.md`.
+
+## Lens 1: Adversarial
+
+- **L1-1 (High, NEW).** `verify` for the pipeline rows was `npm run test:ux`, which exits 0 when nothing fails and at least one check passes. **Probe:** with `PIPELINE_CHECKS` emptied, the runner printed "45 pass, 0 fail" and exited 0, so deleting a check left every row `passing`.
+- **L1-2 (Medium, NEW).** The color check accepted any 3 to 5 colors, so a Colors option that was ignored passed.
+- **L1-3 (Medium, NEW).** The backup check compared only the verdict after import, so a lost `blank`, title or art passed (the id hashes only grid, palette hex and set).
+- **L1-4 (Medium, NEW).** Nothing tied the saved grid to the uploaded image; an inverted or constant converter passed on self-consistency.
+- **L1-5 (Medium, NEW).** The expected verdict compared status and sweeps only; a dropped `tier` passed.
+- **L1-6 (Medium, NEW).** `createAndSave` matched the "Open it" link of a refused duplicate save, so it could return an old id without saving; its docstring said the opposite. Masked today by `resetStore`.
+- **L1-7 (Low, NEW).** `resetStore` wipes the seeded puzzles; safe only because the pipeline checks are last in `CHECKS`.
+- **L1-8 (Low, NEW).** Two grid waits in the helpers were vacuous (the grid exists before the upload).
+- **L1-9 (Low, NEW).** Timeouts are generous (15s/20s) with a clean failure; `DataTransfer` is Chromium-only.
+
+**Verified clean:** stub restore in `captureDownload` on the right window and on the throw path; `setFile` uses the frame's own constructors; no Save-enabled race after a Colors change; the tamper step always changes the verdict and asserts exactly 2 records; webpbn expected clues and picture are derived in the check, not from `webpbn.js`; ids unique, no `known` flags; the page refuses non-127.0.0.1 hosts.
+
+## Lens 2: Outside-reviewer walkthrough
+
+- **W1 (High, NEW).** Four rows' evidence said "verified at `4707b09`", a commit that contained none of the checks, stamped with a dirty tree; `PROGRESS.md` repeated it.
+- **W2 (High, REPEAT-OF-pass-6 W1).** README quoted "about 8s" for `test:ux` twice; measured 11.5s. The docs-claims test's 1.5x band hides it.
+- **W3 (Medium, NEW).** README's UX-check paragraph did not mention the end-to-end checks.
+- **W4 (Medium, NEW).** `view-split.md` quoted "the 45 UX checks".
+- **W5 (Medium, NEW).** `test/ux/pipeline.js` kept a lane-workflow template comment; the plan claimed a guard the code lacks.
+- **W6 (Medium, NEW).** The plan's original Wave 2 table and the webpbn row still said "dimensions"; the export writes none.
+- **W7 (Medium, NEW).** `docs/plans/` is outside the public-docs scan (`^docs/[^/]+\.md$`) and carries orchestration wording.
+- **W8 (Low, NEW).** Three different timings for one suite across the repo.
+- **W9 (Low, NEW).** Merge ladder and a fixup commit in the history; no action needed.
+- **W10 (Low, NEW).** `FUTURE-WORK.md` and `docs/plans/` not linked from README or AGENTS.
+- **W11 (Low, NEW).** AGENTS and PLAN mention tooling not in the repo (user-level skills, harness-kit).
+
+**Verified clean:** 49 pass / 450 then 452 tests / 20 of 20 features, re-run; no private paths or owner references; check names match their assertions; plan helper signatures match the code; the left-out save-file item is stated honestly.
+
+## Disposition
+
+| Finding | Disposition |
+|---|---|
+| L1-1 (High) | **Fixed** `70f96ce`. `test/ux_registry.test.js` (fast suite) pins the four ids, unique ids and no `known`; chained into the four rows' `verify`. **Proof, mutation-verified guard:** with the registry emptied, the old runner exits 0 with 45 pass and the new test fails ("check pipeline-mono-upload-to-library is not in CHECKS"). |
+| W1 (High) | **Fixed** `e5efbb6`. `features.py restamp` at a clean HEAD (all 20 rows at `70f96ce`); `PROGRESS.md` regenerated. **Proof:** `features.py check` ok and every row's evidence names a commit that contains its check. |
+| W2 (High) | **Fixed** `70f96ce` for the value (README 11s, recorded baseline 11, measured 11.5s). **Accepted residual:** the 1.5x tolerance still passes a README that says 8s against 11 (8 is above 11/1.5). Tightening it would flake on slower machines; the real control is re-timing when a suite gains checks (retrospective lesson 2). |
+| L1-2 | **Fixed** `70f96ce`: asserts exactly 4 colors. **Mutation:** Colors forced to 3, check fails "asked for 4 colors in total, got 3". |
+| L1-3 | **Fixed** `70f96ce`: whole record minus verdict compared across the round trip. **Mutation:** `blank` removed from `PUZZLE_KEYS`, check fails. |
+| L1-4 | **Fixed** `70f96ce`: the cat picture is pinned as a golden. **Mutation:** inverted `binarize`, check fails. Color regions are not pinned beyond the color count (**noted only**). |
+| L1-5 | **Fixed** `70f96ce`: full verdict compared, expected value built without `verdictOf`. First attempt was circular (the mutation passed); caught by running it, then fixed. **Mutation:** `tier` dropped from `verdictOf`, two checks fail. |
+| L1-6 | **Fixed** `70f96ce`: `createAndSave` throws unless the message reads "Saved.". **Proof:** a throwaway check saving the same image twice got "was not saved". |
+| L1-7, L1-8 | **Fixed** `70f96ce`: ordering requirement written in `pipeline.js`; vacuous waits removed. |
+| L1-9 | **Noted only.** Large margin; CI is headless Chrome. |
+| W3, W4, W5, W6, W8, W10 | **Fixed** `70f96ce` (README, view-split, `pipeline.js` header, plan table and row wording, AGENTS links). |
+| W7 | **Fixed** `70f96ce`: the public-docs scan now covers `docs/plans/`. The process wording stays; PLAN.md is the same kind of record. |
+| W9, W11 | **Noted only.** History is accurate; the out-of-repo tooling is explained in AGENTS. |
+
+**Close checks:** 452 tests, lint, format and typecheck clean, 49 of 49 UX checks, `features.py check` ok after restamp. Nothing pushed.

@@ -292,36 +292,71 @@
       "id": "storage-lint-rule",
       "behavior": "Only src/store.js may use localStorage or sessionStorage: ESLint rejects them (and globalThis.localStorage) anywhere else in src, and inline eslint-disable comments cannot switch the rule off.",
       "verify": "node --test test/lint_rules.test.js",
-      "state": "not_started",
-      "source": "docs/plans/view-split.md"
+      "state": "passing",
+      "source": "docs/plans/view-split.md",
+      "evidence": {
+        "commit": "5c56afb1f34821ae2ec3c02d34c5e0cc71b06262",
+        "dirty": true,
+        "at": "2026-10-29T19:09:24Z",
+        "exit_code": 0,
+        "seal": "dinikboghnbodoep"
+      }
     },
     {
       "id": "split-create-view",
       "behavior": "src/views/create.js is split into src/views/create/ modules (build, image-source, crop-preview, grid-view, report, save, index) with no change in behavior; the layout test pins the modules and their exports.",
       "verify": "node --test test/views_layout_create.test.js test/create.test.js && npm run test:ux",
-      "state": "not_started",
-      "source": "docs/plans/view-split.md"
+      "state": "passing",
+      "source": "docs/plans/view-split.md",
+      "evidence": {
+        "commit": "5c56afb1f34821ae2ec3c02d34c5e0cc71b06262",
+        "dirty": true,
+        "at": "2026-10-29T19:09:35Z",
+        "exit_code": 0,
+        "seal": "lllpffknmnboiphl"
+      }
     },
     {
       "id": "split-play-view",
       "behavior": "src/views/play.js is split into src/views/play/ modules (build, hud, persist, rules-layout, session, util, index) with no change in behavior; the layout test pins the modules and their exports.",
       "verify": "node --test test/views_layout_play.test.js test/game.test.js test/play-state.test.js && npm run test:ux",
-      "state": "not_started",
-      "source": "docs/plans/view-split.md"
+      "state": "passing",
+      "source": "docs/plans/view-split.md",
+      "evidence": {
+        "commit": "5c56afb1f34821ae2ec3c02d34c5e0cc71b06262",
+        "dirty": true,
+        "at": "2026-10-29T19:09:46Z",
+        "exit_code": 0,
+        "seal": "ahgeeahhldckjjmk"
+      }
     },
     {
       "id": "view-size-cap",
       "behavior": "No file under src/ is longer than 500 lines: max-lines is on, inline disables are ignored, and a test pins the rule and its scope.",
       "verify": "node --test test/lint_size_cap.test.js && npm run lint",
-      "state": "not_started",
-      "source": "docs/plans/view-split.md"
+      "state": "passing",
+      "source": "docs/plans/view-split.md",
+      "evidence": {
+        "commit": "5c56afb1f34821ae2ec3c02d34c5e0cc71b06262",
+        "dirty": true,
+        "at": "2026-10-29T19:09:58Z",
+        "exit_code": 0,
+        "seal": "cleahopfmfgndpfc"
+      }
     },
     {
       "id": "save-file-ux-check",
       "behavior": "A UX check drives play's Export save and Import save: an exported save re-imports to the same cells, elapsed time and hearts, and a save for another puzzle is handled; it fails if the import handler stops writing the save or stops remounting.",
       "verify": "node --test test/ux_registry.test.js && npm run test:ux",
-      "state": "not_started",
-      "source": "docs/plans/view-split.md Wave 1 1d"
+      "state": "passing",
+      "source": "docs/plans/view-split.md Wave 1 1d",
+      "evidence": {
+        "commit": "5c56afb1f34821ae2ec3c02d34c5e0cc71b06262",
+        "dirty": true,
+        "at": "2026-10-29T19:09:56Z",
+        "exit_code": 0,
+        "seal": "njomiccncnnialho"
+      }
     }
   ]
 }

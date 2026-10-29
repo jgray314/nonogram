@@ -35,6 +35,7 @@
  * @property {() => void} onStartOver
  * @property {() => void} onResize
  * @property {() => any} currentCrop forwarded until the image-source module owns it
+ * @property {() => void} regenerate forwarded until the image-source module owns it
  */
 
 /**

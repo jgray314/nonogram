@@ -7,6 +7,7 @@ import { createStore } from '../../src/store.js';
 import { samplePuzzles, colorSamplePuzzles } from '../../src/samples.js';
 import { puzzleId } from '../../src/format.js';
 import { pause, waitFor } from './harness.js';
+import { PIPELINE_CHECKS } from './pipeline.js';
 
 function assert(ok, message) {
   if (!ok) throw new Error(message);
@@ -876,6 +877,7 @@ export const CHECKS = [
       assert(bare.length === 0, `${bare.length} control(s) without their own label`);
     },
   },
+  ...PIPELINE_CHECKS,
 ];
 
 export { clearSaves };

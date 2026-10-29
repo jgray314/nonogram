@@ -11,6 +11,7 @@ const PIPELINE_IDS = [
   'pipeline-color-upload-to-library',
   'pipeline-backup-round-trip',
   'pipeline-webpbn-export',
+  'pipeline-save-file-round-trip',
 ];
 
 test('ux registry: every end-to-end pipeline check is registered', () => {

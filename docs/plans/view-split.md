@@ -120,3 +120,42 @@ The play map showed 12 module-crossing writes under the first cut, so the play s
 ## Gate
 
 This plan gets its own gate: a `/gate-review` scoped to this round, run once every lane is done and merged, before anything from this plan is pushed. It is not combined with the end-to-end checks round, which was gated (pass 7) and pushed separately. Nothing in this plan pushes. Lanes merge to local `main` only.
+
+## Results
+
+Executed 2026-10-29 on local `main` (not pushed). Every file under `src/` is at or under 500 lines; the largest is `src/color.js` at 457 and the largest view file is `src/views/create/index.js` at 289 (was `create.js` at 922; `play.js` was 778 and `src/views/play/index.js` is now 220). Both views split cleanly; the largest new module is `play/session.js` at 220.
+
+| Piece | Where it landed |
+|---|---|
+| Storage and inline-disable lint rules, with `test/lint_rules.test.js` | Wave 0a |
+| `src/views/dom.js` with `el` and `elc` (play had 47 call sites, not 48: the 48 counted the definition) | Wave 0c |
+| Read-only maps of both closures | `view-split-map-create.md`, `view-split-map-play.md` |
+| DOM builders, state objects, folders, context contracts, stubs | Wave 1 (1a, 1b, 1c) |
+| Save-file export and import UX check (`pipeline-save-file-round-trip`) | Wave 1d |
+| Create: `report`, `save`, `crop-preview`, `grid-view`, `image-source` | Rounds 2.1 to 2.3 |
+| Play: `hud`, `persist`, `rules-layout`, `session` (`util` landed in 1c) | Rounds 2.1 and 2.2 |
+| `max-lines` 500 on `src/**` with `test/lint_size_cap.test.js` | Wave 4 |
+
+### What changed from the plan as written
+
+- Play's split was narrowed (one `session` module in place of `input`, `actions` and the clock), as the open item allowed; see the module table above.
+- Wave 1 grew a fourth lane (1d), because the persist move had no automated cover.
+- The size-cap test is its own file, so its feature row cannot pass before the rule exists.
+- `util.js` was created in 1c (it holds two pure helpers), not by the `hud` lane.
+- `rules-layout` could not take over the first calls of `pickBrush`, `syncMode` and `syncCoarse` where they stood (they ran before the context exists). They moved to just after the module is built, with the `coarse` listener registration still the first push into `cleanup`; the rendered play page matched the pre-split page at open and through a 10-step interaction sequence.
+- `clearPersistNow` sets `persistNow` to a no-op function, not `null`, because `unmount` calls it unconditionally (the original code assigned a no-op).
+- Typing: the lanes' temporary `@ts-expect-error`, `@ts-ignore` and `Record<string, any>` annotations were removed at each merge; the new context fields are typed in the two `context.js` files, and the module slots now use real `ReturnType` types in create.
+
+### Checks run by the orchestrator, beyond each lane's own
+
+- After every merge: `npm test`, lint, format, typecheck and `npm run test:ux` (50 pass at the end; 49 plus the new save-file check).
+- Rendered-page comparison in the browser pane against a checkout of the commit before the split (`d670153`): the 14 sample play pages and the Create page are byte-identical at open; a 10-step play sequence (fill, cross, fill, undo, undo, redo, restart, undo, toggle) gives identical DOM hashes at every step; a 15-step Create sequence (upload, threshold, invert, reset to auto, width, colors on and off, edit, undo, redo, start over, second upload, save) gives identical hashes at every step.
+
+### Coverage gaps found (changes that no UX check noticed)
+
+Each was found by a lane's mutation and not fixed, per the brief. Recorded here so the gate and the next round can decide.
+
+- Create: dropping the `image` reset in `newBlank`; dropping the `savedSig` reset in `onStartOver`; dropping the stale-result guard on the report timer's success path; dropping the `clearTimeout` in `scheduleReport`; dropping the `savedSig` write after a successful save; swapping the crop in `artFor` for the whole image; dropping the crop-box drag (`st.offset` write) and the crop overlay drawing; the `onSize` width and height writes are caught by one check only; dropping `scheduleReport` from `renderGridNow` is caught only through solver-wait timeouts in three other checks.
+- Play: reading a stale `history` in undo and redo; dropping the `state.history` replacement in `restart`; breaking `elapsedMs` accumulation in `tick`; always drawing a full heart in `refresh`; skipping `clearReveal` on restart; saving before the final clock tick in `unmount`; the gutter calculation in `sizeGrid`; the Redo button's presence.
+
+Not exercised at runtime: dragging the crop box. The browser pane had a zero-size viewport, so synthetic drags changed nothing in either build, and the earlier lane's mutation of the drag code was not caught either. The move of `crop-preview` is verified by reading the diff (the function bodies are identical apart from a local rename of `ctx` to `g` and the shell calls) and by the mutation table, not by a before and after run. A drag on a wide photo in a real browser is the check still owed.

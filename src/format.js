@@ -305,7 +305,7 @@ export function validateSave(x, puzzle) {
     }
     // Hints used (D18). Missing means 0. The cell count is a sanity bound, not
     // a true maximum: undo doesn't refund, so reveal, undo, reveal counts twice,
-    // and play.js stops counting at the bound.
+    // and the play view stops counting at the bound.
     const maxHints = puzzle.width * puzzle.height;
     if (x.hints !== undefined && (!isInt(x.hints) || x.hints < 0 || x.hints > maxHints)) {
       return fail(`hints must be an integer from 0 to ${maxHints}`);

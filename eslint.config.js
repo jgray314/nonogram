@@ -39,6 +39,8 @@ export default [
         ...STORAGE_NAMES.map((name) => ({ name, message: STORAGE_MESSAGE })),
       ],
       'no-restricted-properties': ['error', ...HTML_BANS, ...STORAGE_PROPERTY_BANS],
+      // A ratchet against growth, counting every line (docs/plans/line-cap-300.md lowers it).
+      'max-lines': ['error', { max: 500 }],
     },
   },
   {

@@ -110,7 +110,7 @@ export function blankGrid(width, height) {
 }
 
 /**
- * Editor state shape (owned by views/create.js, which mutates it):
+ * Editor state shape (owned by views/create/index.js, which mutates it):
  *   width, height   chosen size (from SIZES); per-tile size when tiles > 1
  *   tileRows, tileCols  tile counts (1 to 4); 1x1 is a normal single puzzle
  *   grid            full grid, (tileRows x height) by (tileCols x width) of 0/1

@@ -6,7 +6,7 @@ This is the verification ledger: check gates and controls, each with a command t
 It is not the product roadmap. What the product does and what is open lives in the README
 and plan docs that AGENTS.md lists under 'Where things are'.
 
-Commit: `d670153`  
+Commit: `7958e4e`  
 Full check: `npm test && npm run lint && npm run format:check && npm run typecheck`
 
 ## Done
@@ -46,7 +46,9 @@ None.
   - done when: `node --test test/lint_rules.test.js`
 - **split-create-view**: src/views/create.js is split into src/views/create/ modules (build, image-source, crop-preview, grid-view, report, save, index) with no change in behavior; the layout test pins the modules and their exports.
   - done when: `node --test test/views_layout_create.test.js test/create.test.js && npm run test:ux`
-- **split-play-view**: src/views/play.js is split into src/views/play/ modules (build, hud, input, actions, persist, rules-layout, index) with no change in behavior; the layout test pins the modules and their exports.
+- **split-play-view**: src/views/play.js is split into src/views/play/ modules (build, hud, persist, rules-layout, session, util, index) with no change in behavior; the layout test pins the modules and their exports.
   - done when: `node --test test/views_layout_play.test.js test/game.test.js test/play-state.test.js && npm run test:ux`
 - **view-size-cap**: No file under src/ is longer than 500 lines: max-lines is on, inline disables are ignored, and a test pins the rule and its scope.
   - done when: `node --test test/lint_size_cap.test.js && npm run lint`
+- **save-file-ux-check**: A UX check drives play's Export save and Import save: an exported save re-imports to the same cells, elapsed time and hearts, and a save for another puzzle is handled; it fails if the import handler stops writing the save or stops remounting.
+  - done when: `node --test test/ux_registry.test.js && npm run test:ux`

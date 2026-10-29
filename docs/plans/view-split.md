@@ -10,7 +10,7 @@ Both views are one `mount()` closure over shared mutable state (create: `st`, `i
 
 ## Target layout
 
-- `src/views/dom.js`: the shared `el()` helpers. The two views define `el` with different signatures (create: `el(tag, props, ...children)`, 57 call sites; play: `el(tag, className, text)`, 48 call sites). They are not merged: `dom.js` exports `el` (create's form) and `elc` (play's form), and play's call sites are renamed to `elc`. Lint (`no-undef`) and typecheck prove no site was missed.
+- `src/views/dom.js`: the shared `el()` helpers. The two views define `el` with different signatures (create: `el(tag, props, ...children)`, 57 call sites; play: `el(tag, className, text)`, 47 call sites). They are not merged: `dom.js` exports `el` (create's form) and `elc` (play's form), and play's call sites are renamed to `elc`. Lint (`no-undef`) and typecheck prove no site was missed.
 - `src/views/create/`: `index.js` (mount, wiring), `build.js` (DOM construction), plus the Wave 2 modules below.
 - `src/views/play/`: `index.js`, `build.js`, plus the Wave 2 modules below.
 - `eslint.config.js`: three additions.
@@ -18,27 +18,39 @@ Both views are one `mount()` closure over shared mutable state (create: `st`, `i
   - `linterOptions.noInlineConfig: true`, so a `/* eslint-disable */` comment cannot switch a rule off. No inline directives exist in the repo today, so this costs nothing.
   - `max-lines` at 500 on `src/**` (Wave 4). 500 passes every current file except the two views (the next largest is `color.js` at 457). It counts raw lines, with no blank-line or comment exemptions, so it cannot be argued around. 500 is a ratchet against growth, not the target: bringing every file down to 300 is the follow-up plan, [line-cap-300.md](line-cap-300.md), which starts only after this one is gated.
 
-### Provisional module cut (from the current function list; Wave 0b replaces this with measured ranges)
+### Module cut (measured in Wave 0b; see [view-split-map-create.md](view-split-map-create.md) and [view-split-map-play.md](view-split-map-play.md))
 
-Create (922 lines, `mount` spans 119 to 916):
+Create (922 lines, `mount` spans 119 to 916). Five modules, as first proposed, with two corrections: `artFor` moves to `save` (only the save functions call it), and ten functions the first table did not place stay in `index.js` (`showError`, `syncControls`, `dims`, `tiled`, `okToDiscard`, `newBlank`, `onBlank`, `onStartOver`, `onResize`, `teardown`).
 
-| Module | Functions today | About lines |
+| Module | Functions today | Estimated lines |
 |---|---|---|
-| `image-source` | `decodeFile`, `currentCrop`, `regenerate`, `onFile`, `onSize`, `onSlider`, `onReset`, `onColors`, `onInvert` | 200 |
-| `crop-preview` | `drawPreview`, `onPreviewDown`, `onPreviewMove`, `onPreviewUp` | 100 |
-| `grid-view` | `fitCells`, `renderGridNow`, `markTileBoundaries`, `artFor`, `onGridPointer`, `syncBrushes`, the history functions, `onKeydown` | 190 |
-| `report` | `showReport`, `scheduleReport` | 110 |
-| `save` | `showSaveMessage`, `onSave`, `saveSingle`, `saveSet`, `okToDiscard`, the draft handoff | 130 |
+| `build` | the DOM block (lines 142 to 251), `sizeSelect` | 125 |
+| `image-source` | `decodeFile`, `currentCrop`, `regenerate`, `onFile`, `onSize`, `onSlider`, `onReset`, `onColors`, `onInvert` | 175 |
+| `crop-preview` | `drawPreview`, `onPreviewDown`, `onPreviewMove`, `onPreviewUp` | 70 |
+| `grid-view` | `fitCells`, `renderGridNow`, `markTileBoundaries`, `onGridPointer`, `syncBrushes`, the history functions, `onKeydown` | 145 |
+| `report` | `showReport`, `scheduleReport` | 125 |
+| `save` | `showSaveMessage`, `artFor`, `onSave`, `saveSingle`, `saveSet` | 135 |
+| `index` | the shell functions above, wiring, state setup, `unmount`, the draft code | 210 |
 
-Play (778 lines, `mount` spans 82 to 766; the first 165 lines are DOM construction):
+Play (778 lines, `mount` spans 82 to 766). The map found 12 module-crossing writes under the first five-module cut, most of them in `restart` (which writes 11 fields), so the plan's own open item applies: the split is narrowed. Actions, input and the clock stay together as one `session` module instead of three.
 
-| Module | Functions today | About lines |
+| Module | Contents | Estimated lines |
 |---|---|---|
-| `hud` | `refresh`, `showStrip`, `clearReveal`, `syncReveal`, `startClock`, `tick`, `onVisibility` | 150 |
-| `input` | `onPointer`, `onKey`, the drag preview | 90 |
-| `actions` | `commit`, `step`, `restart`, the hint/reveal path | 150 |
-| `persist` | `snapshot`, `persist`, export and import save (location confirmed by the map) | 80 |
-| `rules-layout` | `rememberRule`, `sizeGrid`, `syncMode`, `syncCoarse`, the swatch picker | 120 |
+| `build` | the DOM block (lines 97 to 261) minus seven spans of behavior that stay in `mount` | 170 |
+| `hud` | `refresh`, `reduceMotion`, `showStrip`, `clearReveal`, `syncReveal` | 100 |
+| `persist` | the load block, `snapshot`, `persist`, export and import save, `persistNow`, `pendingNotes` | 190 |
+| `rules-layout` | `pickBrush`, `syncMode`, `syncCoarse`, `sizeGrid`, `settle`, `rememberRule` | 90 |
+| `session` | the clock (`startClock`, `tick`, `onVisibility`), `commit`, `onPointer`, `preview`, `step`, `restart`, the rule-toggle, hint, restart and Zen handlers, `onKey`, undo and redo | 210 |
+| `util` | `reveal`, `sameGrid` | 10 |
+| `index` | module state (`root`, `grid`, `cleanup`, `generation`), `ensureCss`, `loadPuzzle`, `showMissing`, `mount`, `unmount`, listener registration | 130 |
+
+Left out of the play split on purpose: separate `input`, `actions` and clock modules. If `session` measures over 250 lines, the clock splits out and `restart` calls `clock.reset()` instead of assigning its fields.
+
+Constraints the maps found, which every Wave 1 and 2 brief repeats:
+
+- Create: `st` stays a nested object inside the state object (`onStartOver` resets it with `Object.assign(st, ...)` and the saved draft reuses it). The draft saves 7 fields; it must not become the whole state object. Create's modules have one call cycle (`image-source` and `crop-preview` call each other), so modules call each other through the shared context at run time, never by destructuring at construction.
+- Play: functions read `history`, `cells` and `drag` live through the state object (undo reads `history` after `restart` replaces it). `unmount` keeps its order: cleanup with the final clock tick, then `persistNow()`. The import handler takes a `remount` callback instead of importing `mount` (no circular import), and reads `generation` through a getter.
+- Neither view has a unit test; the UX checks are the only safety net. Play's Export and Import save have no check at all (see lane 1d).
 
 ## Effort check
 
@@ -55,11 +67,12 @@ Estimates are rough agent-lane hours including verification. No chunk is above 4
 | 1b state object, create | 2.5 |
 | 1b state object, play | 3.5 (risk) |
 | 1c context contract, folder move, stubs, layout test (each view) | 2.5 |
-| 2 extraction lanes (each of the ten above) | 2 to 3.5 |
+| 1d UX check for the save-file export and import round trip, with mutations | 3 |
+| 2 extraction lanes (each of the nine below) | 2 to 3.5 |
 | Wave 3 merge and verify (per lane) | 0.5 |
 | 4 size cap, docs, restamp | 1.5 |
 
-If the 0b map shows more than about 25 mutable bindings in play, split 1b by region (state loading and persistence, then the interaction state) rather than run it as one lane. If `image-source` measures over 250 lines, split `regenerate` and the control handlers into two modules.
+The maps counted 17 mutable bindings in play (45 write sites) and 12 in create, under the limit of about 25, so 1b stays one lane per view. No module is estimated over 250 lines.
 
 ## Steps and parallelism
 
@@ -73,13 +86,14 @@ Before any lane starts, the orchestrator pre-registers the feature rows (`storag
 
 0b feeds Wave 1. 0c must merge before Wave 1 starts (not Wave 2 as first drafted): Wave 1a moves the DOM block, and the new `build.js` files import from `dom.js`. 0a depends on nothing and nothing depends on it; it can finish at any point before Wave 4.
 
-**Wave 1: per view, three steps in order; the two views run side by side.**
+**Wave 1: per view, three steps in order; the two views run side by side. A fourth lane, 1d, runs alongside.**
 
 Sequential inside a view because all three edit the same file; the order puts the stateless move first so the state conversion has fewer references to touch.
 
 - 1a. Move the DOM-construction block into `build.js`. It takes the initial values it needs (create: `st`, the restored draft title; play: the puzzle, store prefs) and returns one refs object. Event listeners that call closure functions stay in `mount` and attach to the returned refs. Behavior and DOM are identical.
 - 1b. In place, turn the closure's `let` variables into fields of one `state` object and update every reference. No file moves; the diff is mechanical and the full check plus UX checks prove nothing changed.
 - 1c. `git mv` the view into its folder as `index.js` and update the import in `app.js`. Define the context shape (state, refs, callbacks) as a JSDoc typedef so typecheck enforces it. Create every Wave 2 module as an empty factory (`createReport(ctx)` returning `{}`), call each factory once in `index.js` in one pre-registered block, and add the view's layout test pinning the module paths and export names. Nothing has moved yet, so everything stays green. Wave 2 lanes then edit only their own module and delete from `index.js`.
+- 1d. A new UX check for play's Export save and Import save, which have no check today and are the code the `persist` move touches most (the play map's biggest risk). Touches only `test/ux/` files and the registry test. Play a few moves, export (captured download), change the grid, import the exported file, and assert the saved state is back (cells, elapsed time, hearts); then import a file for a different puzzle and assert the app's remount behavior. Proved by mutation: break the import handler's write and the remount path, and the check must fail. It must merge before the Wave 2 `persist` lane. It needs no source change, so it can start immediately and in parallel with 1a.
 
 **Wave 2: extraction lanes, in rounds.**
 
@@ -87,21 +101,21 @@ One lane per module. Each lane moves its functions into its module's factory, de
 
 Cap: at most 3 live lanes per view and 4 in flight in total (the e2e round ran four cleanly). Each round is cut from the merged result of the previous one, so rounds are also the merge points.
 
-- Round 2.1: create `report`, create `save`, play `hud`, play `input`.
-- Round 2.2: create `crop-preview`, create `grid-view`, play `actions`, play `rules-layout`.
-- Round 2.3: create `image-source` (last, because `regenerate` touches state used by most other modules), play `persist`.
+- Round 2.1: create `report`, create `save`, play `hud`, play `persist` (4 lanes). `persist` goes first or with `hud` because it takes `pendingNotes` and `persistNow` out of the index.
+- Round 2.2: create `crop-preview`, create `grid-view`, play `rules-layout`, play `session` (4 lanes; `session` is cut after `hud` and `persist` have left `index.js`).
+- Round 2.3: create `image-source` alone (last, because it holds 16 of the 24 crossing writes and calls into both earlier rounds).
 
-The rounds follow the 0b map; if it shows a different cut, the rounds are re-planned from it before Wave 2 starts, not during it.
+These rounds come from the two maps. Play's `util` (ten lines) is created by the `hud` lane, the first to need it.
 
 **Wave 3: sequential, after every merge.** `npm test && npm run lint && npm run format:check && npm run typecheck` and `npm run test:ux`. The orchestrator drives the manual checks in the browser pane after each round (Create with a photo; play a puzzle at a narrow and a wide width), one at a time, since the pane is shared.
 
 **Wave 4: close.** Turn on `max-lines` 500 for `src/**` and add `test/lint_size_cap.test.js` (written first, so it fails until the rule is on) to assert it: a 501-line text at `src/views/create/x.js`, at `src/views/play/x.js` and at `src/color.js` errors (including with a disable comment at the top); a 500-line text passes. Every file must already be at or under 500 when this lands; the provisional cut puts the largest new module at about 200, so a module that measures over 500 after its lane is split further rather than exempted, and no lane adds an override. Update the AGENTS "Where things are" line and the README file map. Restamp the feature rows at a clean commit (`python scripts/features.py restamp`), regenerate `PROGRESS.md`, then the gate.
 
-Feature rows: `storage-lint-rule` (verify: `node --test test/lint_rules.test.js`), `split-create-view` and `split-play-view` (verify: their layout test, the view's logic tests, and `npm run test:ux`), `view-size-cap` (verify: `node --test test/lint_size_cap.test.js` plus `npm run lint`; the file does not exist until Wave 4, so the row cannot pass early; it fails if the rule is removed, if its scope narrows, or if any file under `src/` passes 500 lines).
+Feature rows: `storage-lint-rule` (verify: `node --test test/lint_rules.test.js`), `split-create-view` and `split-play-view` (verify: their layout test, the view's logic tests, and `npm run test:ux`; the play layout test pins `build, hud, persist, rules-layout, session, util, index`), `save-file-ux-check` (verify: `node --test test/ux_registry.test.js && npm run test:ux`), `view-size-cap` (verify: `node --test test/lint_size_cap.test.js` plus `npm run lint`; the file does not exist until Wave 4, so the row cannot pass early; it fails if the rule is removed, if its scope narrows, or if any file under `src/` passes 500 lines).
 
-## Open item for Step 0b
+## Open item for Step 0b: resolved
 
-Whether `play.js` splits cleanly depends on how much of its closure is shared state. If the map shows more than a few module-crossing writes after the state object (1b) is in place, narrow that view's split rather than force it, and note what was left out.
+The play map showed 12 module-crossing writes under the first cut, so the play split is narrowed as described above (one `session` module in place of `input`, `actions` and the clock). The create map showed none that needed narrowing.
 
 ## Gate
 

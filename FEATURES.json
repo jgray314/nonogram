@@ -304,7 +304,7 @@
     },
     {
       "id": "split-play-view",
-      "behavior": "src/views/play.js is split into src/views/play/ modules (build, hud, input, actions, persist, rules-layout, index) with no change in behavior; the layout test pins the modules and their exports.",
+      "behavior": "src/views/play.js is split into src/views/play/ modules (build, hud, persist, rules-layout, session, util, index) with no change in behavior; the layout test pins the modules and their exports.",
       "verify": "node --test test/views_layout_play.test.js test/game.test.js test/play-state.test.js && npm run test:ux",
       "state": "not_started",
       "source": "docs/plans/view-split.md"
@@ -315,6 +315,13 @@
       "verify": "node --test test/lint_size_cap.test.js && npm run lint",
       "state": "not_started",
       "source": "docs/plans/view-split.md"
+    },
+    {
+      "id": "save-file-ux-check",
+      "behavior": "A UX check drives play's Export save and Import save: an exported save re-imports to the same cells, elapsed time and hearts, and a save for another puzzle is handled; it fails if the import handler stops writing the save or stops remounting.",
+      "verify": "node --test test/ux_registry.test.js && npm run test:ux",
+      "state": "not_started",
+      "source": "docs/plans/view-split.md Wave 1 1d"
     }
   ]
 }

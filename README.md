@@ -49,10 +49,10 @@ npm run test:difficulty_very_slow # difficulty persona corpus behind docs/diffic
 npm run lint
 npm run format:check
 npm run typecheck                 # tsc --checkJs over src, scripts and test
-npm run test:ux                   # ux-checks.html in headless Chrome, about 15s
+npm run test:ux                   # ux-checks.html in headless Chrome, about 17s
 ```
 
-CI (`.github/workflows/ci.yml`) runs `npm test`, lint, the format check and the type check on every push to `main` and every pull request. Run `test:solver_slow` after solver changes and `test:difficulty_very_slow` after persona or difficulty changes. Those two run locally only. The UX checks run headless in CI and in the pre-push hook (`npm run test:ux`, about 15s, needs Chrome or Edge; set `CHROME=<path>` if it is not found).
+CI (`.github/workflows/ci.yml`) runs `npm test`, lint, the format check and the type check on every push to `main` and every pull request. Run `test:solver_slow` after solver changes and `test:difficulty_very_slow` after persona or difficulty changes. Those two run locally only. The UX checks run headless in CI and in the pre-push hook (`npm run test:ux`, about 17s, needs Chrome or Edge; set `CHROME=<path>` if it is not found).
 
 **UX checks.** With the server running, open http://127.0.0.1:8123/ux-checks.html. It drives the real app in a frame and checks what a player should see: hearts, mistakes, restart, Zen, hints, the solve reveal, clue numbers, Create, the library, print, narrow layout and basic labels. Six `pipeline-*` checks go end to end with nothing seeded: they upload an image, wait for the real solver worker, save, export and re-import a backup, export webpbn, round-trip a save file, and check that leaving a puzzle saves its elapsed time. All of it resets the app's data, so it only runs on `127.0.0.1`, which keeps its own storage, and refuses to run on `localhost`, where your library lives. A check marked KNOWN is tied to an open finding in `docs/reviews/nonogram-ux-review.md`. When one shows FIXED?, drop its `known` flag in `test/ux/checks.js`. Add `?only=<check id>` to run a single check.
 

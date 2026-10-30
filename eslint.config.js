@@ -53,8 +53,8 @@ export default [
       ],
       'no-restricted-properties': ['error', ...HTML_BANS, ...STORAGE_PROPERTY_BANS],
       'no-restricted-syntax': ['error', ...STORAGE_SYNTAX],
-      // A ratchet against growth, counting every line (docs/plans/line-cap-300.md lowers it).
-      'max-lines': ['error', { max: 500 }],
+      // ESLint's default size, counting every line (docs/plans/line-cap-300.md brought src/ down to it).
+      'max-lines': ['error', { max: 300 }],
     },
   },
   {

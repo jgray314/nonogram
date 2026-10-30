@@ -13,7 +13,7 @@ Browser nonogram maker and player: turns an image into a fair puzzle, then plays
 ## Where things are
 
 - `FEATURES.json` is the verification ledger: each entry is a check gate with a command that proves it. `PROGRESS.md` is generated from it and lists those gates only. What the product does and what is open is in `README.md` and the backlog in `PLAN.md`.
-- The Create and Play views are folders, `src/views/create/` and `src/views/play/`: `index.js` owns `mount`/`unmount`, and each module gets one shared context (`context.js` documents its shape) and reaches the others as `ctx.<module>.fn()` at call time. ESLint rejects any `src/` file over 500 lines and any storage access outside `src/store.js`; inline `eslint-disable` comments are ignored.
+- The Create and Play views are folders, `src/views/create/` and `src/views/play/`: `index.js` owns `mount`/`unmount`, and each module gets one shared context (`context.js` documents its shape) and reaches the others as `ctx.<module>.fn()` at call time. ESLint rejects any `src/` file over 300 lines and any storage access outside `src/store.js`; inline `eslint-disable` comments are ignored.
 - `PLAN.md` holds decisions D1 to D29, contracts and the backlog. `docs/` holds research and review records, `docs/plans/` the plans for upcoming work, and `FUTURE-WORK.md` the agreed next improvements.
 
 ## Rules

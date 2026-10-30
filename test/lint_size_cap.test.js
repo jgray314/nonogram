@@ -1,10 +1,10 @@
-// Pins the file-size cap: no file under src/ is longer than 500 lines, and an
+// Pins the file-size cap: no file under src/ is longer than 300 lines, and an
 // inline eslint-disable comment cannot switch the cap off.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { ESLint } from 'eslint';
 
-const MAX = 500;
+const MAX = 300;
 const eslint = new ESLint({ cwd: process.cwd() });
 
 async function ruleIds(lineCount, filePath, head = '') {
@@ -19,6 +19,7 @@ for (const filePath of [
   'src/color.js',
   'src/views/library.js',
   'src/views/x.mjs',
+  'src/x.js',
 ]) {
   test(`${MAX + 1} lines at ${filePath} is max-lines`, async () => {
     const ids = await ruleIds(MAX + 1, filePath);

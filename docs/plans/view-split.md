@@ -123,6 +123,8 @@ This plan gets its own gate: a `/gate-review` scoped to this round, run once eve
 
 ## Results
 
+The cap set here (500) was lowered to 300 afterwards by [line-cap-300.md](line-cap-300.md).
+
 Executed 2026-10-29 on local `main` (not pushed). Every file under `src/` is at or under 500 lines; the largest is `src/color.js` at 457 and the largest view file is `src/views/create/index.js` at 289 (was `create.js` at 922; `play.js` was 778 and `src/views/play/index.js` is now 220). Both views split cleanly; the largest new module is `play/session.js` at 220.
 
 | Piece | Where it landed |

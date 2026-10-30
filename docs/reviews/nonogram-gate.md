@@ -728,7 +728,7 @@ Flagged and decided by the owner on 2026-10-30:
 - **Process trial for feature lists:** re-deferred; new trigger is the first feature round after line-cap-300 that adds rows with a `plan`, judged at its gate (`PLAN.md`).
 - **Untyped `ctx.<module>` calls:** re-deferred; new trigger is the first module method rename in a view's `ctx`, or the next round that edits more than one module of `create/` or `play/` (`PLAN.md`).
 - **The two solver items from 2026-10-08:** killed (neither "revisit if" condition came up in nine passes), epitaph in `PLAN.md`.
-- **Pass-8 follow-ups (`saveSet` id guard, untested teardown paths, crop-box drag):** being decided one by one with the owner.
+- **Pass-8 follow-ups, decided 2026-10-30:** the `saveSet` id guard is **killed** (checked against the code: a tile id hashes the set id, row and column, so a tile cannot match a saved single puzzle; only an identical set re-saved reuses ids, which `makeSet` intends; the lens's overwrite worry was weaker than stated). The untested teardown and cleanup paths are **re-deferred** with the trigger unchanged. The crop-box drag stays a **future task**, not for this session (a task card was proposed, and `PLAN.md` keeps the item with its trigger).
 - Closed without asking: D24's finished-set UX check (done, `pin-sets-complete-mosaic-size`, `3388a47`).
 
 ## Retrospective (pass 9)
@@ -760,4 +760,4 @@ Flagged and decided by the owner on 2026-10-30:
 | (draft) Long lanes cost time; a usage limit cut four lanes off | **Applied** with item 19. The limit itself: **noted only**, nothing to change |
 | (draft) Lanes edited files they did not own (the pinned id list, the stub test) | **Noted only.** One registry file per lane was the fix and worked for 2b and 2c; the id list stays shared on purpose so a deleted check cannot go unnoticed |
 
-**Pass 9 status:** open. One backlog decision remains with the owner (the three pass-8 follow-ups, one by one).
+**Pass 9 closed 2026-10-30.** Every finding and every retrospective lesson has a disposition; the backlog sweep is decided. Two follow-up task cards were proposed (the shared mutation runner, and the non-`src` bloat review) and a third for the crop-box drag; none is part of this plan. The ledger is at 27 of 27 and nothing is pushed.

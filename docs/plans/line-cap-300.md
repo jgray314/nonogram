@@ -38,7 +38,7 @@ No other `src/` file is over 300 (the next largest is `src/views/create/index.js
 2. **Leaves first, no cycles.** A new file never imports the old path. Anything two new files both need lives in a leaf file that imports nothing from this family. `test/module_graph.test.js` (Wave 0) pins this: it fails if a listed new file imports its barrel. Reason: `create-logic.js` would otherwise re-export a file that imports `verdictOf` back from it, an import cycle whose initialisation order depends on who loads first.
 3. **Nothing is deleted.** The D25 cell-averaging path in `color.js` stays (`test/color.test.js` and `research/color/` import it); dead code stays dead. Removing it is a research decision, not a size fix.
 4. **Library shares one state object.** `library.js` today has six module-level `let`s (`root`, `store`, `status`, `listEl`, `toolbarButtons`, `generation`) that `unmount` clears. They become fields of one exported object `lib` in `src/views/library-state.js`; every library file reads `lib.<field>` at call time (never a copy: `runImport` deliberately snapshots `lib.store` into a local because `unmount` clears it, and that stays). `render` is reached as `lib.render()`, assigned in `mount`, so the backup and set files do not import `library.js` (decision 2).
-5. **Grid is decomposed only after its map.** `renderGrid` is one function with mutable closure state, so its pieces and their order are not known yet. The cut is a decision resolved by the Wave 0 map and frozen at the end of Wave 0; until then no grid lane is sized or started.
+5. **Grid is cut by its map.** `renderGrid` is one function with closure state. The Wave 0 map (`line-cap-300-map-grid.md`) shows the paint half and the pointer half share no state, so no state object is needed: the old step 2d is dropped, and the cut is two extractions (frozen below, "Grid cut (frozen)"). The map's setup and teardown order are invariants in the grid lane briefs.
 6. **One feature row, one activation.** The plan gate is on. The row `line-cap-300` names this plan (`"plan": "docs/plans/line-cap-300.md"`). The orchestrator records the review (`plan-reviewed`), activates the row once at the start of Wave 0, and verifies it once at the end. Lanes never edit `FEATURES.json` (Wave 4's restamp is the orchestrator's). Parallel worktrees do not conflict with the single-active rule because only the orchestrator activates.
 
 ## Frozen cuts (pure-logic files)
@@ -77,14 +77,26 @@ Callers of `create-logic.js` (the Create modules, `solver-client.js`, `test/crea
 
 **`samples.js` (338)**: `samples-art.js` (the `ART` and `COLOR_ART` arrays, data only, about 275 plus a header) and `samples.js` (loaders, `sampleRecord`, about 70). If `samples-art.js` ends over 300, `COLOR_ART` moves to `samples-art-color.js`.
 
-**Library (417)**, frozen by the library map in Wave 0 (the files below are the working hypothesis, the map confirms regions and callers):
+**Library (417)**, frozen from the Wave 0 map (`line-cap-300-map-library.md`), which corrected the first draft of this table in four places (`button` placement, no `export *`, the 2b region, the import header). The library files use plain `import` lines, not `export *`: `library.js` exports only `mount` and `unmount`, and re-exporting the new files would change its export set.
 
-| File | Contents |
-|---|---|
-| `library-state.js` (leaf) | `lib`, `say`, `forThisMount` (it reads `lib.generation`; `addSamples` and the backup code both use it) |
-| `library-backup.js` | `download`, `exportXml`, `exportLibrary`, `importLibrary`, `runImport` |
-| `library-sets.js` | `solutionCanvas`, `tileNode`, `tileBox`, `setNode`, `deleteSet` |
-| `library.js` | `ensureCss`, `button`, `link`, `deletePuzzle`, `addSamples`, `moreMenu`, `rowNode`, `render`, `mount`, `unmount`; its local `el` becomes `elc` from `dom.js` |
+| File | Contents | About lines |
+|---|---|---|
+| `library-state.js` (leaf, imports `../views/dom.js` only) | `lib` (fields `store`, `status`, `generation`, `toolbarButtons`, `render`), `say`, `forThisMount` (it reads `lib.generation`), `button` (`setNode` needs it, so it cannot stay in `library.js`) | 45 |
+| `library-backup.js` (imports `library-state.js`) | `download`, `exportXml`, `exportLibrary`, `importLibrary`, `runImport` | 135 |
+| `library-sets.js` (imports `library-state.js`) | `solutionCanvas`, `tileNode`, `tileBox`, `setNode`, `deleteSet` | 100 |
+| `library.js` (imports all three) | `ensureCss`, `link`, `deletePuzzle`, `addSamples`, `moreMenu`, `rowNode`, `render`, `mount`, `unmount`; its local `el` becomes `elc` from `dom.js` | 175 |
+
+`root` and `listEl` are touched only by `mount`, `unmount` and `render`, so they stay local to `library.js`. `generation` is only ever incremented, so `unmount` must not replace `lib`. `toolbarButtons` is reassigned in `mount`, never mutated. `lib.render` is assigned in `mount` before the first `render()` call and needs no clearing. The import-edge graph is `state -> dom`, `backup -> state`, `sets -> state`, `library -> all`, acyclic, and no new file imports `library.js`. `test/module_graph.test.js` already lists these files.
+
+**Grid cut (frozen)** from the Wave 0 map (`line-cap-300-map-grid.md`). `renderGrid` is lines 67 to 347 of `src/views/grid.js`; `painted` is read and written only by `update`, `overlay` only by `setOverlay`, `hot` and `button` only by the pointer code.
+
+| File | Contents | About lines |
+|---|---|---|
+| `grid-layout.js` (leaf, imports `../color.js` only) | `gutterSize`, `blankStyle`, `div`, `buildGrid` (today's setup block 81 to 169, returning `{root, top, left, nodes, rowClues, colClues}`) | 125 to 140 |
+| `grid-pointer.js` (imports nothing) | `attachPointer(root, nodes, {width, height, onPointer, touchButton})` (today's 245 to 329, with `hot` and `button` as locals), returning `detach()` which removes the window listeners | 90 to 105 |
+| `grid.js` (imports both) | the JSDoc, `export { inkColors }`, re-exports of `gutterSize` and `blankStyle`, `update`, `setClueDone`, `setOverlay`, `setWrong`, `setHighlight`, `sweep`, and the returned object with `destroy` | 150 to 165 |
+
+Invariants the grid briefs state: the first `update(cells)` runs before `container.append(root)` (otherwise every filled cell pops on mount); DOM append order is bands, corner, column clues, row clues, cells; `destroy` removes the window `pointerup`, then `pointercancel` (the same `onUp` reference), then calls `root.remove()`; `inks` is computed once. Callers (Create `grid-view.js`, `index.js` and `report.js`; Play `index.js`, `hud.js`, `session.js`; Print `print.js` with two grids at once) keep the same returned API. Tests import only `gutterSize` and `blankStyle`.
 
 ## Safety net and equivalence proof
 
@@ -123,9 +135,9 @@ Estimates are rough agent-lane hours including verification. Every step is at mo
 | 2a `library.js` foundation: `lib` state object in place, stub files and header | design + mechanical | 3 |
 | 2b `library-backup.js` | mechanical | 2 |
 | 2c `library-sets.js` | mechanical | 2 |
-| 2d `grid.js` state object in place | design | 3 (sized again at the freeze) |
-| 2e `grid.js` extraction 1 | design + mechanical | 3 (set at the freeze) |
-| 2f `grid.js` extraction 2 | design + mechanical | 3 (set at the freeze) |
+| 2d `grid.js` state object | dropped at the freeze: the map shows nothing is shared between the halves | 0 |
+| 2e `grid.js` extraction 1: `grid-layout.js` | mechanical | 2 (from the map) |
+| 2f `grid.js` extraction 2: `grid-pointer.js` | design + mechanical | 3 (from the map; the pointer paths now have 13 UX checks) |
 | 3 Merge and verify, per lane | verification | 0.5 |
 | 4 Cap to 300, test, docs, verify and restamp | bookkeeping | 1.5 |
 
@@ -141,14 +153,14 @@ If the map shows `renderGrid` needs more than three extraction steps, or any ste
 - 0d-1, 0d-2: the tools and helpers. 0d-1 owns `scripts/dom-compare.mjs` only; 0d-2 owns the other new files. No lane edits `package.json`: the orchestrator adds the `scripts` entries for the new tools in 0a.
 - 0e: after 0c merges, lanes that add checks for survivors, one lane per file group; each owns only new test files (`test/ux/` additions go in a new file `test/ux/pipeline-linecap.js` registered once by the orchestrator in 0a with an empty array, so no lane edits a shared registry).
 
-**Freeze point (orchestrator).** Nothing in Waves 1 and 2 starts until the maps, audit and 0e are merged and this plan is updated with grid's frozen cut, the library file list, sized steps and the list of accepted survivors. The updated sections are reviewed again (`/plan-review` pass recorded) before Wave 1.
+**Freeze point (orchestrator). Reached 2026-10-30.** Waves 0a to 0e are merged; this plan now holds grid's frozen cut, the library file list, sized steps and the accepted survivors (see "Results"). The updated sections (Decisions 4 and 5, Frozen cuts, Grid cut, Pricing, Wave 2, Results) are reviewed again (`/plan-review` pass recorded) before Wave 1.
 
 **Wave 1: four pure-logic lanes at the same time.** Disjoint files, one lane per file group (samples, format, create-logic, color). Each lane owns the old file, its new files and `test/split_<name>.test.js`; it may not touch anything else, including other lanes' split tests.
 
 **Wave 2: library and grid groups at the same time.**
 
-- Library: 2a first (sequential), then 2b and 2c in parallel. 2a converts the six module-level variables to `lib.<field>` in place, adds `library-state.js`, creates the two stub files, and pre-registers the three import lines and the `export * from` lines in `library.js`, so that 2b and 2c never touch the header. After 2a, `library.js` regions: **2b owns** `download`…`runImport` (today's lines 48 to 195, minus `addSamples`) and its call sites in `mount`; **2c owns** `solutionCanvas`…`deleteSet` (287 to 377) and its call sites in `render`. `addSamples`, `render`, `rowNode`, `moreMenu` stay in `library.js` (not in either lane's region). Merge order: 2b, then 2c; the orchestrator resolves any conflict, and a conflict outside those regions is a plan defect to report.
-- Grid: 2d, 2e, 2f in order (they edit the same function), starting only after the freeze. Each is verified with `dom-compare` and the grid mutations from the audit.
+- Library: 2a first (sequential), then 2b and 2c in parallel. 2a converts `store`, `status`, `generation`, `toolbarButtons` and the render hook to `lib.<field>` in place (`root` and `listEl` stay local), adds `library-state.js` (with `say`, `forThisMount` and `button` moved into it), creates the two stub files, and rewrites the import header of `library.js` so that each of 2b and 2c has its own import lines (`safeFilename` on one line, `tileSolved, tileFace` on another; the shared `library-logic` import is split), so that neither touches the header. Regions in today's line numbers: **2b owns** `download` 48 to 57, `exportXml` 63 to 67, `exportLibrary` 75 to 89, `importLibrary` and `runImport` 103 to 191, and their call sites in `mount`; **2c owns** `solutionCanvas` through `deleteSet`, 286 to 376, whose only call site is `render` line 281. `deletePuzzle` (69 to 73, between 2b functions), `addSamples` (193 to 202), `render`, `rowNode`, `moreMenu`, `mount` and `unmount` stay in `library.js` and in neither lane's region. Merge order: 2b, then 2c; the orchestrator resolves any conflict, and a conflict outside those regions is a plan defect to report. The library split test checks that each listed function is defined in its new file and absent from `library.js`, not an `export *` line.
+- Grid: 2e (`grid-layout.js`), then 2f (`grid-pointer.js`), in order (both edit `renderGrid`). 2d is dropped. Each is verified with `dom-compare`, `npm run test:ux` (the 13 `linecap-grid-*` checks cover the pointer, paint and `destroy` paths) and the grid mutations from `line-cap-300-audit-grid.md`, which the lane re-runs and reports.
 
 **Wave 3: after every merge, by the orchestrator.** `npm test && npm run lint && npm run format:check && npm run typecheck`, `npm run test:ux`, `node scripts/dom-compare.mjs <baseline>` and `node scripts/export-names.mjs <baseline>`. A red merge is reverted, not fixed on `main`. The manual browser checks are replaced by `dom-compare` plus, for pointer and drag paths in the grid, the closed audit survivors.
 
@@ -163,7 +175,7 @@ Every lane brief is this template filled in; the orchestrator does not improvise
 ```
 LANE <id>: <one line>.
 READ FIRST: docs/plans/line-cap-300.md (this lane's step, "Frozen cuts" and "Decisions"), the map for this file if any.
-SETUP: git reset --hard main; node_modules junction to the main checkout; baseline must pass:
+SETUP: git reset --hard main; node_modules junction to the main checkout; scratch copies only under scratchpad/<lane-id>/ (never the scratchpad root: lanes overwrote each other's scripts in Wave 0); baseline must pass:
   npm test && npm run lint && npm run format:check && npm run typecheck && npm run test:ux
 YOU OWN (may edit): <exact files, including new files and your split test>.
 MAY NOT TOUCH: FEATURES.json, PLAN.md, package.json, eslint.config.js, any plan doc, any other lane's files, anything not listed above.
@@ -180,7 +192,18 @@ Known traps, to put in every brief that applies: a name defined in the first par
 
 ## Results
 
-Written when the round is done: the baseline commit, each survivor and its disposition, `dom-compare` and `export-names` output per merge, line counts of every new file, and what moved from the plan.
+Written as the round goes; finished when it is done: the baseline commit, each survivor and its disposition, `dom-compare` and `export-names` output per merge, line counts of every new file, and what moved from the plan.
+
+### Wave 0 (done 2026-10-30)
+
+- **Baseline:** `ca93716` (feature row active, review recorded). `dom-compare` baseline run: all 47 steps identical in about 15s, and `--self-check` detects a mutation. `export-names`: 43 modules identical. Color probe digest `318c8b99` (360 cases).
+- **Tools built (lanes 0d-1, 0d-2):** `scripts/dom-compare.mjs`, `scripts/export-names.mjs`, `scripts/color-probe.mjs`, `test/helpers/split.js`, `test/module_graph.test.js` (14 tests). `npm run compare:dom` and `compare:exports` run the first two.
+- **Mutation audits (0c):** `format.js` 30 mutations, 9 survived; `create-logic.js` 100, 37 survived (8 equivalent); `samples.js` 46, 17 survived (2 equivalent); `color.js` 46 of 79 planned (10 survived, 5 inconclusive), with the rest swept in 0e-2 as C48 to C98 (23 survivors, 15 closed); `grid.js` 25, 23 survived; `library.js` 25, 20 survived. Docs: `line-cap-300-audit-*.md`.
+- **Survivors closed (0e):** unit tests `test/linecap_format.test.js`, `test/linecap_create_logic.test.js` (50 tests), `test/linecap_color.test.js`, `test/linecap_samples.test.js` (35 tests); UX checks `linecap-grid-*` (13) and `linecap-library-*` (9), pinned by id in `test/ux_registry.test.js`. Every closed survivor was re-run in a scratch copy and caught. Test totals now: 619 unit tests, 73 UX checks (`test:ux` about 15s, timed twice; README requoted).
+- **Accepted survivors (equivalent mutants or unobservable, reasons in the test headers):** `format.js` `length < 2` guard in `jpegSize` (a length of 0 or 1 returns null either way); `create-logic.js` `Math.max(5, …)` in `defaultSize`, the leading trim in `titleFromFile`, `>=` in `centerCrop`, the `Math.min(imgH, …)` in `centerCrop`, `>` in `loadScale`, `<` in `artSize`; `color.js` C17 (no letters in `#000000`), C65, C67, C68, C75, C76, C87, C97, C98 (no difference on thousands of random inputs, or a stable sort); `samples.js` S34 (all samples are square), S35; `library.js` `store = null` in `unmount` (every later path uses the `store` captured at import start; closing it needs a `src/` change, out of scope).
+- **Not covered (stated, not hidden):** the `color.js` mutations C06 and C42 were audit-inconclusive; C06 is equivalent and C42 was caught by 0e-2. `dom-compare` does not hash computed styles or layout, and its pointer steps are the fixed strokes. The `gridError` bounds, the `validateSave` hearts and hints bounds, the hex regex, `STATUSES` and the blank check in `format.js` were not mutated (cap reached); they sit in the file that keeps the validators and are tested by the existing suite, and nothing in the split edits them.
+- **Moved from the plan:** library files use plain imports, not `export *`; `button` is in `library-state.js`; the 2b region is smaller than first written; the old step 2d (grid state object) is dropped (the map shows no shared state); `test/ux/pipeline-linecap.js` stays empty and unused (grid and library checks have their own files). Duplicate `tileIds` in `validateSet`: `format.js` has no duplicate-id refusal (it lives in `src/backup.js`, not touched here); whether `validateSet` should refuse repeated tile ids is a design question for AGENTS rule 6, left for a later change (AGENTS rule 9: not in this one).
+- **Process notes:** two lanes shared one scratchpad and overwrote each other's scripts (cost a retry each); lane briefs for the next waves name a lane-specific scratch folder. One `test:ux` run crashed once on a Windows `EPERM` while deleting its Chrome profile folder, before reporting any check; reruns passed. Not fixed (outside this round).
 
 ## Gate
 

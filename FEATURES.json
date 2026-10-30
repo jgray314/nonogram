@@ -401,7 +401,7 @@
     {
       "id": "line-cap-300",
       "behavior": "No file under src/ is longer than 300 lines: the six oversized files are split into new files behind unchanged export lists, with no cycles among them, and the lint cap is 300 with a test that pins it.",
-      "verify": "node --test test/lint_size_cap.test.js test/module_graph.test.js test/ux_registry.test.js test/linecap_format.test.js test/linecap_create_logic.test.js test/linecap_color.test.js test/linecap_samples.test.js test/split_samples.test.js test/split_format.test.js test/split_create_logic.test.js test/split_color.test.js test/split_library_state.test.js test/split_library_backup.test.js test/split_library_sets.test.js test/split_grid_layout.test.js test/split_grid_pointer.test.js && node scripts/export-names.mjs ca93716 && npm run lint && npm run test:ux",
+      "verify": "node --test test/lint_size_cap.test.js test/module_graph.test.js test/ux_registry.test.js test/linecap_format.test.js test/linecap_create_logic.test.js test/linecap_color.test.js test/linecap_color_rng.test.js test/linecap_samples.test.js test/split_samples.test.js test/split_format.test.js test/split_create_logic.test.js test/split_color.test.js test/split_library_state.test.js test/split_library_backup.test.js test/split_library_sets.test.js test/split_grid_layout.test.js test/split_grid_pointer.test.js && node scripts/export-names.mjs ca93716 && npm run lint && npm run test:ux",
       "state": "active",
       "source": "docs/plans/line-cap-300.md",
       "plan": "docs/plans/line-cap-300.md",

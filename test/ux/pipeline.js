@@ -4,9 +4,11 @@
 import { BACKUP_CHECKS } from './pipeline-backup.js';
 import { COLOR_CHECKS } from './pipeline-color.js';
 import { LEAVE_CHECKS } from './pipeline-leave.js';
+import { LINECAP_BACKUP_CHECKS } from './pipeline-linecap-backup.js';
 import { LINECAP_CHECKS } from './pipeline-linecap.js';
 import { LINECAP_GRID_CHECKS } from './pipeline-linecap-grid.js';
 import { LINECAP_LIBRARY_CHECKS } from './pipeline-linecap-library.js';
+import { LINECAP_SETS_CHECKS } from './pipeline-linecap-sets.js';
 import { MONO_CHECKS } from './pipeline-mono.js';
 import { SAVEFILE_CHECKS } from './pipeline-savefile.js';
 import { WEBPBN_CHECKS } from './pipeline-webpbn.js';
@@ -21,4 +23,6 @@ export const PIPELINE_CHECKS = [
   ...LINECAP_CHECKS,
   ...LINECAP_GRID_CHECKS,
   ...LINECAP_LIBRARY_CHECKS,
+  ...LINECAP_BACKUP_CHECKS,
+  ...LINECAP_SETS_CHECKS,
 ];

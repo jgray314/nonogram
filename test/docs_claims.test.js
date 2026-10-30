@@ -27,7 +27,9 @@ const RECORDED_SECONDS = {
 };
 const RECORDED_FAIR = 396; // seeded corpus, printed by test:difficulty_very_slow
 const SLOW_TOLERANCE = 1.5; // a doc may be this factor above or below the record
-const FAST_TOLERANCE = 3; // live fast-suite time may be this factor above the doc
+// Live fast-suite time may be this factor above the doc. The doc quotes the owner's machine;
+// GitHub runners measured 3.1s against a quoted 1s (2026-10-29), so 3 was too tight.
+const FAST_TOLERANCE = 5;
 
 const HISTORICAL_LINE = /^\s*(?:[-*]\s*)?\*{0,2}(?:Done\s+)?20\d\d-\d\d-\d\d/;
 

@@ -650,3 +650,78 @@ Checked and fine: test, UX and feature counts; line counts; no `void ctx`, `@ts-
 | The gate lenses were interrupted by a usage limit and re-run | **Noted only.** Nothing to change; the second run was complete. |
 
 **Pass 8 closed 2026-10-29.** Nothing is pushed.
+
+# Pass 9: gate on the line-cap-300 round, 2026-10-30
+
+**Run:** 2026-10-30 · **Scope:** commits `ca93716..47495ab` (six oversized `src/` files split into leaves, siblings and the old path; `max-lines` 300; three equivalence tools; the survivor-closing tests; plan in `docs/plans/line-cap-300.md`), local `main`, unpushed. The fixes below are on top of that range.
+**Prior runs:** passes 1 to 8 above. Both lenses were read-only Explore agents, barred from `docs/reviews/` and every gate or review doc; lens 1 ran about 40 mutations in scratch copies, lens 2 re-timed and recounted what the docs quote.
+**Rubric (trial):** L1 2/1/2/1, L2 1/1/2/1. No 0, so no lens is re-run. Fix durability is 1 on both because several fixes were prose or round-named files; scope hygiene is 1 on L1 (left Chrome profile folders in temp) and L2 (about 5,500 non-`src` lines for a +100-line `src` change).
+**Owner override:** none.
+**Step 0:** backlog sweep, see "Backlog sweep" below. The decisions it needs are the owner's and are listed, not made.
+
+## Lens 1: Adversarial
+
+No behavior change in the moved code: a multiset line diff and an ordered-run diff of every old file against its new files found only imports, exports, headers, `export` keywords and the `el` to `elc` rename; the colour probe is identical at both commits; `dom-compare` reports all 47 steps identical; `lib` is never reassigned, no field is copied to a local, `store0` is kept, `lib.render` is assigned before the first render.
+
+- **L1-1 (NEW, High).** A test file named in the `line-cap-300` verify could be deleted and the command still exited 0 (AGENTS rule 10): Node's `--test` silently ignores a path that matches nothing. Reproduced here too: with `test/split_samples.test.js` moved away, `node --test test/lint_size_cap.test.js test/split_samples.test.js` exits 0.
+- **L1-2 (NEW, Medium).** `scripts/dom-compare.mjs --self-check` was broken: it replaced the string `el('span', ...)`, which the split renamed to `elc(`, so the mutation never applied and the tool's proof that it can fail did not run.
+- **L1-3 (NEW, Medium).** The verify chain had no `dom-compare`, `color-probe` or self-check; the rendered-DOM claim rested on a manual run.
+- **L1-4 (NEW, Medium).** `export-names ca93716` is a permanent tripwire: it fails on any added name, so the first legitimate new export would break the row's re-verification, and the likely response is to drop the guard.
+- **L1-5 (NEW, Medium).** `dom-compare` coverage gaps: no library import, tile sets, colour create or mid-import navigation; mutating `lib.store.remove('set', set.setId)` and a `<` to `<=` in the colour tie-break both passed it.
+- **L1-6 (NEW, Medium).** Two guards survive the unit tier: `forThisMount` gating (caught only by the UX check) and, in `grid-layout.js`, `c % 5 === 4` to `=== 3` and a renamed corner class (caught only by `dom-compare`). Pre-existing coverage the move did not close.
+- **L1-7 (NEW, Low).** Constants unpinned: `ITERATIONS` 40 to 41 or 39 or 5, `ART_MIN_SIDE` 160 to 161, `d2 + 1e-9`.
+- **L1-8 (NEW, Low).** `dom-compare` left about 25 to 50 MB Chrome profile folders in temp per run (`child.kill()` does not end Chrome's children on Windows); its normalizations are narrow but could mask a record field holding such a number; it compares against the working tree, so uncommitted edits count.
+- **L1-9 (NEW, Low).** `lib.render` is not cleared in `unmount`, leaving a stale closure over `listEl`. Not a regression: every caller is gated by `forThisMount`.
+- **L1-10 (NEW, Low).** Several tests pin source text rather than behavior (the grid re-export list, `runImport`'s snapshot, `lib.render` assigned before the first render). They caught every library live-read mutation tried, but a rename satisfies them.
+- **L1-11 (NEW, Low).** The ca93716 test suite against the HEAD sources fails 5 of 508, all expected (docs, `.gitattributes`, a sample-art text test, the old cap).
+
+Checked and correct: the byte-identity of every move; the live-read invariants in the library files and the grid setup order; no export-set leakage (`export-names` 43 modules identical, no collision between leaf export sets); no cycles; `max-lines` covers nested files and `.mjs` and `.cjs`, `noInlineConfig` is on; sample ids are unchanged; about 40 mutations across the splits, most caught.
+
+## Lens 2: Outside-reviewer walkthrough
+
+- **L2-1 (NEW, High).** The full-check time is quoted wrong: AGENTS says about 5 seconds, the lens measured 8.2 (6.7 to 6.8 here), and `test/docs_claims.test.js` records 5 as the "measurement", so the claim test is satisfied by its own stale input.
+- **L2-2 (NEW, High).** README says the fast suite is "under 1s"; it takes about 1.2s of test time and 1.9s wall.
+- **L2-3 (NEW, Medium).** The plan's Results quote 50 and 35 "tests" for what are pair totals (per file 18 and 32, 30 and 5) and 14 for a file that has 16.
+- **L2-4 (NEW, High).** The verify rots on the next normal change (the baseline-pinned `export-names`, a hard-coded file list), and `dom-compare` and `color-probe` are in no npm script, doc or the ledger, so the "behavior unchanged" proof could not be re-run from the repo.
+- **L2-5 (NEW, High).** A round name is baked into five unit test files, four UX files, 25 check ids and the registry (`linecap`), and the tests quote round vocabulary (`lane 0e-1`, mutation ids).
+- **L2-6 (NEW, Medium).** An empty registry file (`test/ux/pipeline-linecap.js`) is still imported and spread.
+- **L2-7 (NEW, Medium).** README and the `pipeline.js` header call all registered checks "end to end"; the new checks are seeded, single-view checks.
+- **L2-8 (NEW, Medium).** Stale comments: the `src/color.js` header still described the cell-averaging path that moved out; the library state test header called filled files "empty stubs"; "barrel" for files that are not barrels.
+- **L2-9 (NEW, Medium).** Three re-export idioms are explained only in test headers and the plan; AGENTS does not mention the new files.
+- **L2-10 (NEW, Medium).** The split tests assert source text, which only the helper's header says; some pin line order.
+- **L2-11 (NEW, Medium).** 21 agent worktrees and 22 local branches left behind.
+- **L2-12 to L2-16 (NEW, Low).** A mutation-count phrase in the plan that does not add up (46 of 79 versus 46 plus 51), an audit baseline of `1086869`, a "largest first" list that is not sorted, plan-doc growth (the plan, 2 maps and 7 audits are about 1,100 lines), `test:ux` 15.7s against "about 17s", and a stale `PLAN.md` trigger naming this plan.
+- **W1 to W5.** Why 25 UX checks and about 180 unit tests for a +100-line `src` change (the audits are the answer; the permanent tree should be named for purpose); what a "defined in file Y" test prevents; the proof tools in no gate or doc; two naming schemes; heavy process.
+
+Checked and correct: 669 unit tests and 76 UX checks recounted; every file size in the plan; no stale 500 cap anywhere; per-file mutation counts match the audit docs; the plan records its deviations.
+
+## Disposition
+
+Reconciliation: no finding was contradicted by the other lens. L1-3 and L2-4 are the same defect seen from two sides (the proof is not in the ledger or the docs), as are L1-10 and L2-10 (source-text tests). The rhyme sweep: two shapes recurred, "a check that silently stops checking" (L1-1, L1-2) and "a doc number satisfied by its own stale record" (L2-1, L2-2), and each was swept for in the other splits and docs.
+
+| Finding | Disposition | Proof or commit |
+|---|---|---|
+| L1-1 (High) | **Fixed.** `scripts/verify-files.mjs` fails when a file named in a feature's verify is missing; chained first in the `line-cap-300` verify; its own test | `a32f98c`. **Mutation-verified guard:** moving `test/split_samples.test.js` or `test/ux_registry.test.js` away makes `node scripts/verify-files.mjs line-cap-300` exit 1 and name the file (run on the committed tree); `test/verify_files.test.js` pins missing test, missing script and unknown id |
+| L1-2 | **Fixed.** The self-check matches the class string only; run, it reports "the mutation was detected" | `a32f98c` |
+| L1-3, L2-4 (High) | **Fixed.** `dom-compare --self-check` is chained in the verify; README documents `compare:dom`, `compare:exports`, `color-probe` and `verify-files`; AGENTS describes the split layout. `dom-compare` against the baseline stays a round-end proof (recorded in Results), not a standing gate, because any later UI change would break it | `a32f98c` |
+| L1-4 | **Fixed.** `export-names --lost-only` in the verify (fails only on a lost name or module); the strict form stays the round-end proof | `a32f98c` |
+| L1-5 | **Deferred**, trigger in `PLAN.md` (the next use of `dom-compare`); the gaps are written into the tool's header and the README | `a32f98c` |
+| L1-6 | **Deferred**, `PLAN.md` backlog (next change to `grid-layout.js`); `dom-compare` catches the two grid cases meanwhile | |
+| L1-7 | **Accepted**, recorded in `PLAN.md` | |
+| L1-8 | **Fixed in part.** `dom-compare` kills Chrome's process tree on Windows: two runs left the temp-profile count at 9 (the 9 leftover folders predate the fix and are still in temp). The `ux-checks-headless.mjs` `EPERM` is **deferred** (outside the round) | `a32f98c` |
+| L1-9 | **Accepted** (not a regression), `PLAN.md` | |
+| L1-10, L2-10 | **Noted and documented.** Every split test now says it reads source text and pins layout, not behavior; AGENTS says to delete them when files are merged on purpose | `a32f98c` |
+| L1-11 | **Noted only** (expected failures) | |
+| L2-1 (High), L2-2 (High) | **Fixed.** Re-timed three times (6.7, 6.7, 6.8s; test time 1.19 to 1.22s); AGENTS says about 7 seconds, README and `PLAN.md` say about 1s, and the recorded measurement in `test/docs_claims.test.js` is 7 | `a32f98c`. The claim test cannot catch this class on its own (a 5 passes against a 7 within the 1.5x band), so the fix is the re-timing |
+| L2-3 | **Fixed** in the plan's Results (per-file counts, 16 for `module_graph`) | |
+| L2-5 (High) | **Fixed.** `test/*_pins.test.js`, `test/color_rng.test.js`, `test/ux/pins-*.js`, `harness-grid.js`, `harness-library.js`, ids `pin-*`; the audit mutation ids are dropped from titles and the round vocabulary from headers; the plan's Results carry a rename note | `a32f98c` |
+| L2-6 | **Fixed.** The empty registry is deleted | `a32f98c` |
+| L2-7 | **Fixed.** `pipeline.js` header and README separate the `pipeline-*` checks (end to end) from the `pin-*` checks | `a32f98c` |
+| L2-8, L2-9 | **Fixed.** `src/color.js` header rewritten, the library state test header corrected, "barrel" reworded, AGENTS describes the six split modules and the re-export convention | `a32f98c` |
+| L2-11 | **Fixed.** All 20 agent branches were already merged; each worktree was clean; the `node_modules` junctions were unlinked first, then `git worktree remove` and `git branch -d`; the shared `node_modules` was intact (77 entries before and after). One pre-existing branch (`color-blank-display`) is untouched. The 9 Chrome profile folders in temp from earlier `dom-compare` runs are **not** removed (a delete there was refused earlier; the owner can clear `%TEMP%\nng-dom-*`) | |
+| L2-12 to L2-16 | **Fixed** (wording, sort, trigger); plan-doc growth **accepted** | |
+| W1 to W5 | **Noted**; W3 and W4 addressed by the documentation and renaming above | |
+
+## Backlog sweep (step 0, run alongside the lenses)
+
+Flagged and waiting on the owner (fix now, re-defer with a new trigger, or kill): the process trial for feature lists (its trigger fired at pass 7 and the judgment was never recorded); the untyped `ctx.<module>` calls (the named trigger, this plan, ran without touching it); the three pass-8 follow-ups (`saveSet` id guard, untested teardown paths, crop-box drag); the two solver items from 2026-10-08 that have never fired. Closed without asking: D24's finished-set UX check (done, `pin-sets-complete-mosaic-size`, `3388a47`).

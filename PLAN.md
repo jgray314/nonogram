@@ -485,8 +485,17 @@ Each item has a trigger. Items marked **kill** are recorded only so they aren't 
 **View split follow-ups (gate pass 8, 2026-10-29):**
 - `saveSet` (Create, tile sets) has no existing-id guard, unlike `saveSingle`: a tile whose content id equals an already saved puzzle may be overwritten with the set-derived title, verdict and art. Read from the code, not reproduced. Confirm first, then decide whether it needs the same refusal and message. Trigger: the next change to `saveSet`, or a set tile that matches a saved puzzle.
 - Untested teardown and cleanup paths, create: the draft fields (`baseline`, `history`, `titleTouched`, `savedSig`, `image`, `title`), `solver.terminate()`, the keydown removal. Play: the resize cleanup, `generation += 1` in `unmount`, the import handler's `live()` aborts, the `pendingNotes` note. Trigger: the next change to create's `teardown` or to play's import handler.
-- Cross-module calls through `ctx.<module>` are untyped (the slots resolve to `any`), so a renamed method fails only at run time. Needs per-module API typedefs. Trigger: the first module method rename, or `docs/plans/line-cap-300.md`.
+- Cross-module calls through `ctx.<module>` are untyped (the slots resolve to `any`), so a renamed method fails only at run time. Needs per-module API typedefs. Trigger: the first module method rename. (`docs/plans/line-cap-300.md` was named as a trigger and ran without touching it, gate pass 9.)
 - Crop-box drag in Create was moved without a runtime check. Check it by hand on a wide photo, or add a UX check. Trigger: the next change to `crop-preview.js`.
+
+**Line-cap round follow-ups (gate pass 9, 2026-10-30):**
+- `dom-compare` does not import a library file, show or delete a tile set, create a colour puzzle, or leave a page mid-import; a changed `lib.store.remove('set', ...)` and a `<` to `<=` in the colour tie-break both passed it. Add steps when the next refactor needs it. Trigger: the next use of `dom-compare`.
+- Grid layout details no check sees: the thick-line column test (`c % 5`) and the corner class survive both `npm test` and `test:ux`; only `dom-compare` catches them. Trigger: the next change to `src/views/grid-layout.js`.
+- `ITERATIONS` above 1 and `ART_MIN_SIDE` by one are unpinned (the clustering converges first; no test names the value). Accepted. Trigger: a change to either constant.
+- `lib.render` is not cleared in `unmount`, so a stale closure over `listEl` outlives a mount. Harmless today (every caller is gated by `forThisMount`) and was true of the old code. Trigger: a second consumer of `lib.render`.
+- `test/split_*.test.js` pin the file layout by source text. They stop a merge-back by accident and tax the next refactor; delete them when the files are merged on purpose.
+- `test/ux/checks` leaves a Windows Chrome profile in temp and can fail its own cleanup with `EPERM`; `scripts/dom-compare.mjs` now kills the Chrome tree, `scripts/ux-checks-headless.mjs` does not. Trigger: the next flaky `test:ux` exit.
+- `validateSet` accepts repeated tile ids and `format.js` has no duplicate-id refusal (it lives in `backup.js`); AGENTS rule 6 asks for refusal of duplicate ids. Design question, noted by the format audit. Trigger: the next change to `validateSet` or `backup.js`.
 
 **Trust (gate pass 2, L1):**
 - **Done (merged `a9ff17f`).** Hearts, mistake marks and hints trusted an imported puzzle's `verdict`, so a hand-edited verdict could switch hearts on for a puzzle with several solutions. Library backup import and Import save now discard the verdict and re-solve each written puzzle with the solver worker (`rateImports`, `ratePlan`; the client is `src/solver-client.js`).
@@ -498,7 +507,7 @@ Each item has a trigger. Items marked **kill** are recorded only so they aren't 
 **Creator and player feel:**
 - **Kill (gate pass 6):** clues updating on stroke release, no way back to the source after "Clear to blank", the solve glow replaying on reopen, the play grid scrolling below 16px, and gate pass 1 L11's elapsed time on close and leave-Create warning. Their trigger was "after about 5 puzzles played"; three hands-on rounds later, none came up.
 - A set 4 tiles wide (4 x 96px) is wider than a phone screen in the library, whether finished or not (noticed 2026-10-11, D24). Trigger: you play sets on the phone.
-- D24's finished-set view is covered by unit tests on `tileFace` and `setProgress`, not by a UX check. Trigger: the set view changes again.
+- **Done 2026-10-30 (line-cap-300 round, `pin-sets-complete-mosaic-size`, merge `3388a47`).** D24's finished-set view was covered by unit tests on `tileFace` and `setProgress`, not by a UX check; a UX check now asserts the finished set's tile size, columns and canvases, and that a partly solved set gets none of it.
 
 **Trust (gate pass 3, L2), accepted for a personal tool:**
 - **Done (merged `a9ff17f`).** `validatePuzzle` lets unknown extra keys through, and the store kept them. Both import paths now apply `pickKnown`, which keeps only `PUZZLE_KEYS`, `SAVE_KEYS` and `SET_KEYS`, and (gate pass 6, L1) only the known keys inside palette entries, the puzzle's `set` and the save's `rules`. `verdict` is replaced on import, so it is not filtered. `validatePuzzle` itself is unchanged, so stored records still load.

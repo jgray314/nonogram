@@ -73,9 +73,9 @@ test('unmount clears the lib fields in order and only ever increments generation
   }
 });
 
-test('the sets stub exists and library.js does not import it yet', () => {
-  for (const f of ['library-sets.js']) {
+test('the backup and sets files exist, and library.js imports both now that they are filled', () => {
+  for (const f of ['library-backup.js', 'library-sets.js']) {
     assert.ok(read(f).trim().length > 0, `${f} exists`);
-    assert.ok(!importsFrom(library, `./${f}`), `${f} not imported yet`);
+    assert.ok(importsFrom(library, `./${f}`), `${f} imported`);
   }
 });

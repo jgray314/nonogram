@@ -129,7 +129,7 @@ test('every listed barrel exists', () => {
 test('the graph sees real imports (guards a regex that matches nothing)', () => {
   const graph = buildGraph();
   assert.ok(graph.get('color.js').includes('image.js'));
-  assert.ok(graph.get('views/library.js').includes('format.js'));
+  assert.ok(graph.get('views/library.js').includes('views/library-backup.js'));
   assert.ok(graph.size > 30);
 });
 

@@ -41,6 +41,7 @@ const LINECAP_IDS = [
   'linecap-library-import-toolbar-disabled',
   'linecap-library-import-navigate-away',
   'linecap-library-delete-set-and-guards',
+  'linecap-backup-import-write-failure-rerenders',
 ];
 
 test('ux registry: every line-cap survivor check is registered and not marked known', () => {

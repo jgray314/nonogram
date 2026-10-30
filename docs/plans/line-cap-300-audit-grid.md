@@ -38,7 +38,7 @@ Result: **25 mutations, 2 caught, 23 survived.** `renderGrid` has no unit test a
 
 None of these is on a trust boundary (the grid takes already-validated puzzle data and emits events). All are user-visible output or input handling, so under the plan's rule of thumb all should be closed or accepted in writing.
 
-The cheapest single closer for G1-G12 is a `test/grid.test.js` block over a minimal DOM (the repo's existing helpers permit it; if there is no DOM shim, a UX check on `/` that renders a fixed `renderGrid` and asserts classes). Specific checks:
+The repo has no DOM shim (no jsdom or similar in `package.json`; `test/helpers/` holds only `split.js`), so the "unit (DOM)" checks below are really UX checks in the headless Chrome harness: mount a fixed `renderGrid` on a scratch page and assert classes and emitted events. Alternatively add a small DOM shim as a dev dependency, a bigger decision for Wave 0e. Specific checks:
 
 | survivors | suggested closing check | kind |
 |---|---|---|
@@ -57,6 +57,6 @@ The cheapest single closer for G1-G12 is a `test/grid.test.js` block over a mini
 | G23 | window `pointercancel` during a stroke emits `up` and ends the stroke (next `pointerdown` emits `down`) | unit (DOM) |
 | G24, G25 | after `destroy()`, window `pointerup` and `pointercancel` do not call `onPointer`; spy on `window.removeEventListener` | unit (DOM) |
 
-Dispatch uses `PointerEvent` with `pointerType` set; `document.elementFromPoint` (touch path) needs a stub. If the project has no DOM shim, these need a headless-Chrome UX check instead (slower, but the browser is already there).
+Dispatch uses `PointerEvent` with `pointerType` set; in a real browser `document.elementFromPoint` works with real coordinates.
 
 Notes for Wave 0e: G15 and G20 show the mouse down/up path is exercised by play-view UX checks; the survivors are the secondary paths (touch, pen, cancel, leave, teardown) and every paint method except the initial `update`. Treat G10 as an accepted survivor with the reason given above. G16 and G19 are defensive and may be harmless to the play view today (it ignores extra events), but they define the event contract for any other caller (Create, Print), so close them with the same DOM test.

@@ -6,38 +6,38 @@ This is the verification ledger: check gates and controls, each with a command t
 It is not the product roadmap. What the product does and what is open lives in the README
 and plan docs that AGENTS.md lists under 'Where things are'.
 
-Commit: `672210a`  
+Commit: `bc37239`  
 Full check: `npm test && npm run lint && npm run format:check && npm run typecheck`
 
 ## Done
 
-- **fast-suite**: The fast suite passes: solver, difficulty, import and player logic. (verified at `672210a`)
-- **lint-clean**: ESLint reports nothing on the whole tree. (verified at `672210a`)
-- **format-clean**: Prettier check passes on the whole tree. (verified at `672210a`)
-- **import-bounds-registry**: Every import entry point has a table-driven test for allow-listed keys at every depth, per-field length limits, count limits and duplicate ids, so a new field fails until it has a row. (verified at `672210a`)
-- **public-docs-denylist**: Source comments and public docs contain no review ids (gate pass N, finding ids), private workspace paths or third-person owner references; a test fails on any. (verified at `672210a`)
-- **encoding-guard**: Tracked JSON, Markdown and recordings contain no mojibake byte sequences, and .gitattributes pins text line endings. (verified at `672210a`)
-- **docs-claims-pinned**: Test counts, suite timings and case counts quoted in README and PLAN are asserted by a test against their source. (verified at `672210a`)
-- **typecheck-clean**: tsc --checkJs reports nothing on src, scripts and test; a suppression needs a stated reason. (verified at `672210a`)
-- **ux-checks-headless**: ux-checks.html runs headless in Chrome and exits non-zero on any unmarked check failure; KNOWN issues are reported only. (verified at `672210a`)
-- **color-blank-rule**: Create (color flag on) turns an image into one color puzzle with 3 to 5 colors in total: the most common color is the blank, the rest are inks with colored clues, and colors closer than the merge distance are merged. (verified at `672210a`)
-- **color-play**: A color puzzle plays: colored cells and clue chips, a color picker (keys 1 to 5), and a fill in the wrong color is a mistake that costs a heart. (verified at `672210a`)
-- **color-first-class**: Color is a standard Create option with no flag, and Load sample puzzles adds three fair color samples (Strawberry, Mushroom, Flower) that play with the color picker. (verified at `672210a`)
-- **color-library-label**: Library rows mark a color puzzle with a Color badge and one dot per ink color (screen readers hear how many colors); two-tone rows are unchanged. (verified at `672210a`)
-- **color-pixel-palette**: Image to color grid takes its palette from the pixels (16-level color histogram, weighted k-means seeded far apart, Chang et al. 2015) and gives each cell its majority color: antialiased edges add no extra color, a small vivid subject keeps its color, and a 3% crop move barely changes the palette. (verified at `672210a`)
-- **color-blank-display**: A color puzzle stores its blank (background) color, and Create and Play draw empty and crossed cells in it, with the cross white on a dark blank and dark on a light one; two-tone puzzles are unchanged. (verified at `672210a`)
-- **e2e-pipeline-helpers**: The UX harness has upload, create-and-save, download-capture, file-pick and store-reset helpers, a synthetic color fixture and a PIPELINE_CHECKS registration hook, so pipeline checks can drive the real app end to end. No behavior change; failing-first is N/A. (verified at `672210a`)
-- **e2e-pipeline-mono**: End to end: uploading cat-15x15 in Create and saving stores a 15x15 puzzle with a real worker verdict, and the library lists it with a Play button that opens a 15x15 grid. (verified at `672210a`)
-- **e2e-pipeline-backup**: Exporting the library, wiping the store and importing a backup whose verdicts were tampered with restores both the mono and color puzzles with the worker's re-rated verdicts, not the file's. (verified at `672210a`)
-- **e2e-pipeline-color**: A color image uploaded in Create (4 colors chosen) reaches the library through the real worker: palette of 2 to 4 inks plus a valid distinct blank hex, a real stored verdict, a Color badge with one dot per ink, and one swatch per ink in Play. (verified at `672210a`)
-- **e2e-pipeline-webpbn**: A puzzle created from an image through the real Create flow exports webpbn XML from the Library whose root, row and column clues and picture match the stored solution, with expected clues derived independently in the check. (verified at `672210a`)
-- **storage-lint-rule**: Only src/store.js may use localStorage or sessionStorage: ESLint rejects them (and globalThis.localStorage) anywhere else in src, and inline eslint-disable comments cannot switch the rule off. (verified at `672210a`)
-- **split-create-view**: src/views/create.js is split into src/views/create/ modules (build, image-source, crop-preview, grid-view, report, save, index) with no change in behavior; the layout test pins the modules and their exports. (verified at `672210a`)
-- **split-play-view**: src/views/play.js is split into src/views/play/ modules (build, hud, persist, rules-layout, session, util, index) with no change in behavior; the layout test pins the modules and their exports. (verified at `672210a`)
-- **view-size-cap**: No file under src/ is longer than the cap (500 lines when the view split set it, 300 since line-cap-300): max-lines is on, inline disables are ignored, and a test pins the rule and its scope. (verified at `672210a`)
-- **save-file-ux-check**: A UX check drives play's Export save and Import save: an exported save re-imports to the same cells, elapsed time and hearts, and a save for another puzzle is handled; it fails if the import handler stops writing the save or stops remounting. (verified at `672210a`)
-- **leave-saves-time-ux-check**: A UX check leaves a puzzle after waiting and asserts the stored save gained the elapsed time and kept its cells; it fails if unmount stops saving. (verified at `672210a`)
-- **line-cap-300**: No file under src/ is longer than 300 lines: the six oversized files are split into new files behind unchanged export lists, with no cycles among them, and the lint cap is 300 with a test that pins it. (verified at `672210a`)
+- **fast-suite**: The fast suite passes: solver, difficulty, import and player logic. (verified at `bc37239`)
+- **lint-clean**: ESLint reports nothing on the whole tree. (verified at `bc37239`)
+- **format-clean**: Prettier check passes on the whole tree. (verified at `bc37239`)
+- **import-bounds-registry**: Every import entry point has a table-driven test for allow-listed keys at every depth, per-field length limits, count limits and duplicate ids, so a new field fails until it has a row. (verified at `bc37239`)
+- **public-docs-denylist**: Source comments and public docs contain no review ids (gate pass N, finding ids), private workspace paths or third-person owner references; a test fails on any. (verified at `bc37239`)
+- **encoding-guard**: Tracked JSON, Markdown and recordings contain no mojibake byte sequences, and .gitattributes pins text line endings. (verified at `bc37239`)
+- **docs-claims-pinned**: Test counts, suite timings and case counts quoted in README and PLAN are asserted by a test against their source. (verified at `bc37239`)
+- **typecheck-clean**: tsc --checkJs reports nothing on src, scripts and test; a suppression needs a stated reason. (verified at `bc37239`)
+- **ux-checks-headless**: ux-checks.html runs headless in Chrome and exits non-zero on any unmarked check failure; KNOWN issues are reported only. (verified at `bc37239`)
+- **color-blank-rule**: Create (color flag on) turns an image into one color puzzle with 3 to 5 colors in total: the most common color is the blank, the rest are inks with colored clues, and colors closer than the merge distance are merged. (verified at `bc37239`)
+- **color-play**: A color puzzle plays: colored cells and clue chips, a color picker (keys 1 to 5), and a fill in the wrong color is a mistake that costs a heart. (verified at `bc37239`)
+- **color-first-class**: Color is a standard Create option with no flag, and Load sample puzzles adds three fair color samples (Strawberry, Mushroom, Flower) that play with the color picker. (verified at `bc37239`)
+- **color-library-label**: Library rows mark a color puzzle with a Color badge and one dot per ink color (screen readers hear how many colors); two-tone rows are unchanged. (verified at `bc37239`)
+- **color-pixel-palette**: Image to color grid takes its palette from the pixels (16-level color histogram, weighted k-means seeded far apart, Chang et al. 2015) and gives each cell its majority color: antialiased edges add no extra color, a small vivid subject keeps its color, and a 3% crop move barely changes the palette. (verified at `bc37239`)
+- **color-blank-display**: A color puzzle stores its blank (background) color, and Create and Play draw empty and crossed cells in it, with the cross white on a dark blank and dark on a light one; two-tone puzzles are unchanged. (verified at `bc37239`)
+- **e2e-pipeline-helpers**: The UX harness has upload, create-and-save, download-capture, file-pick and store-reset helpers, a synthetic color fixture and a PIPELINE_CHECKS registration hook, so pipeline checks can drive the real app end to end. No behavior change; failing-first is N/A. (verified at `bc37239`)
+- **e2e-pipeline-mono**: End to end: uploading cat-15x15 in Create and saving stores a 15x15 puzzle with a real worker verdict, and the library lists it with a Play button that opens a 15x15 grid. (verified at `bc37239`)
+- **e2e-pipeline-backup**: Exporting the library, wiping the store and importing a backup whose verdicts were tampered with restores both the mono and color puzzles with the worker's re-rated verdicts, not the file's. (verified at `bc37239`)
+- **e2e-pipeline-color**: A color image uploaded in Create (4 colors chosen) reaches the library through the real worker: palette of 2 to 4 inks plus a valid distinct blank hex, a real stored verdict, a Color badge with one dot per ink, and one swatch per ink in Play. (verified at `bc37239`)
+- **e2e-pipeline-webpbn**: A puzzle created from an image through the real Create flow exports webpbn XML from the Library whose root, row and column clues and picture match the stored solution, with expected clues derived independently in the check. (verified at `bc37239`)
+- **storage-lint-rule**: Only src/store.js may use localStorage or sessionStorage: ESLint rejects them (and globalThis.localStorage) anywhere else in src, and inline eslint-disable comments cannot switch the rule off. (verified at `bc37239`)
+- **split-create-view**: src/views/create.js is split into src/views/create/ modules (build, image-source, crop-preview, grid-view, report, save, index) with no change in behavior; the layout test pins the modules and their exports. (verified at `bc37239`)
+- **split-play-view**: src/views/play.js is split into src/views/play/ modules (build, hud, persist, rules-layout, session, util, index) with no change in behavior; the layout test pins the modules and their exports. (verified at `bc37239`)
+- **view-size-cap**: No file under src/ is longer than the cap (500 lines when the view split set it, 300 since line-cap-300): max-lines is on, inline disables are ignored, and a test pins the rule and its scope. (verified at `bc37239`)
+- **save-file-ux-check**: A UX check drives play's Export save and Import save: an exported save re-imports to the same cells, elapsed time and hearts, and a save for another puzzle is handled; it fails if the import handler stops writing the save or stops remounting. (verified at `bc37239`)
+- **leave-saves-time-ux-check**: A UX check leaves a puzzle after waiting and asserts the stored save gained the elapsed time and kept its cells; it fails if unmount stops saving. (verified at `bc37239`)
+- **line-cap-300**: No file under src/ is longer than 300 lines: the six oversized files are split into new files behind unchanged export lists, with no cycles among them, and the lint cap is 300 with a test that pins it. (verified at `bc37239`)
 
 ## In progress
 

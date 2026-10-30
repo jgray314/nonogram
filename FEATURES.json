@@ -17,11 +17,11 @@
       "verify": "npm test",
       "state": "passing",
       "evidence": {
-        "commit": "a32f98c1ef89b4f1c666481bb0bbf1aeaa8301b3",
+        "commit": "bc372395c20f9cc4bbfe6f8e599c638068d1891e",
         "dirty": false,
-        "at": "2026-10-30T19:23:42Z",
+        "at": "2026-10-30T19:32:27Z",
         "exit_code": 0,
-        "seal": "jlafaamlgpcapcpi"
+        "seal": "chjmbjgogcllihff"
       },
       "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
@@ -31,11 +31,11 @@
       "verify": "npm run lint",
       "state": "passing",
       "evidence": {
-        "commit": "a32f98c1ef89b4f1c666481bb0bbf1aeaa8301b3",
+        "commit": "bc372395c20f9cc4bbfe6f8e599c638068d1891e",
         "dirty": false,
-        "at": "2026-10-30T19:23:43Z",
+        "at": "2026-10-30T19:32:28Z",
         "exit_code": 0,
-        "seal": "ipbgjoemiejnabjc"
+        "seal": "ggfiahkgighbofgi"
       },
       "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
@@ -45,11 +45,11 @@
       "verify": "npm run format:check",
       "state": "passing",
       "evidence": {
-        "commit": "a32f98c1ef89b4f1c666481bb0bbf1aeaa8301b3",
+        "commit": "bc372395c20f9cc4bbfe6f8e599c638068d1891e",
         "dirty": false,
-        "at": "2026-10-30T19:23:45Z",
+        "at": "2026-10-30T19:32:30Z",
         "exit_code": 0,
-        "seal": "bcpjagdpbmnkigkm"
+        "seal": "ikealfmcfokapfel"
       },
       "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
@@ -60,11 +60,11 @@
       "state": "passing",
       "source": "harness-history analysis 2026-10-15, item 3: untrusted import fixed four times across three gate passes",
       "evidence": {
-        "commit": "a32f98c1ef89b4f1c666481bb0bbf1aeaa8301b3",
+        "commit": "bc372395c20f9cc4bbfe6f8e599c638068d1891e",
         "dirty": false,
-        "at": "2026-10-30T19:23:45Z",
+        "at": "2026-10-30T19:32:30Z",
         "exit_code": 0,
-        "seal": "kdmdempefgbhfcee"
+        "seal": "glbkegeodnbiilmm"
       },
       "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
@@ -75,11 +75,11 @@
       "state": "passing",
       "source": "harness-history analysis item 2: pass 6 W13 found about 21 review ids in comments and only noted them",
       "evidence": {
-        "commit": "a32f98c1ef89b4f1c666481bb0bbf1aeaa8301b3",
+        "commit": "bc372395c20f9cc4bbfe6f8e599c638068d1891e",
         "dirty": false,
-        "at": "2026-10-30T19:23:45Z",
+        "at": "2026-10-30T19:32:30Z",
         "exit_code": 0,
-        "seal": "gckmkblfdhnkchbh"
+        "seal": "mhejfdoebfccnjfk"
       },
       "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
@@ -90,11 +90,11 @@
       "state": "passing",
       "source": "harness-history analysis item 11: shell-written text corrupted twice in JSCC, same class noted in nonogram retro",
       "evidence": {
-        "commit": "a32f98c1ef89b4f1c666481bb0bbf1aeaa8301b3",
+        "commit": "bc372395c20f9cc4bbfe6f8e599c638068d1891e",
         "dirty": false,
-        "at": "2026-10-30T19:23:45Z",
+        "at": "2026-10-30T19:32:31Z",
         "exit_code": 0,
-        "seal": "pdgjhbhbhdmdapml"
+        "seal": "pnehmddccdgibbod"
       },
       "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
@@ -105,11 +105,11 @@
       "state": "passing",
       "source": "harness-history analysis 2026-10-15, item 1: README timing and PLAN claims stale in passes 2, 3, 5 and 6",
       "evidence": {
-        "commit": "a32f98c1ef89b4f1c666481bb0bbf1aeaa8301b3",
+        "commit": "bc372395c20f9cc4bbfe6f8e599c638068d1891e",
         "dirty": false,
-        "at": "2026-10-30T19:23:46Z",
+        "at": "2026-10-30T19:32:31Z",
         "exit_code": 0,
-        "seal": "hjmlbdkcjckcjghe"
+        "seal": "ihnblkdlieeghena"
       },
       "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
@@ -120,11 +120,11 @@
       "state": "passing",
       "source": "harness follow-up 2026-10-15: light type checking in the pre-push hook and CI",
       "evidence": {
-        "commit": "a32f98c1ef89b4f1c666481bb0bbf1aeaa8301b3",
+        "commit": "bc372395c20f9cc4bbfe6f8e599c638068d1891e",
         "dirty": false,
-        "at": "2026-10-30T19:23:48Z",
+        "at": "2026-10-30T19:32:33Z",
         "exit_code": 0,
-        "seal": "lgdjljagpoaligfh"
+        "seal": "lmldpchdjmefngof"
       },
       "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
@@ -135,11 +135,11 @@
       "state": "passing",
       "source": "harness follow-up 2026-10-15: UX checks were manual-only and not in CI",
       "evidence": {
-        "commit": "a32f98c1ef89b4f1c666481bb0bbf1aeaa8301b3",
+        "commit": "bc372395c20f9cc4bbfe6f8e599c638068d1891e",
         "dirty": false,
-        "at": "2026-10-30T19:24:03Z",
+        "at": "2026-10-30T19:32:48Z",
         "exit_code": 0,
-        "seal": "balkonadjimggele"
+        "seal": "jojifffbndgkdonl"
       },
       "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
@@ -150,11 +150,11 @@
       "state": "passing",
       "source": "color blank rule decision 2026-10-22: most common cluster is the blank",
       "evidence": {
-        "commit": "a32f98c1ef89b4f1c666481bb0bbf1aeaa8301b3",
+        "commit": "bc372395c20f9cc4bbfe6f8e599c638068d1891e",
         "dirty": false,
-        "at": "2026-10-30T19:24:33Z",
+        "at": "2026-10-30T19:33:04Z",
         "exit_code": 0,
-        "seal": "abdkcclijfcjcpbn"
+        "seal": "cgoknpoobfmcnopl"
       },
       "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
@@ -165,11 +165,11 @@
       "state": "passing",
       "source": "color blank rule decision 2026-10-22",
       "evidence": {
-        "commit": "a32f98c1ef89b4f1c666481bb0bbf1aeaa8301b3",
+        "commit": "bc372395c20f9cc4bbfe6f8e599c638068d1891e",
         "dirty": false,
-        "at": "2026-10-30T19:24:48Z",
+        "at": "2026-10-30T19:33:19Z",
         "exit_code": 0,
-        "seal": "bcmngkicphbipkpa"
+        "seal": "cjgjlffikpgnnijc"
       },
       "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
@@ -180,11 +180,11 @@
       "state": "passing",
       "source": "owner request 2026-10-22: color as a first-class option, 3 sample color puzzles (D26)",
       "evidence": {
-        "commit": "a32f98c1ef89b4f1c666481bb0bbf1aeaa8301b3",
+        "commit": "bc372395c20f9cc4bbfe6f8e599c638068d1891e",
         "dirty": false,
-        "at": "2026-10-30T19:25:04Z",
+        "at": "2026-10-30T19:33:34Z",
         "exit_code": 0,
-        "seal": "ndoobikfmmdhilpi"
+        "seal": "facghfhhkdmachem"
       },
       "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
@@ -195,11 +195,11 @@
       "state": "passing",
       "source": "owner request 2026-10-22: label color puzzles in the library (D27)",
       "evidence": {
-        "commit": "a32f98c1ef89b4f1c666481bb0bbf1aeaa8301b3",
+        "commit": "bc372395c20f9cc4bbfe6f8e599c638068d1891e",
         "dirty": false,
-        "at": "2026-10-30T19:25:19Z",
+        "at": "2026-10-30T19:33:50Z",
         "exit_code": 0,
-        "seal": "hfnfjccdblekeeof"
+        "seal": "dkcggaimbfnalebn"
       },
       "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
@@ -210,11 +210,11 @@
       "state": "passing",
       "source": "owner 2026-10-22: color selection janky on photos; research in docs/color-research.md D28",
       "evidence": {
-        "commit": "a32f98c1ef89b4f1c666481bb0bbf1aeaa8301b3",
+        "commit": "bc372395c20f9cc4bbfe6f8e599c638068d1891e",
         "dirty": false,
-        "at": "2026-10-30T19:25:35Z",
+        "at": "2026-10-30T19:34:06Z",
         "exit_code": 0,
-        "seal": "ihgafjidkplnlamn"
+        "seal": "iecagklnmpjmaefn"
       },
       "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
@@ -225,11 +225,11 @@
       "state": "passing",
       "source": "owner request 2026-10-22: blank display matches the picture's background, X inverted for contrast (D29)",
       "evidence": {
-        "commit": "a32f98c1ef89b4f1c666481bb0bbf1aeaa8301b3",
+        "commit": "bc372395c20f9cc4bbfe6f8e599c638068d1891e",
         "dirty": false,
-        "at": "2026-10-30T19:25:51Z",
+        "at": "2026-10-30T19:34:21Z",
         "exit_code": 0,
-        "seal": "pfdkjnemcdahomgc"
+        "seal": "cogejmlfnibcipce"
       },
       "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
@@ -240,11 +240,11 @@
       "state": "passing",
       "source": "docs/plans/e2e-pipeline-checks.md Wave 0",
       "evidence": {
-        "commit": "a32f98c1ef89b4f1c666481bb0bbf1aeaa8301b3",
+        "commit": "bc372395c20f9cc4bbfe6f8e599c638068d1891e",
         "dirty": false,
-        "at": "2026-10-30T19:26:21Z",
+        "at": "2026-10-30T19:34:37Z",
         "exit_code": 0,
-        "seal": "nhnmpanfnodlhaoa"
+        "seal": "gnfllfbkhjgiidbl"
       },
       "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
@@ -255,11 +255,11 @@
       "state": "passing",
       "source": "docs/plans/e2e-pipeline-checks.md Wave 1 A1",
       "evidence": {
-        "commit": "a32f98c1ef89b4f1c666481bb0bbf1aeaa8301b3",
+        "commit": "bc372395c20f9cc4bbfe6f8e599c638068d1891e",
         "dirty": false,
-        "at": "2026-10-30T19:26:36Z",
+        "at": "2026-10-30T19:34:52Z",
         "exit_code": 0,
-        "seal": "gjkiijkakfgdemea"
+        "seal": "kmboamloighhjmdn"
       },
       "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
@@ -270,11 +270,11 @@
       "state": "passing",
       "source": "docs/plans/e2e-pipeline-checks.md Wave 1 C",
       "evidence": {
-        "commit": "a32f98c1ef89b4f1c666481bb0bbf1aeaa8301b3",
+        "commit": "bc372395c20f9cc4bbfe6f8e599c638068d1891e",
         "dirty": false,
-        "at": "2026-10-30T19:26:52Z",
+        "at": "2026-10-30T19:35:08Z",
         "exit_code": 0,
-        "seal": "chalaaocildhadpj"
+        "seal": "fhbnmimnpjiolcjk"
       },
       "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
@@ -285,11 +285,11 @@
       "state": "passing",
       "source": "docs/plans/e2e-pipeline-checks.md Wave 1 B",
       "evidence": {
-        "commit": "a32f98c1ef89b4f1c666481bb0bbf1aeaa8301b3",
+        "commit": "bc372395c20f9cc4bbfe6f8e599c638068d1891e",
         "dirty": false,
-        "at": "2026-10-30T19:27:08Z",
+        "at": "2026-10-30T19:35:24Z",
         "exit_code": 0,
-        "seal": "ckjnilcaandkmloc"
+        "seal": "ookkdolcaeoikgjl"
       },
       "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
@@ -300,11 +300,11 @@
       "state": "passing",
       "source": "docs/plans/e2e-pipeline-checks.md Wave 1 D",
       "evidence": {
-        "commit": "a32f98c1ef89b4f1c666481bb0bbf1aeaa8301b3",
+        "commit": "bc372395c20f9cc4bbfe6f8e599c638068d1891e",
         "dirty": false,
-        "at": "2026-10-30T19:27:23Z",
+        "at": "2026-10-30T19:35:39Z",
         "exit_code": 0,
-        "seal": "fipkjehlheogpoen"
+        "seal": "hhoeghdajmdibael"
       },
       "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
@@ -315,11 +315,11 @@
       "state": "passing",
       "source": "docs/plans/view-split.md",
       "evidence": {
-        "commit": "a32f98c1ef89b4f1c666481bb0bbf1aeaa8301b3",
+        "commit": "bc372395c20f9cc4bbfe6f8e599c638068d1891e",
         "dirty": false,
-        "at": "2026-10-30T19:27:23Z",
+        "at": "2026-10-30T19:35:40Z",
         "exit_code": 0,
-        "seal": "mnhpnhbbbikpbago"
+        "seal": "pckofkjbekfhledg"
       },
       "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
@@ -330,11 +330,11 @@
       "state": "passing",
       "source": "docs/plans/view-split.md",
       "evidence": {
-        "commit": "a32f98c1ef89b4f1c666481bb0bbf1aeaa8301b3",
+        "commit": "bc372395c20f9cc4bbfe6f8e599c638068d1891e",
         "dirty": false,
-        "at": "2026-10-30T19:27:53Z",
+        "at": "2026-10-30T19:35:56Z",
         "exit_code": 0,
-        "seal": "ngdffabcllncppbe"
+        "seal": "pjaegnpfgdfjalid"
       },
       "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
@@ -345,11 +345,11 @@
       "state": "passing",
       "source": "docs/plans/view-split.md",
       "evidence": {
-        "commit": "a32f98c1ef89b4f1c666481bb0bbf1aeaa8301b3",
+        "commit": "bc372395c20f9cc4bbfe6f8e599c638068d1891e",
         "dirty": false,
-        "at": "2026-10-30T19:28:08Z",
+        "at": "2026-10-30T19:36:11Z",
         "exit_code": 0,
-        "seal": "pbkhfccdlcpmeokl"
+        "seal": "ipbmcagmmgahgahp"
       },
       "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
@@ -360,11 +360,11 @@
       "state": "passing",
       "source": "docs/plans/view-split.md",
       "evidence": {
-        "commit": "a32f98c1ef89b4f1c666481bb0bbf1aeaa8301b3",
+        "commit": "bc372395c20f9cc4bbfe6f8e599c638068d1891e",
         "dirty": false,
-        "at": "2026-10-30T19:28:10Z",
+        "at": "2026-10-30T19:36:13Z",
         "exit_code": 0,
-        "seal": "kfeallhikjefkpdm"
+        "seal": "fbppfgagmgjephkb"
       },
       "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
@@ -375,11 +375,11 @@
       "state": "passing",
       "source": "docs/plans/view-split.md Wave 1 1d",
       "evidence": {
-        "commit": "a32f98c1ef89b4f1c666481bb0bbf1aeaa8301b3",
+        "commit": "bc372395c20f9cc4bbfe6f8e599c638068d1891e",
         "dirty": false,
-        "at": "2026-10-30T19:28:25Z",
+        "at": "2026-10-30T19:36:29Z",
         "exit_code": 0,
-        "seal": "gnbadlmpgkenkpfg"
+        "seal": "ebaggocclnamnjck"
       },
       "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
@@ -390,11 +390,11 @@
       "state": "passing",
       "source": "docs/reviews/nonogram-gate.md pass 8, L1-1",
       "evidence": {
-        "commit": "a32f98c1ef89b4f1c666481bb0bbf1aeaa8301b3",
+        "commit": "bc372395c20f9cc4bbfe6f8e599c638068d1891e",
         "dirty": false,
-        "at": "2026-10-30T19:28:40Z",
+        "at": "2026-10-30T19:36:44Z",
         "exit_code": 0,
-        "seal": "ahbjhligmfoaflhj"
+        "seal": "ndadcdgjfkklbobo"
       },
       "plan_review_skipped": "predates the plan gate (2026-10-29)"
     },
@@ -415,11 +415,11 @@
         "seal": "iobniipkjofkljap"
       },
       "evidence": {
-        "commit": "a32f98c1ef89b4f1c666481bb0bbf1aeaa8301b3",
+        "commit": "bc372395c20f9cc4bbfe6f8e599c638068d1891e",
         "dirty": false,
-        "at": "2026-10-30T19:29:14Z",
+        "at": "2026-10-30T19:37:17Z",
         "exit_code": 0,
-        "seal": "mibbfnmefagkfajc"
+        "seal": "ddcogkaoljnhgebk"
       }
     }
   ],

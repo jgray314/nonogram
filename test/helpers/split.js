@@ -155,3 +155,43 @@ export function reExports(src, specifier) {
     text,
   );
 }
+
+/** @param {string} text matched literally inside a RegExp */
+const literal = (text) =>
+  [...text].map((ch) => ('.*+?^${}()|[]\\'.includes(ch) ? '\\' + ch : ch)).join('');
+
+/**
+ * The sorted names in a real `export { a, b } from '<specifier>';` line (not in
+ * a comment or a string), or null when there is none. Used where a plain
+ * `export *` would leak names the old path never exported.
+ * @param {string} src
+ * @param {string} specifier
+ * @returns {string[] | null}
+ */
+export function namedReExports(src, specifier) {
+  const text = stripComments(src);
+  const quote = literal(specifier);
+  const re = new RegExp(
+    String.raw`^[ \t]*export\s*\{([^}]*)\}\s*from\s*(['"])${quote}\2\s*;?[ \t]*$`,
+    'gm',
+  );
+  const names = [...text.matchAll(re)].flatMap((m) =>
+    m[1]
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean),
+  );
+  return names.length ? names.sort() : null;
+}
+
+/**
+ * True when `src` really imports from '<specifier>' with a static import line
+ * (not in a comment or a string).
+ * @param {string} src
+ * @param {string} specifier
+ */
+export function importsFrom(src, specifier) {
+  const text = stripComments(src);
+  const quote = literal(specifier);
+  return new RegExp(String.raw`^[ \t]*import\b[^'";]*\bfrom\s*(['"])${quote}\1`, 'm').test(text);
+}

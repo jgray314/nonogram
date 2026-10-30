@@ -281,3 +281,49 @@ Advisory:
 ### Verdict
 
 Ready to start Wave 0 after the owner's go. **Not ready for Waves 1 and 2 until the freeze point:** grid's cut, the library file list, the survivors and the sized steps are decisions resolved in Wave 0, and the updated sections are reviewed again before any extraction lane starts.
+
+## Plan review: line-cap-300 after the Wave 0 freeze, 2026-10-30
+
+**Scope:** the sections of `docs/plans/line-cap-300.md` updated at the freeze (commit `a6bef34`): Decisions 1, 2, 4, 5, "Frozen cuts", the library table, "Grid cut (frozen)", Pricing, Waves 1 to 4, the feature-row verify, the lane brief template and Results. Reviewer: a second cold read-only Explore agent that did not read this document or any gate doc, and read the plan against `src/`, `scripts/`, `test/module_graph.test.js`, `test/helpers/split.js` and `FEATURES.json`. Every finding cites plan text and the code that contradicts it. The orchestrator confirmed findings 1, 2 and 5 against the code (`src/color.js` lines 12, 13, 57, 106, 117, 163, 255 to 273; `src/views/grid.js` line 17).
+
+### Findings
+
+Blocking:
+
+1. **Decision 1 and "Frozen cuts" `color.js` row against `scripts/export-names.mjs` and the split helper.** `SEED`, `ITERATIONS`, `rgbOfHex`, `mulberry32`, `d2` and `mean` are private today. The leaf must export them for `color-cells.js`, so `export * from './color-space.js'` adds six names to `color.js` and `export-names` fails; a named list passes `export-names` but fails the helper, which recognised only `export *`. Lane 1d would hit the two-failures stop.
+2. **"Frozen cuts" `color.js` rows.** `d2` (used by both paths) had no owner; `SEED_FALLOFF`, `MAX_PALETTE_PIXELS` and `sampleStep` were unassigned; the pixel path also uses `cellRange` from `image.js`. The pixel path is lines 254 to 457, so `color.js` ends near 225, not 180.
+3. **Feature-row verify against AGENTS rule 10.** It did not chain `test/ux_registry.test.js` (the file's own comment says it is chained) or the four `test/linecap_*.test.js` files: deleting `pipeline-linecap-grid.js` and its spread leaves the verify green with the grid safety net gone.
+4. **Wave 2 and the lane brief.** `split_library` and `split_grid` had no owner (2b and 2c would both edit one file, or one would break "may not touch any other lane's files"); `FAMILIES` had no grid entry, so nothing pinned `grid-layout.js` and `grid-pointer.js` against importing `grid.js`.
+
+Advisory:
+
+5. **Grid cut.** `BUTTONS` (read only by `onDown`) had no file; `inks` (line 84, inside the "setup block") is needed by `update`; `export *` from `grid-layout.js` would leak `buildGrid` and `div` into `grid.js`.
+6. **Library step 2a.** Who adds the imports and what the stubs export was unspecified (an empty stub with an import is a link error, an unused import fails lint); the `el` to `elc` rename of 37 call sites was missing; the two lanes' import lines were adjacent.
+7. **Samples and library text.** `ART` and `COLOR_ART` are private, so `export *` would fail `export-names` for `samples.js`; Decision 4 still said six fields while the table said `root` and `listEl` stay local; `library-state.js` import path should be `./dom.js`.
+8. **`create-save-logic.js` imports.** `tileStatusLine` calls `difficultyLabel`, so `difficulty.js` is needed; the remaining `create-logic.js` is about 155 lines, not 120.
+9. **Pricing.** 2a and 2f mix design and mechanical; 1d was labelled mechanical but held the unresolved decisions of findings 1 and 2.
+10. **Lane brief.** VERIFY omitted `dom-compare` and the color probe, `<baseline>` was undefined, and a lane that needs a helper or `module_graph` change had no instruction.
+11. **Wave 4 and the proof.** Wave 4 did not mention `FAMILIES` for grid or the `lint_size_cap` header comment; `export-names` and `dom-compare` were not part of the feature verify; the recorded `plan_sha` was stale (it is checked only in `activate`, and the row is already active).
+
+### Clean checks
+
+Equivalence tools that can fail (`export-names` compares full sets including star chains, `dom-compare` has `--self-check`, `module_graph` has synthetic-cycle tests, the split helper rejects stubs and comments); sizes match `wc -l` and no unlisted file is over 300; the `format.js` and `create-logic.js` cuts (private helpers stay private, no cycles, nothing new exported); library sizes, `lib` fields, `generation`, `store0` snapshot, render hook and the 2b and 2c regions; Wave 1 lane file disjointness and sequential 2e then 2f; the grid order invariants against the code (`update(cells)` at line 331 before `container.append(root)` at line 332, `destroy` order); the layout and docs tests do not pin the new files or "500 lines"; the Wave 4 lint test fails against 500 and passes after; 619 unit tests and the 73 UX checks add up (45 in `checks.js`, 6 pipeline, 22 linecap); `tsc` is not `strict`.
+
+### Disposition (plan edited; what changed)
+
+| Finding | Fixed |
+|---|---|
+| 1 | Decision 1 now picks the re-export form per file: `export *` only where the new file adds no names (`format.js`, `create-logic.js`); a named list of exactly the old names for `color.js` and `grid.js`; a plain import for `samples.js` and `library.js`. `test/helpers/split.js` gained `namedReExports` and `importsFrom`, tested in `test/module_graph.test.js` (16 tests, with comments, strings, other specifiers and `export *` as negative cases) |
+| 2 | `d2` and every other shared name is in `color-space.js`; `SEED_FALLOFF`, `MAX_PALETTE_PIXELS`, `sampleStep` stay in `color.js`, which also imports `image.js`; the exact re-export lists are written out; size updated to about 225 |
+| 3 | The verify in the plan and in `FEATURES.json` now chains `test/ux_registry.test.js`, the four `test/linecap_*.test.js` files and `node scripts/export-names.mjs ca93716` (`features.py check` passes) |
+| 4 | "Split-test ownership": one split test file per lane (`split_library_state`, `split_library_backup`, `split_library_sets`, `split_grid_layout`, `split_grid_pointer`, plus the four Wave 1 files), each existing only once its lane lands so `main` stays green; `FAMILIES` gained `views/grid.js`; no lane edits `module_graph` or the helper |
+| 5 | `BUTTONS` goes to `grid-pointer.js`; `inks` is computed once in `renderGrid` and passed to `buildGrid`; `grid.js` re-exports `gutterSize` and `blankStyle` by name |
+| 6 | 2a also renames `el` to `elc`, creates the two files as empty modules (`export {}`), and arranges the header with a slot per lane and unchanged lines between them |
+| 7, 8 | Samples plain import; Decision 4 text corrected; `./dom.js`; `difficulty.js` import and 155-line estimate |
+| 9 | Accepted as written: the mixed rows are labelled honestly (2a and 2f are "design + mechanical" at 3 hours); 1d's decisions are now in the plan, so it is mechanical |
+| 10, 11 | Lane brief VERIFY names `dom-compare`, the color probe, `ca93716`, and the stop rule for helper changes; Wave 4 lists the header comment; `export-names` is in the verify; the review is re-recorded with `plan-reviewed` (below) |
+
+### Verdict
+
+Ready for Waves 1 and 2 once this review is recorded. The four blocking findings were real defects against the code and are fixed in the plan, the helper and the ledger.
+

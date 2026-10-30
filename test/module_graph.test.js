@@ -6,7 +6,13 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { definesFunction, reExports, stripComments } from './helpers/split.js';
+import {
+  definesFunction,
+  importsFrom,
+  namedReExports,
+  reExports,
+  stripComments,
+} from './helpers/split.js';
 
 const srcDir = fileURLToPath(new URL('../src/', import.meta.url));
 
@@ -21,6 +27,7 @@ export const FAMILIES = {
     'views/library-backup.js',
     'views/library-sets.js',
   ],
+  'views/grid.js': ['views/grid-layout.js', 'views/grid-pointer.js'],
 };
 
 // A leaf of a family may not import another file of the same family's barrel,
@@ -231,4 +238,28 @@ test('stripComments keeps strings and regexes, drops both comment kinds', () => 
   const out = stripComments(src);
   assert.ok(out.includes("'// not'") && out.includes('`/* kept */`') && out.includes('/\\/\\/x/'));
   assert.ok(!out.includes('gone'));
+});
+
+test('namedReExports: a real named line counts; comments, strings, other specifiers do not', () => {
+  const line = "export { b, a } from './color-space.js';";
+  assert.deepEqual(namedReExports(line, './color-space.js'), ['a', 'b']);
+  assert.deepEqual(
+    namedReExports("export {\n  x,\n  y,\n} from './a.js';\nconst z = 1;\n", './a.js'),
+    ['x', 'y'],
+  );
+  assert.equal(namedReExports(`// ${line}`, './color-space.js'), null);
+  assert.equal(namedReExports(`/* ${line} */`, './color-space.js'), null);
+  assert.equal(namedReExports(`const s = "${line}";`, './color-space.js'), null);
+  assert.equal(namedReExports(line, './color-cells.js'), null);
+  assert.equal(namedReExports("export * from './color-space.js';", './color-space.js'), null);
+  assert.equal(namedReExports("export { } from './color-space.js';", './color-space.js'), null);
+});
+
+test('importsFrom: a real import line counts; comments, strings, re-exports do not', () => {
+  assert.ok(importsFrom("import { a } from './samples-art.js';", './samples-art.js'));
+  assert.ok(importsFrom("import a, { b } from './x.js';\n", './x.js'));
+  assert.ok(!importsFrom("// import { a } from './samples-art.js';", './samples-art.js'));
+  assert.ok(!importsFrom('const s = "import { a } from \'./x.js\';";', './x.js'));
+  assert.ok(!importsFrom("import { a } from './other.js';", './samples-art.js'));
+  assert.ok(!importsFrom("export { a } from './samples-art.js';", './samples-art.js'));
 });

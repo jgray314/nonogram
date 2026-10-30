@@ -5,154 +5,26 @@
 
 import { MAX_HEARTS } from './game.js';
 import { TIERS } from './personas.js';
+import {
+  ART_PREFIX,
+  MAX_ART_CHARS,
+  MAX_GRID_SIDE,
+  MAX_ID_CHARS,
+  MAX_NAME_CHARS,
+  MAX_PALETTE,
+  MAX_SET_ID_CHARS,
+  MAX_SET_SIDE,
+  MAX_SWEEPS,
+  MAX_TITLE_CHARS,
+} from './format-keys.js';
 
 const STATUSES = ['unique-line-solvable', 'unique-needs-guessing', 'multiple', 'none', 'unknown'];
 const HEX = /^#[0-9a-fA-F]{6}$/;
-// Largest tile set the creator makes (4x4). Bounding it keeps a hostile record
-// from making the library allocate rows*cols cells.
-export const MAX_SET_SIDE = 4;
-// Largest grid the creator offers, and the most colors the solver's bitmask
-// holds (it uses 1 << color). Same unbounded-number shape as the set position bound.
-export const MAX_GRID_SIDE = 25;
-export const MAX_PALETTE = 30;
-// Optional source-crop image for the solve reveal (D14): a JPEG data URL of at
-// most 320px on the long side. Not part of the id hash.
-export const ART_PREFIX = 'data:image/jpeg;base64,';
-export const MAX_ART_CHARS = 200000;
-// Generous caps on imported text and counts. Far above
-// anything the app writes, so no saved puzzle can fall outside them.
-export const MAX_TITLE_CHARS = 500;
-export const MAX_NAME_CHARS = 100;
-export const MAX_SET_ID_CHARS = 200;
-export const MAX_SWEEPS = 1000000;
-// Ids the app writes are 16 hex characters; this is a generous cap for a puzzle
-// id, a save's puzzleId and a set's tile ids, same as the set id cap.
-export const MAX_ID_CHARS = MAX_SET_ID_CHARS;
 
 const isObj = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
 const isInt = (x) => Number.isInteger(x);
 const fail = (error) => ({ ok: false, error });
 const OK = { ok: true };
-
-// The fields each record kind has. Imports keep only these, so
-// a hand-edited file cannot carry extra data into the library. `set`, `art`,
-// `blank`, `hearts` and `hints` are optional and stay absent when the record lacks them.
-export const PUZZLE_KEYS = [
-  'v',
-  'id',
-  'title',
-  'width',
-  'height',
-  'palette',
-  'solution',
-  'verdict',
-  'set',
-  'art',
-  'blank',
-];
-export const SAVE_KEYS = ['puzzleId', 'cells', 'elapsedMs', 'rules', 'solvedAt', 'hearts', 'hints'];
-export const SET_KEYS = ['v', 'setId', 'title', 'rows', 'cols', 'tileIds'];
-const KEYS = { puzzle: PUZZLE_KEYS, save: SAVE_KEYS, set: SET_KEYS };
-
-// Known keys of the nested objects. Play writes exactly
-// `rules.zen` and `rules.autoCross`. `verdict` is not listed: both import paths
-// replace it with a fresh solver result, so whatever it carries is discarded.
-export const PALETTE_ENTRY_KEYS = ['name', 'hex'];
-export const PUZZLE_SET_KEYS = ['id', 'row', 'col'];
-export const RULES_KEYS = ['zen', 'autoCross'];
-
-function pickKeys(keys, obj) {
-  const out = {};
-  for (const key of keys) {
-    if (Object.hasOwn(obj, key)) out[key] = obj[key];
-  }
-  return out;
-}
-
-const isPlainObject = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
-
-/**
- * Copy of `record` with only the known keys of `kind` ('puzzle', 'save' or
- * 'set'), and inside it only the known keys of palette entries, the puzzle's
- * `set` and the save's `rules`. Validate first: a nested value that is not an
- * object is passed through unchanged.
- */
-export function pickKnown(kind, record) {
-  const out = pickKeys(KEYS[kind], record);
-  if (kind === 'puzzle') {
-    if (Array.isArray(out.palette)) {
-      out.palette = out.palette.map((p) =>
-        isPlainObject(p) ? pickKeys(PALETTE_ENTRY_KEYS, p) : p,
-      );
-    }
-    if (isPlainObject(out.set)) out.set = pickKeys(PUZZLE_SET_KEYS, out.set);
-  } else if (kind === 'save' && isPlainObject(out.rules)) {
-    out.rules = pickKeys(RULES_KEYS, out.rules);
-  }
-  return out;
-}
-
-// Longest side, in pixels, an imported `art` image may declare. Create scales
-// art to at most this (ART_MAX_SIDE in create-logic.js), and the character cap
-// alone would let a small, crafted JPEG declare a huge size.
-export const MAX_ART_SIDE = 320;
-
-// JPEG start-of-frame markers: SOF0 to SOF15, except DHT (C4), JPG (C8) and DAC (CC).
-const isSof = (m) => m >= 0xc0 && m <= 0xcf && m !== 0xc4 && m !== 0xc8 && m !== 0xcc;
-
-/**
- * Pixel size {width, height} a JPEG data URL declares in its frame header, or
- * null when it isn't a parseable JPEG. Reads the header only; it does not decode.
- */
-export function jpegSize(dataUrl) {
-  try {
-    if (typeof dataUrl !== 'string' || !dataUrl.startsWith(ART_PREFIX)) return null;
-    const bin = globalThis.atob(dataUrl.slice(ART_PREFIX.length));
-    const b = (i) => bin.charCodeAt(i);
-    if (bin.length < 4 || b(0) !== 0xff || b(1) !== 0xd8) return null;
-    let i = 2;
-    while (i + 3 < bin.length) {
-      if (b(i) !== 0xff) return null;
-      const marker = b(i + 1);
-      if (marker === 0xff) {
-        i += 1; // fill byte
-        continue;
-      }
-      if (marker === 0xd9 || marker === 0xda) return null; // end or scan data before any frame
-      if (marker === 0x01 || (marker >= 0xd0 && marker <= 0xd8)) {
-        i += 2; // markers with no length
-        continue;
-      }
-      const length = (b(i + 2) << 8) | b(i + 3);
-      if (isSof(marker)) {
-        if (length < 8 || i + 8 >= bin.length) return null;
-        const height = (b(i + 5) << 8) | b(i + 6);
-        const width = (b(i + 7) << 8) | b(i + 8);
-        return width > 0 && height > 0 ? { width, height } : null;
-      }
-      if (length < 2) return null;
-      i += 2 + length;
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Import-time bound on `art`: {puzzle, dropped}. A puzzle whose art isn't a
- * readable JPEG, or declares a side over MAX_ART_SIDE, comes back without the
- * art and with dropped true. It stays in the library, just with no picture
- * reveal. validatePuzzle does not check this, so stored puzzles never vanish.
- */
-export function boundArt(puzzle) {
-  if (puzzle.art === undefined) return { puzzle, dropped: false };
-  const size = jpegSize(puzzle.art);
-  if (size && Math.max(size.width, size.height) <= MAX_ART_SIDE) return { puzzle, dropped: false };
-  const rest = { ...puzzle };
-  delete rest.art;
-  return { puzzle: rest, dropped: true };
-}
 
 /** Canonical JSON with a fixed key order, independent of insertion order. */
 function canonical(puzzle) {
@@ -352,3 +224,7 @@ export function toJSON(record) {
 export function fromJSON(str) {
   return JSON.parse(str);
 }
+
+// The old import path keeps every name it exported before the split.
+export * from './format-keys.js';
+export * from './format-art.js';

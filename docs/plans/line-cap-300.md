@@ -227,6 +227,25 @@ Merged to local `main` one lane at a time, each with the full check, `export-nam
 - **Library 2c** (`3388a47`, merged by hand): `solutionCanvas`, `tileNode`, `tileBox`, `setNode`, `deleteSet` to `library-sets.js` (96 lines); `library.js` 167. New checks `linecap-sets-delete-puzzle-rerenders` (closes the second survivor) and `linecap-sets-complete-mosaic-size` (a `tileBox` dimension swap survived both suites before it). The merge conflicted in three small places outside the planned regions, as predicted for the shared test files; resolved by hand (both lanes dropped their own `library-logic` import line, so neither is kept; both ids stay pinned; the stub test now asserts both library files exist and are imported).
 - **Plan defects found by the lanes (all fixed in place):** `library.js` does not keep its `format.js` import (`idMatches` moved with `runImport`), so the `module_graph` sanity test asserts `library-backup.js` instead; the stub test in `split_library_state.test.js` and the id list in `test/ux_registry.test.js` are shared files that two lanes had to touch, so ownership by lane was not fully achievable there (the lanes edited them minimally and the orchestrator resolved the conflicts).
 
+### Lane cost (measured from each lane's completion notice)
+
+Elapsed time per lane in seconds (the notice's duration, including waits on its own background work) and the tokens it reported. Lanes cut off by the usage limit and resumed (0e-2, 0e-4) and the first, killed `0c-2` attempt (about an hour, no output) are not in the table.
+
+| Lane | Seconds | Tokens | What it spent the time on |
+|---|---|---|---|
+| 0c-1 audit: color, samples, create-logic | 3,693 | 147k | about 190 mutations, each against `npm test` and the browser suite, plus a contaminated run to redo |
+| 0e-3 library UX checks | 1,547 | 156k | writing the checks, then 25 mutations against the browser suite |
+| 2a library state | 1,348 | 117k | 37 renames, then mutations run in place with the browser suite |
+| 0c-2b audit: grid, library | 1,273 | 111k | 50 mutations against both suites |
+| 0e-1 format and create-logic tests | 1,061 | 159k | 47 mutations, unit suite only |
+| 2c library sets | 760 | 133k | extraction and 11 mutations |
+| 2b library backup | 696 | 131k | extraction and 20 mutations |
+| 2e grid layout | 528 | 113k | extraction and 12 mutations |
+| 0d-1 `dom-compare` | 513 | 118k | tool, with flake chasing |
+| the six lanes under 300 s | 123 to 296 | 86k to 108k | maps, `0c-2a` audit, `0d-2`, the four Wave 1 splits |
+
+The five lanes that ran mutation loops against the browser suite (0c-1, 0e-3, 2a, 0c-2b, 0e-1) are 61% of the listed time (about 8,900 of about 14,500 seconds), and the longest (147k tokens) sits in the same token range as lanes that took a fifth of the time (86k to 159k). Tokens do not track elapsed time here; the time is suite runs, which is why an effort cap did not bound it.
+
 ### Wave 4 (done 2026-10-30)
 
 - `max-lines` is 300 in `eslint.config.js`; `test/lint_size_cap.test.js` has `MAX = 300` and the probe set including a bare `src/x.js`, written first and failing (8 of 10 failed against the 500 cap). A 301-line scratch file under `src/` fails `npm run lint` with `max-lines` and is deleted again. `AGENTS.md` and the `view-split.md` note updated.

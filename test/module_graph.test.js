@@ -27,7 +27,7 @@ export const FAMILIES = {
     'views/library-backup.js',
     'views/library-sets.js',
   ],
-  'views/grid.js': ['views/grid-layout.js', 'views/grid-pointer.js'],
+  'views/grid.js': ['views/grid-layout.js'],
 };
 
 // A leaf of a family may not import another file of the same family's barrel,

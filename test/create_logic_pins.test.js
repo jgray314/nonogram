@@ -1,6 +1,6 @@
-// Lane 0e-1 (docs/plans/line-cap-300.md): closes the real mutation survivors of
-// src/create-logic.js recorded in docs/plans/line-cap-300-audit-create-logic.md.
-// Expected values are literals or hand-worked arithmetic, never the code's own output.
+// Pins create-logic.js, create-save-logic.js and create-verdict.js behavior that no
+// other test covered, found by mutating the code before it was split
+// (docs/plans/line-cap-300-audit-create-logic.md). Expected values are literals or hand-worked arithmetic, never the code's own output.
 //
 // Survivors accepted in writing (equivalent mutants, no observable change):
 //   defaultSize Math.max(5, ...): nearestSize never returns below SIZES[0] = 5.

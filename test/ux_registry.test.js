@@ -15,48 +15,49 @@ const PIPELINE_IDS = [
   'pipeline-leave-puzzle-saves-time',
 ];
 
-// Checks added by the line-cap-300 round to close mutation survivors in grid.js
-// and library.js (docs/plans/line-cap-300-audit-*.md). Pinned so that deleting
-// one cannot go unnoticed: the line-cap-300 verify chains this file.
-const LINECAP_IDS = [
-  'linecap-grid-ink-colors',
-  'linecap-grid-pop-on-new-fill',
-  'linecap-grid-clue-done-per-number',
-  'linecap-grid-overlay-replace',
-  'linecap-grid-wrong-and-highlight-replace',
-  'linecap-grid-sweep-stagger',
-  'linecap-grid-hover-highlight',
-  'linecap-grid-mouse-stroke',
-  'linecap-grid-stray-up-ignored',
-  'linecap-grid-pointercancel-ends-stroke',
-  'linecap-grid-touch-stroke',
-  'linecap-grid-pen-stroke',
-  'linecap-grid-destroy-removes-window-listeners',
-  'linecap-library-forged-import',
-  'linecap-library-export-round-trip',
-  'linecap-library-import-status',
-  'linecap-library-samples-twice',
-  'linecap-library-import-solver-failure',
-  'linecap-library-import-write-failure',
-  'linecap-library-import-toolbar-disabled',
-  'linecap-library-import-navigate-away',
-  'linecap-library-delete-set-and-guards',
-  'linecap-backup-import-write-failure-rerenders',
-  'linecap-sets-delete-puzzle-rerenders',
-  'linecap-sets-complete-mosaic-size',
+// The pin checks (test/ux/pins-*.js) pin grid.js and library.js behavior that the
+// line-cap-300 mutation audits found unchecked (docs/plans/line-cap-300-audit-*.md).
+// Listed by id so that deleting one cannot go unnoticed: the line-cap-300 verify
+// chains this file.
+const PIN_IDS = [
+  'pin-grid-ink-colors',
+  'pin-grid-pop-on-new-fill',
+  'pin-grid-clue-done-per-number',
+  'pin-grid-overlay-replace',
+  'pin-grid-wrong-and-highlight-replace',
+  'pin-grid-sweep-stagger',
+  'pin-grid-hover-highlight',
+  'pin-grid-mouse-stroke',
+  'pin-grid-stray-up-ignored',
+  'pin-grid-pointercancel-ends-stroke',
+  'pin-grid-touch-stroke',
+  'pin-grid-pen-stroke',
+  'pin-grid-destroy-removes-window-listeners',
+  'pin-library-forged-import',
+  'pin-library-export-round-trip',
+  'pin-library-import-status',
+  'pin-library-samples-twice',
+  'pin-library-import-solver-failure',
+  'pin-library-import-write-failure',
+  'pin-library-import-toolbar-disabled',
+  'pin-library-import-navigate-away',
+  'pin-library-delete-set-and-guards',
+  'pin-backup-import-write-failure-rerenders',
+  'pin-sets-delete-puzzle-rerenders',
+  'pin-sets-complete-mosaic-size',
 ];
 
-test('ux registry: every line-cap survivor check is registered and not marked known', () => {
+test('ux registry: every pin check is registered and not marked known', () => {
   const byId = new Map(CHECKS.map((c) => [c.id, c]));
-  for (const id of LINECAP_IDS) {
+  for (const id of PIN_IDS) {
     assert.ok(byId.has(id), `check ${id} is not in CHECKS`);
     assert.equal(byId.get(id).known, undefined, `${id} is marked known`);
   }
-  const extra = CHECKS.filter((c) => c.id.startsWith('linecap-') && !LINECAP_IDS.includes(c.id));
+  const extra = CHECKS.filter((c) => c.id.startsWith('pin-') && !PIN_IDS.includes(c.id));
   assert.deepEqual(
     extra.map((c) => c.id),
     [],
-    'a linecap check is registered but not pinned here',
+    'a pin- check is registered but not listed in PIN_IDS',
   );
 });
 

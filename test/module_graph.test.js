@@ -16,7 +16,7 @@ import {
 
 const srcDir = fileURLToPath(new URL('../src/', import.meta.url));
 
-/** Each barrel (the old path, which re-exports) and the files split out of it. */
+/** Each split file (the old path, which keeps the export set) and the files split out of it. */
 export const FAMILIES = {
   'color.js': ['color-space.js', 'color-cells.js'],
   'create-logic.js': ['create-verdict.js', 'create-save-logic.js'],

@@ -4,7 +4,10 @@
 // `export *` chains count. Exits 1 on any difference or any baseline module
 // that no longer exists; modules new since the baseline are listed, not failed.
 // `--now <dir>` compares a different tree than the working one (used to prove
-// the tool catches a rename in a scratch copy).
+// the tool catches a rename in a scratch copy). `--lost-only` fails only on a
+// name that disappeared (and a missing module), so a baseline gate stays usable
+// after a module legitimately gains an export; the strict form is the proof for
+// a refactor round, run once at its end.
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -13,6 +16,9 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const repo = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const args = process.argv.slice(2);
+const lostOnlyFlag = args.indexOf('--lost-only');
+const lostOnly = lostOnlyFlag >= 0;
+if (lostOnly) args.splice(lostOnlyFlag, 1);
 const nowFlag = args.indexOf('--now');
 const nowRoot = nowFlag >= 0 ? resolve(args.splice(nowFlag, 2)[1]) : repo;
 const ref = args[0];
@@ -73,7 +79,7 @@ try {
       const gained = now.filter((n) => !was.includes(n));
       if (lost.length || gained.length) {
         console.log(`DIFFERS  ${id}: removed [${lost.join(', ')}] added [${gained.join(', ')}]`);
-        failed = true;
+        if (lost.length || !lostOnly) failed = true;
       }
       compared++;
     }
@@ -86,7 +92,9 @@ try {
   console.log(
     failed
       ? `export-names: FAIL against ${ref}`
-      : `export-names: OK, ${compared} modules have identical export names against ${ref}`,
+      : lostOnly
+        ? `export-names: OK, no export lost from ${compared} modules since ${ref}`
+        : `export-names: OK, ${compared} modules have identical export names against ${ref}`,
   );
 } finally {
   rmSync(tmp, { recursive: true, force: true });

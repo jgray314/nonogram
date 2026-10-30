@@ -1,16 +1,16 @@
-// UX checks added by lane 2c (library sets split): deleting a single puzzle must
-// re-render the list (a survivor the 2a lane found: removing the render() call in
-// deletePuzzle passed both suites). Expected values come from the seeded records
+// Pin checks for the Library list: deleting a single puzzle must re-render the
+// list (removing the render() call in deletePuzzle once passed every suite), and a
+// finished tile set draws at its tiles' own aspect. Expected values come from the seeded records
 // and from storage, never from the view under test.
-import { makePuzzle, makeSave, makeSet, openLibraryWith, rawOf } from './harness-linecap.js';
+import { makePuzzle, makeSave, makeSet, openLibraryWith, rawOf } from './harness-library.js';
 
 function assert(ok, message) {
   if (!ok) throw new Error(message);
 }
 
-export const LINECAP_SETS_CHECKS = [
+export const PINS_SETS_CHECKS = [
   {
-    id: 'linecap-sets-delete-puzzle-rerenders',
+    id: 'pin-sets-delete-puzzle-rerenders',
     name: 'Deleting one puzzle removes its row from the list at once, along with the puzzle and its save (library)',
     async run(app) {
       const keep = await makePuzzle('Linecap keep', ['10110', '01101', '11011', '00100', '10011']);
@@ -44,7 +44,7 @@ export const LINECAP_SETS_CHECKS = [
     },
   },
   {
-    id: 'linecap-sets-complete-mosaic-size',
+    id: 'pin-sets-complete-mosaic-size',
     name: 'A finished set draws every tile at the tiles own aspect, 96px on the longer side, and a partly solved set does not (library)',
     async run(app) {
       // Tiles 4 wide and 2 tall: the box is 96 x 48, and a solved tile's canvas is 4 x 24 by 2 x 24.

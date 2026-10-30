@@ -1,7 +1,9 @@
-// Layout of the library backup split (line-cap-300, lane 2b): the export and
+// Layout of the library backup split: the export and
 // import functions live in library-backup.js, library.js imports it with a
 // plain import (it exports only mount and unmount), and the new file never
 // imports library.js, so redraws go through lib.render().
+// These tests read source text (comments stripped, test/helpers/split.js), so they pin the
+// file layout, not behavior; delete one deliberately if its files are merged on purpose.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';

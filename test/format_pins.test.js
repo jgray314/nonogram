@@ -1,5 +1,6 @@
-// Lane 0e-1 (docs/plans/line-cap-300.md): closes the real mutation survivors of
-// src/format.js recorded in docs/plans/line-cap-300-audit-format.md.
+// Pins format.js, format-keys.js and format-art.js limits and parsing that no
+// other test covered, found by mutating the code before it was split
+// (docs/plans/line-cap-300-audit-format.md).
 //
 // Limits below are written as literals, not read from the exported MAX_*
 // constants: a test that reads the constant moves with it, so loosening the

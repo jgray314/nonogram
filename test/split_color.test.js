@@ -1,7 +1,9 @@
-// Layout of the color.js split (line-cap-300, lane 1d): each name is defined in
+// Layout of the color.js split: each name is defined in
 // its new file and not in the old one, color.js re-exports by NAMED LISTS (an
 // `export *` would add SEED, ITERATIONS, rgbOfHex, mulberry32, d2 and mean),
 // and the import graph stays a leaf, siblings, then color.js.
+// These tests read source text (comments stripped, test/helpers/split.js), so they pin the
+// file layout, not behavior; delete one deliberately if its files are merged on purpose.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';

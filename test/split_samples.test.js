@@ -1,6 +1,8 @@
-// Split of src/samples.js (docs/plans/line-cap-300.md, Wave 1): the sample-art data arrays live in
+// Split of src/samples.js (docs/plans/line-cap-300.md): the sample-art data arrays live in
 // src/samples-art.js and the loaders stay in src/samples.js. The checks read source text with
 // comments stripped (test/helpers/split.js), so a stub or a commented-out line cannot pass.
+// These tests read source text (comments stripped, test/helpers/split.js), so they pin the
+// file layout, not behavior; delete one deliberately if its files are merged on purpose.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';

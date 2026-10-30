@@ -1,8 +1,15 @@
-// Image to color puzzle. Pure, no DOM.
-// The cells are averaged in sRGB, clustered in CIELAB with seeded k-means, and
-// clusters closer than MERGE_DE are merged. The cluster that covers the most
-// cells is the blank; every other cluster is an ink, ordered by how many cells
-// it covers. Research and numbers: docs/color-research.md.
+// Image to color puzzle: the entry point (colorGrid) and the pixel-palette path
+// (D28). Pure, no DOM. The palette comes from the crop's pixels, clustered in
+// CIELAB with seeded k-means; clusters closer than MERGE_DE are merged. The
+// cluster that covers the most cells is the blank; every other cluster is an
+// ink, ordered by how many cells it covers. Research and numbers:
+// docs/color-research.md.
+//
+// The module is split three ways: color-space.js (conversions and shared
+// helpers, a leaf), color-cells.js (the older D25 cell-averaging path) and this
+// file. The names the other two own are re-exported here BY NAME, not with
+// `export *`, because color-space.js exports helpers (SEED, mulberry32, ...)
+// that callers of this path never saw.
 import { cellRange } from './image.js';
 import { ITERATIONS, MERGE_DE, d2, deltaE, hexOf, labToRgb, rgbToLab } from './color-space.js';
 

@@ -1,7 +1,9 @@
-// Layout of the library tile-set split (line-cap-300, lane 2c): the tile-set
+// Layout of the library tile-set split: the tile-set
 // rendering lives in library-sets.js, library.js reaches it with a plain import
 // (it exports only mount and unmount), and library-sets.js never imports
 // library.js: deleteSet redraws through lib.render().
+// These tests read source text (comments stripped, test/helpers/split.js), so they pin the
+// file layout, not behavior; delete one deliberately if its files are merged on purpose.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';

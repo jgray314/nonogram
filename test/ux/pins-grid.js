@@ -1,16 +1,9 @@
-// UX checks that close the grid.js mutation survivors (docs/plans/line-cap-300-audit-grid.md).
-// Each mounts the real renderGrid on the running app's page and checks the DOM
-// contract in grid.js's header: classes, inline styles and onPointer events.
-// G10 (the sweep restart) is checked through getAnimations() on a crossed cell.
-import {
-  CLUES,
-  GUTTER,
-  HEIGHT,
-  SOLUTION,
-  WIDTH,
-  blankCells,
-  mountGrid,
-} from './harness-linecap-grid.js';
+// Pin checks for grid.js (found unchecked by mutating it before it was split,
+// docs/plans/line-cap-300-audit-grid.md). Each mounts the real renderGrid on the
+// running app's page and checks the DOM contract in grid.js's header: classes,
+// inline styles and onPointer events. The sweep restart is checked through
+// getAnimations() on a crossed cell.
+import { CLUES, GUTTER, HEIGHT, SOLUTION, WIDTH, blankCells, mountGrid } from './harness-grid.js';
 
 function assert(ok, message) {
   if (!ok) throw new Error(message);
@@ -39,12 +32,12 @@ const CELL = (r, c) => `${r},${c}`;
 // point under the finger, and lifting reports the cell under it.
 function touchCheck(pointerType) {
   return {
-    id: `linecap-grid-${pointerType}-stroke`,
+    id: `pin-grid-${pointerType}-stroke`,
     name: `Grid: a ${pointerType} stroke uses the caller's button and follows the point under it`,
     async run(app) {
       await withGrid(app, { touchButton: () => 'right' }, async (g) => {
         const t = { pointerType, button: 0 };
-        // A move with nothing pressed does nothing (G17).
+        // A move with nothing pressed does nothing.
         g.fire(g.cell(0, 0), 'pointermove', { ...t, ...g.center(g.cell(0, 0)) });
         same(g.events, [], 'a touch move with no press');
         if (pointerType === 'touch') {
@@ -70,7 +63,7 @@ function touchCheck(pointerType) {
           'the up reports the cell under the point, not the event target',
         );
         if (pointerType === 'touch') {
-          same(g.marked('nng-hot'), [], 'hot cells left after a finger lifts (G21)');
+          same(g.marked('nng-hot'), [], 'hot cells left after a finger lifts');
         }
         // The stroke is over: a further up is stray.
         g.fire(g.root, 'pointerup', { ...t, ...g.center(g.cell(2, 2)) });
@@ -80,9 +73,9 @@ function touchCheck(pointerType) {
   };
 }
 
-export const LINECAP_GRID_CHECKS = [
+export const PINS_GRID_CHECKS = [
   {
-    id: 'linecap-grid-ink-colors',
+    id: 'pin-grid-ink-colors',
     name: 'Grid: filled cells take their ink color and nng-ink; crossed and unknown cells do not',
     async run(app) {
       await withGrid(app, { palette: PALETTE }, async (g) => {
@@ -115,7 +108,7 @@ export const LINECAP_GRID_CHECKS = [
     },
   },
   {
-    id: 'linecap-grid-pop-on-new-fill',
+    id: 'pin-grid-pop-on-new-fill',
     name: 'Grid: a newly filled cell pops once, the initial paint does not, and the pop clears on animationend',
     async run(app) {
       await withGrid(app, { cells: SOLUTION }, async (g) => {
@@ -140,7 +133,7 @@ export const LINECAP_GRID_CHECKS = [
     },
   },
   {
-    id: 'linecap-grid-clue-done-per-number',
+    id: 'pin-grid-clue-done-per-number',
     name: 'Grid: setClueDone dims exactly the flagged numbers, rows and columns separately',
     async run(app) {
       await withGrid(app, {}, async (g) => {
@@ -179,7 +172,7 @@ export const LINECAP_GRID_CHECKS = [
     },
   },
   {
-    id: 'linecap-grid-overlay-replace',
+    id: 'pin-grid-overlay-replace',
     name: 'Grid: setOverlay lays one node over the cell area, replaces the old one, and null removes it',
     async run(app) {
       await withGrid(app, {}, async (g) => {
@@ -203,7 +196,7 @@ export const LINECAP_GRID_CHECKS = [
     },
   },
   {
-    id: 'linecap-grid-wrong-and-highlight-replace',
+    id: 'pin-grid-wrong-and-highlight-replace',
     name: 'Grid: setWrong and setHighlight each replace their previous marks, and ignore off-grid cells',
     async run(app) {
       await withGrid(app, {}, async (g) => {
@@ -233,7 +226,7 @@ export const LINECAP_GRID_CHECKS = [
     },
   },
   {
-    id: 'linecap-grid-sweep-stagger',
+    id: 'pin-grid-sweep-stagger',
     name: 'Grid: sweep staggers cells by --sweep-i, clears on animationend, and restarts a running sweep',
     async run(app) {
       await withGrid(app, {}, async (g) => {
@@ -253,7 +246,7 @@ export const LINECAP_GRID_CHECKS = [
         list.forEach(([r, c]) => g.cell(r, c).dispatchEvent(new g.win.Event('animationend')));
         same(g.marked('nng-sweep'), [], 'cells still sweeping after animationend');
 
-        // G10: sweeping a cell that is mid-sweep restarts the animation. The
+        // sweeping a cell that is mid-sweep restarts the animation. The
         // running animation object is replaced only if the class change was flushed.
         // The animation is on the cross, so the cell must be crossed.
         const crossed = blankCells();
@@ -272,7 +265,7 @@ export const LINECAP_GRID_CHECKS = [
     },
   },
   {
-    id: 'linecap-grid-hover-highlight',
+    id: 'pin-grid-hover-highlight',
     name: "Grid: hover lights only the hovered cell's row and column, once per cell; leaving clears it and reports null",
     async run(app) {
       await withGrid(app, {}, async (g) => {
@@ -285,12 +278,12 @@ export const LINECAP_GRID_CHECKS = [
         };
         g.fire(g.cell(0, 0), 'pointerover');
         g.fire(g.cell(0, 0), 'pointerover');
-        same(g.events, ['enter:0,0:-'], 'two pointerovers on one cell emit one enter (G16)');
+        same(g.events, ['enter:0,0:-'], 'two pointerovers on one cell emit one enter');
         same(g.marked('nng-hot'), lit(0, 0), 'hot cells for 0,0');
         g.fire(g.cell(1, 1), 'pointerover');
-        same(g.marked('nng-hot'), lit(1, 1), 'hot cells for 1,1 (the old row is cleared, G12)');
+        same(g.marked('nng-hot'), lit(1, 1), 'hot cells for 1,1 (the old row is cleared)');
         same(g.events, ['enter:0,0:-', 'enter:1,1:-'], 'events after the second cell');
-        // Leaving the grid (G18, G22).
+        // Leaving the grid.
         g.fire(g.root, 'pointerleave');
         same(g.events.slice(2), ['enter:-,-:-'], 'leave reports a null cell');
         same(g.marked('nng-hot'), [], 'hot cells after leave');
@@ -303,11 +296,11 @@ export const LINECAP_GRID_CHECKS = [
     },
   },
   {
-    id: 'linecap-grid-mouse-stroke',
+    id: 'pin-grid-mouse-stroke',
     name: 'Grid: a mouse stroke reports down, enter and up with the held button, and a middle press is ignored',
     async run(app) {
       await withGrid(app, {}, async (g) => {
-        // A middle press starts nothing (G14), and does not block the next press.
+        // A middle press starts nothing, and does not block the next press.
         g.fire(g.cell(0, 0), 'pointerdown', { button: 1 });
         same(g.events, [], 'a middle-button press');
         g.fire(g.cell(0, 0), 'pointerup', { button: 1 });
@@ -317,7 +310,7 @@ export const LINECAP_GRID_CHECKS = [
         same(g.events, [], 'a press on a clue');
 
         g.fire(g.cell(0, 0), 'pointerdown', { button: 0 });
-        // A second press mid-stroke is ignored (G13), whatever its button.
+        // A second press mid-stroke is ignored, whatever its button.
         g.fire(g.cell(1, 1), 'pointerdown', { button: 2 });
         g.fire(g.cell(0, 1), 'pointerover');
         // A mouse drag is followed by pointerover, not pointermove.
@@ -338,7 +331,7 @@ export const LINECAP_GRID_CHECKS = [
     },
   },
   {
-    id: 'linecap-grid-stray-up-ignored',
+    id: 'pin-grid-stray-up-ignored',
     name: 'Grid: a window pointerup with no press emits nothing',
     async run(app) {
       await withGrid(app, {}, async (g) => {
@@ -350,7 +343,7 @@ export const LINECAP_GRID_CHECKS = [
     },
   },
   {
-    id: 'linecap-grid-pointercancel-ends-stroke',
+    id: 'pin-grid-pointercancel-ends-stroke',
     name: 'Grid: a window pointercancel during a stroke emits up and lets the next press start',
     async run(app) {
       await withGrid(app, {}, async (g) => {
@@ -365,7 +358,7 @@ export const LINECAP_GRID_CHECKS = [
   touchCheck('touch'),
   touchCheck('pen'),
   {
-    id: 'linecap-grid-destroy-removes-window-listeners',
+    id: 'pin-grid-destroy-removes-window-listeners',
     name: 'Grid: after destroy, a window pointerup or pointercancel no longer reaches onPointer',
     async run(app) {
       for (const type of ['pointerup', 'pointercancel']) {

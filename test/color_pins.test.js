@@ -1,6 +1,7 @@
-// Closes the mutation survivors of src/color.js listed in
-// docs/plans/line-cap-300-audit-color.md (C01-C47) and in
-// docs/plans/line-cap-300-audit-color-2.md (C48 on), ahead of splitting the file.
+// Pins color-space.js, color-cells.js and color.js behavior that no other test
+// covered, found by mutating the code before it was split
+// (docs/plans/line-cap-300-audit-color.md and ...-color-2.md; the ids in the
+// accepted list below are theirs).
 //
 // Expected values are literals worked out by hand from the image (colors,
 // counts, rounding) unless a test says "snapshot". Snapshot cases are tiny
@@ -58,7 +59,7 @@ const near = (actual, expected, msg) => {
 
 // ---- hexOf, labToRgb ---------------------------------------------------------
 
-test('hexOf clamps both ends, rounds, and pads to two digits (C13, C14, C15)', () => {
+test('hexOf clamps both ends, rounds, and pads to two digits', () => {
   assert.equal(hexOf([300, -5, 0]), '#ff0000');
   assert.equal(hexOf([-1, 256, 255.4]), '#00ffff');
   assert.equal(hexOf([0, 0, 0]), '#000000');
@@ -66,7 +67,7 @@ test('hexOf clamps both ends, rounds, and pads to two digits (C13, C14, C15)', (
   assert.equal(hexOf([0.4, 0.6, 254.5]), '#0001ff');
 });
 
-test('labToRgb: black, white, a very dark grey, and out-of-gamut clamping (C41, C42)', () => {
+test('labToRgb: black, white, a very dark grey, and out-of-gamut clamping', () => {
   assert.deepEqual(labToRgb([0, 0, 0]), [0, 0, 0]);
   assert.deepEqual(labToRgb([100, 0, 0]), [255, 255, 255]);
   // L 1: Y = 1/903.3 = 0.001107, in the linear toe (c <= 0.0031308), so
@@ -100,7 +101,7 @@ test('rgbToLab -> labToRgb round-trips, including near-black', () => {
 
 // ---- inkColors, inkText ------------------------------------------------------
 
-test('inkColors: null for no palette, an empty one or a single black ink (C16, C17)', () => {
+test('inkColors: null for no palette, an empty one or a single black ink', () => {
   assert.equal(inkColors(null), null);
   assert.equal(inkColors(undefined), null);
   assert.equal(inkColors([]), null);
@@ -108,13 +109,13 @@ test('inkColors: null for no palette, an empty one or a single black ink (C16, C
   assert.equal(inkColors(/** @type {any} */ ('#000000')), null, 'not an array');
 });
 
-test('inkColors: any other palette gives its hexes in order (C18)', () => {
+test('inkColors: any other palette gives its hexes in order', () => {
   assert.deepEqual(inkColors([{ hex: '#ff0000' }]), ['#ff0000']);
   assert.deepEqual(inkColors([{ hex: '#000001' }]), ['#000001']);
   assert.deepEqual(inkColors([{ hex: '#000000' }, { hex: '#ffffff' }]), ['#000000', '#ffffff']);
 });
 
-test('inkText: black above L 60, white at or below, with greys on both sides of the cutoff (C19-C21)', () => {
+test('inkText: black above L 60, white at or below, with greys on both sides of the cutoff', () => {
   // L of the greys, worked from the sRGB curve: #777777 ~50, #8a8a8a ~57.4, #959595 ~61.7, #999999 ~63.2.
   assert.equal(inkText('#000000'), '#ffffff');
   assert.equal(inkText('#777777'), '#ffffff');
@@ -157,7 +158,7 @@ test('cellColors averages each cell in sRGB', () => {
   ]);
 });
 
-test('cellColors reads only the crop, not the pixels left of or above it (C23)', () => {
+test('cellColors reads only the crop, not the pixels left of or above it', () => {
   // Decoys: row 0 blue, columns 0-1 green. The crop starts at x 2, y 1.
   const img = image(6, 3, (x, y) =>
     y === 0 ? [0, 0, 255] : x < 2 ? [0, 200, 0] : x < 5 ? [255, 255, 255] : [255, 0, 0],
@@ -172,7 +173,7 @@ test('cellColors reads only the crop, not the pixels left of or above it (C23)',
   ]);
 });
 
-test('cellColors composites alpha over white (C22, C47)', () => {
+test('cellColors composites alpha over white', () => {
   // Half-transparent red 255,0,0 at alpha 128: 255 * 128/255 + 255 * (1 - 128/255) = 255, 255 - 128 = 127.
   const img = image(
     3,
@@ -209,7 +210,7 @@ test('both paths read a cropped image (crop.x and crop.y above 0)', () => {
   assert.deepEqual(cellColorGrid(img, 6, crop, 4, 1, 3), want);
 });
 
-test('a half-transparent pixel is composited over white in both paths and in the cell mean (C47)', () => {
+test('a half-transparent pixel is composited over white in both paths and in the cell mean', () => {
   const img = strip([
     [255, 0, 0, 128],
     [255, 255, 255, 255],
@@ -234,7 +235,7 @@ test('an image of one color asked for several gives one blank and a one-entry pa
   assert.deepEqual(cellColorGrid(img, 4, whole(4, 4), 2, 2, 4), want);
 });
 
-test('blank tie-break: the cell path takes the color that reaches the first cell first (C31, C32)', () => {
+test('blank tie-break: the cell path takes the color that reaches the first cell first', () => {
   const red = [255, 0, 0];
   const blue = [0, 0, 255];
   assert.deepEqual(cellColorGrid(strip([red, blue]), 2, whole(2, 1), 2, 1, 3), {
@@ -268,7 +269,7 @@ test('blank tie-break: the pixel path orders equal counts by palette index, whic
 
 // ---- merging ------------------------------------------------------------------
 
-test('MERGE_DE: inks about 12 apart in Lab merge, about 18 apart stay separate (C02, C03)', () => {
+test('MERGE_DE: inks about 12 apart in Lab merge, about 18 apart stay separate', () => {
   // Lab distances of grey 100 to 131 and to 144 (worked from the sRGB curve): ~12.4 and ~17.4.
   assert.ok(deltaE(rgbToLab(grey(100)), rgbToLab(grey(131))) < 15);
   assert.ok(deltaE(rgbToLab(grey(100)), rgbToLab(grey(144))) > 15);
@@ -290,7 +291,7 @@ test('MERGE_DE: inks about 12 apart in Lab merge, about 18 apart stay separate (
   assert.deepEqual(cellColorGrid(img(144), 4, whole(4, 1), 4, 1, 3), apart);
 });
 
-test('the merge test uses the rounded color, as stored (C35)', () => {
+test('the merge test uses the rounded color, as stored', () => {
   // Cluster A is 71,71,71 and 72,71,71: mean 71.5, stored as 72,71,71. Cluster B is grey 107.
   // Unrounded, A to B is 15.02 (apart); rounded, 14.98 (merge). The stored hex decides.
   assert.ok(deltaE(rgbToLab([71.5, 71, 71]), rgbToLab(grey(107))) > 15);
@@ -306,7 +307,7 @@ test('the merge test uses the rounded color, as stored (C35)', () => {
 
 // ---- seeds, iterations, falloff (snapshots) --------------------------------------
 
-test('quantizeColors snapshot: seed and Lloyd iterations (C04, C05)', () => {
+test('quantizeColors snapshot: seed and Lloyd iterations', () => {
   // Needs the seed 1 start; seed 2 gives another grid.
   const a = [
     [
@@ -375,7 +376,7 @@ test('quantizeColors snapshot: seed and Lloyd iterations (C04, C05)', () => {
   });
 });
 
-test('pixel path snapshot: weighted Lloyd iterations and the seed falloff (C05, C43)', () => {
+test('pixel path snapshot: weighted Lloyd iterations and the seed falloff', () => {
   const it = [
     [214, 80, 95],
     [142, 1, 49],
@@ -461,7 +462,7 @@ test("cell 'mode' votes by pixel, 'mean' takes the cell's average color", () => 
   });
 });
 
-test('bins keep colors apart that differ in the green nibble alone (C49)', () => {
+test('bins keep colors apart that differ in the green nibble alone', () => {
   // (0, 16, 0) and (0, 0, 128) have different bins (green bit 4, blue bit 3 of the key),
   // so two palette colors survive; a green shift of 3 would put both in one bin.
   const img = strip([
@@ -482,7 +483,7 @@ test('bins keep colors apart that differ in the green nibble alone (C49)', () =>
 // listed mutation changes the result.
 
 const NOISY = {
-  // C58: vivid weighting (the /50 divisor)
+  // vivid weighting (the /50 divisor)
   vivid: {
     px: [
       [214, 20, 215, 165],
@@ -507,7 +508,7 @@ const NOISY = {
       blank: '#9ee5b8',
     },
   },
-  // C69: nearest() ties; C77: order of merged centres
+  // nearest() ties; order of merged centres
   tieSaturate: {
     px: [
       [91, 39, 250, 255],
@@ -529,7 +530,7 @@ const NOISY = {
       blank: '#0000ff',
     },
   },
-  // C73: weights of the merge pairs
+  // weights of the merge pairs
   mergeWeights: {
     px: [
       [37, 146, 120, 255],
@@ -553,7 +554,7 @@ const NOISY = {
       blank: '#e8cf2d',
     },
   },
-  // C74: the merged centre is weighted by pixel count
+  // the merged centre is weighted by pixel count
   mean: {
     px: [
       [113, 75, 134, 167],
@@ -576,7 +577,7 @@ const NOISY = {
       blank: '#9885aa',
     },
   },
-  // C77: merged centre goes last
+  // merged centre goes last
   merged: {
     px: [
       [91, 251, 234, 255],
@@ -597,7 +598,7 @@ const NOISY = {
       blank: '#5df7e9',
     },
   },
-  // C80: saturate scales a and b; C86: a vote tie goes to the lower palette index
+  // saturate scales a and b; a vote tie goes to the lower palette index
   saturate: {
     px: [
       [100, 157, 201, 255],
@@ -619,7 +620,7 @@ const NOISY = {
       blank: '#5780da',
     },
   },
-  // C81: cells are assigned against the colors as stored; C93, C96: bins are keyed on the rounded color
+  // cells are assigned against the colors as stored; bins are keyed on the rounded color
   stored: {
     px: [
       [74, 222, 90, 131],
@@ -644,7 +645,7 @@ for (const [name, c] of Object.entries(NOISY)) {
   });
 }
 
-test('the sampling grid and palette bins of a big crop; vote sampling on the same grid (C53, C54, C84, C85)', () => {
+test('the sampling grid and palette bins of a big crop; vote sampling on the same grid', () => {
   // 300 x 300 -> step 2, so only (even x, even y) pixels are read. Top-left cell red; elsewhere
   // white on even x + y and blue on odd x + y, which the step-2 grid never sees. k 2: with the
   // blue seen, the palette would be white and blue and the red cell would turn white.
@@ -680,7 +681,7 @@ test('the sampling grid and palette bins of a big crop; vote sampling on the sam
 
 // ---- large crops ------------------------------------------------------------------
 
-test('a crop above 65536 pixels is sampled on a grid; one at the limit is not (C44, C45)', () => {
+test('a crop above 65536 pixels is sampled on a grid; one at the limit is not', () => {
   // Odd columns red, even columns white. 300 x 300 = 90000 pixels: step ceil(sqrt(90000 / 65536)) = 2
   // lands on even x and y only, so only white is seen. 256 x 256 = 65536: step 1, both colors seen.
   const stripes = (n) => image(n, n, (x) => (x % 2 ? [255, 0, 0] : [255, 255, 255]));

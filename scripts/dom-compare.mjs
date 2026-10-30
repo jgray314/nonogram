@@ -16,7 +16,9 @@
 //   - the library export's file text has its ISO dates and epoch-millisecond
 //     numbers replaced (file name stamp, savedAt-style fields).
 // Not covered: computed styles and layout, pointer-drag paths beyond the fixed
-// strokes, and anything off the fixed steps below.
+// strokes, and anything off the fixed steps below. In particular the steps do
+// not import a library file, show or delete a tile set, create a colour puzzle,
+// or leave a page mid-import; those rest on the UX checks and unit tests.
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -360,6 +362,14 @@ async function drive(chrome, port) {
     return steps;
   } finally {
     child.kill();
+    if (process.platform === 'win32' && child.pid) {
+      // child.kill() leaves Chrome's helper processes holding the profile open on Windows.
+      try {
+        execFileSync('taskkill', ['/pid', String(child.pid), '/T', '/F'], { stdio: 'ignore' });
+      } catch {
+        // Already gone.
+      }
+    }
     await sleep(300);
     try {
       rmSync(profile, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
@@ -459,10 +469,8 @@ try {
     cpSync(clean, mutated, { recursive: true });
     const file = join(mutated, 'src', 'views', 'library.js');
     const src = readFileSync(file, 'utf8');
-    const out = src.replace(
-      "el('span', 'nng-badge nng-badge-ai', 'AI test sample')",
-      "el('span', 'nng-badge nng-badge-aix', 'AI test sample')",
-    );
+    // The class string only: the surrounding call is `el(` or `elc(` depending on the file's age.
+    const out = src.replace("'nng-badge nng-badge-ai'", "'nng-badge nng-badge-aix'");
     if (out === src) throw new Error('self-check: the mutation did not apply');
     writeFileSync(file, out);
     const ok = await compare(chrome, clean, mutated);

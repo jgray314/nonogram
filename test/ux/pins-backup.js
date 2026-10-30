@@ -1,5 +1,5 @@
-// UX checks added by lane 2b (library backup split): the import write-failure
-// path must re-render the library. Expected rows come from storage, never from
+// Pin check for the library backup import: the write-failure path must
+// re-render the library. Expected rows come from storage, never from
 // the view under test.
 import {
   TWO_INKS,
@@ -12,7 +12,7 @@ import {
   openLibraryWith,
   statusText,
   storeOf,
-} from './harness-linecap.js';
+} from './harness-library.js';
 
 function assert(ok, message) {
   if (!ok) throw new Error(message);
@@ -22,9 +22,9 @@ const MONO_A = ['10110', '01101', '11011', '00100', '10011'];
 const MONO_E = ['00100', '01110', '11111', '01110', '00100'];
 const COLOR_C = ['12012', '21021', '01210', '12102', '20121'];
 
-export const LINECAP_BACKUP_CHECKS = [
+export const PINS_BACKUP_CHECKS = [
   {
-    id: 'linecap-backup-import-write-failure-rerenders',
+    id: 'pin-backup-import-write-failure-rerenders',
     name: 'After an import stops on a failed write the list shows exactly what is in storage (library backup)',
     async run(app) {
       const a = await makePuzzle('Linecap A', MONO_A);

@@ -1,6 +1,7 @@
-// UX checks that close the library.js mutation survivors (docs/plans/line-cap-300-audit-library.md).
-// library.js has no unit test, so these drive the real Library view. Expected
-// values come from records built in harness-linecap.js, from storage and from
+// Pin checks for the Library view (found unchecked by mutating it before it was
+// split, docs/plans/line-cap-300-audit-library.md). It has no unit test, so these
+// drive the real view. Expected
+// values come from records built in harness-library.js, from storage and from
 // the downloaded file, never from the code under test.
 import { captureDownload, pause, resetStore, waitFor } from './harness.js';
 import { assertWorkerVerdict } from './expected-verdict.js';
@@ -22,7 +23,7 @@ import {
   toolbarButtons,
   trapErrors,
   withFalseVerdict,
-} from './harness-linecap.js';
+} from './harness-library.js';
 
 function assert(ok, message) {
   if (!ok) throw new Error(message);
@@ -51,9 +52,9 @@ async function setParts() {
   return { t1, t2, record: makeSet('set-linecap', 'Linecap set', [t1, t2], 2) };
 }
 
-export const LINECAP_LIBRARY_CHECKS = [
+export const PINS_LIBRARY_CHECKS = [
   {
-    id: 'linecap-library-forged-import',
+    id: 'pin-library-forged-import',
     name: 'Importing a backup drops a puzzle whose id does not match, and its save, says so, and re-rates the genuine records (library)',
     async run(app) {
       const { a, c } = await libraryParts();
@@ -94,7 +95,7 @@ export const LINECAP_LIBRARY_CHECKS = [
     },
   },
   {
-    id: 'linecap-library-export-round-trip',
+    id: 'pin-library-export-round-trip',
     name: 'Export, wipe, import keeps puzzles, a set with its tiles and saves; the export counts corrupt sets (library)',
     async run(app) {
       const { a, c } = await libraryParts();
@@ -161,7 +162,7 @@ export const LINECAP_LIBRARY_CHECKS = [
     },
   },
   {
-    id: 'linecap-library-import-status',
+    id: 'pin-library-import-status',
     name: 'The import status names puzzles that already existed, caps the invalid list at 3 and counts dropped pictures (library)',
     async run(app) {
       const d = await makePuzzle('Linecap D', MONO_D);
@@ -182,7 +183,7 @@ export const LINECAP_LIBRARY_CHECKS = [
     },
   },
   {
-    id: 'linecap-library-samples-twice',
+    id: 'pin-library-samples-twice',
     name: 'Load sample puzzles twice: the second status says they were already present (library)',
     async run(app) {
       await openLibraryWith(app);
@@ -200,7 +201,7 @@ export const LINECAP_LIBRARY_CHECKS = [
     },
   },
   {
-    id: 'linecap-library-import-solver-failure',
+    id: 'pin-library-import-solver-failure',
     name: 'If the solver fails the import writes nothing, says so and still ends the worker (library)',
     async run(app) {
       const { a, c } = await libraryParts();
@@ -229,7 +230,7 @@ export const LINECAP_LIBRARY_CHECKS = [
     },
   },
   {
-    id: 'linecap-library-import-write-failure',
+    id: 'pin-library-import-write-failure',
     name: 'If storage fails on the second write the import says where it stopped, not that it succeeded (library)',
     async run(app) {
       const { a, c } = await libraryParts();
@@ -249,7 +250,7 @@ export const LINECAP_LIBRARY_CHECKS = [
     },
   },
   {
-    id: 'linecap-library-import-toolbar-disabled',
+    id: 'pin-library-import-toolbar-disabled',
     name: 'The toolbar is off while an import checks puzzles and back on after, and the worker is ended (library)',
     async run(app) {
       const { a, c } = await libraryParts();
@@ -277,7 +278,7 @@ export const LINECAP_LIBRARY_CHECKS = [
     },
   },
   {
-    id: 'linecap-library-import-navigate-away',
+    id: 'pin-library-import-navigate-away',
     name: 'Leaving the Library mid-import finishes the writes and never touches the new page (library)',
     async run(app) {
       const { a, c } = await libraryParts();
@@ -302,7 +303,7 @@ export const LINECAP_LIBRARY_CHECKS = [
     },
   },
   {
-    id: 'linecap-library-delete-set-and-guards',
+    id: 'pin-library-delete-set-and-guards',
     name: 'Delete set removes the set and every tile, and exporting a puzzle deleted elsewhere is refused (library)',
     async run(app) {
       const { a } = await libraryParts();

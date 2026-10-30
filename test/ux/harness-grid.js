@@ -1,4 +1,4 @@
-// Helpers for the grid.js survivor checks (pipeline-linecap-grid.js). They
+// Helpers for the grid pin checks (pins-grid.js). They
 // mount the real renderGrid, loaded by the running app's own module URL, into a
 // fixed-position host on the page, and fire synthetic PointerEvents at it.
 // Browser only; not part of `npm test`.

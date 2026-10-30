@@ -1,6 +1,6 @@
-// Closes the mulberry32 survivor left by the line-cap-300 round (swapping the two
-// `t` updates changed the random stream but no colour test noticed): the stream is
-// compared with a reference written differently, in BigInt arithmetic mod 2^32.
+// Pins the mulberry32 stream. Swapping its two `t` updates once changed the random
+// stream without any colour test noticing, so the stream is compared with a
+// reference written differently, in BigInt arithmetic mod 2^32.
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { mulberry32 } from '../src/color-space.js';

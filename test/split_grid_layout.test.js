@@ -1,6 +1,8 @@
-// Layout of the grid.js split, step 1 (line-cap-300, lane 2e): the setup half of
+// Layout of the grid.js split: the setup half of
 // renderGrid moves to grid-layout.js (a leaf). grid.js re-exports gutterSize and
 // blankStyle by NAMED LIST, so buildGrid and div do not join its export set.
+// These tests read source text (comments stripped, test/helpers/split.js), so they pin the
+// file layout, not behavior; delete one deliberately if its files are merged on purpose.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';

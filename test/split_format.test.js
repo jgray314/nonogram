@@ -1,6 +1,8 @@
-// Pins the format.js split (docs/plans/line-cap-300.md, lane 1b): each name is
+// Pins the format.js split (docs/plans/line-cap-300.md): each name is
 // defined in its new file and no longer in format.js, format.js re-exports both
 // new files, and the two new files never import format.js (decision 2).
+// These tests read source text (comments stripped, test/helpers/split.js), so they pin the
+// file layout, not behavior; delete one deliberately if its files are merged on purpose.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

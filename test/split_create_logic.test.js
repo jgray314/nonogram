@@ -1,6 +1,8 @@
-// Pins the create-logic.js split (docs/plans/line-cap-300.md, lane 1c): each
+// Pins the create-logic.js split (docs/plans/line-cap-300.md): each
 // moved name is defined in its new file and not in the old one, the old path
 // re-exports both new files, and neither new file imports the old path.
+// These tests read source text (comments stripped, test/helpers/split.js), so they pin the
+// file layout, not behavior; delete one deliberately if its files are merged on purpose.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';

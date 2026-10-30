@@ -1,8 +1,10 @@
-// Layout of the library.js foundation step (line-cap-300, lane 2a): the shared
-// `lib` state object and the three helpers that move into the leaf
-// library-state.js, the module-level lets that library.js no longer owns, and
-// the two empty stubs the next lanes fill. library.js exports only mount and
-// unmount, so the new files are plain imports, never `export *`.
+// Layout of the library.js state split: the shared `lib` state object and the
+// three helpers that live in the leaf library-state.js, the module-level lets that
+// library.js no longer owns, and the backup and sets files it imports. library.js
+// exports only mount and unmount, so the new files are plain imports, never
+// `export *`.
+// These tests read source text (comments stripped, test/helpers/split.js), so they pin the
+// file layout, not behavior; delete one deliberately if its files are merged on purpose.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';

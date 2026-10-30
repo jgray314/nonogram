@@ -1,5 +1,6 @@
-// Closes the mutation survivors of src/samples.js listed in
-// docs/plans/line-cap-300-audit-samples.md (S06-S25, S29, S37, S45), ahead of splitting the file.
+// Pins the sample puzzles (samples.js and samples-art.js): found unpinned by
+// mutating the code before it was split (docs/plans/line-cap-300-audit-samples.md,
+// whose ids are used in the accepted list below).
 //
 // The ids are the first 16 hex digits of the SHA-256 of each record's canonical form, which holds
 // the title, size, palette (names and hexes) and every cell of the solution. One flipped cell, a
@@ -57,7 +58,7 @@ const COLOR = [
   ],
 ];
 
-test('two-tone samples: ids, sizes, black ink and verdict sweeps (S06, S07, S37)', async () => {
+test('two-tone samples: ids, sizes, black ink and verdict sweeps', async () => {
   const got = await samplePuzzles();
   assert.deepEqual(
     got.map((p) => p.title),
@@ -77,7 +78,7 @@ test('two-tone samples: ids, sizes, black ink and verdict sweeps (S06, S07, S37)
   });
 });
 
-test('color samples: ids, sizes, ink names, blank hex and verdict sweeps (S15-S25, S29, S37)', async () => {
+test('color samples: ids, sizes, ink names, blank hex and verdict sweeps', async () => {
   const got = await colorSamplePuzzles();
   assert.deepEqual(
     got.map((p) => p.title),
@@ -124,7 +125,7 @@ function fakeStore(existing = []) {
   };
 }
 
-test('loadSamples puts the two-tone samples first, then the color ones (S45)', async () => {
+test('loadSamples puts the two-tone samples first, then the color ones', async () => {
   const store = fakeStore();
   assert.deepEqual(await loadSamples(store), { added: 14, skipped: 0 });
   assert.deepEqual(store.puts, [...TWO_TONE.map((t) => t[0]), ...COLOR.map((t) => t[0])]);

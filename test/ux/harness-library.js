@@ -1,4 +1,4 @@
-// Helpers for the library line-cap UX checks (pipeline-linecap-library.js).
+// Helpers for the library pin checks (pins-library.js, pins-backup.js, pins-sets.js).
 // Records are built here from first principles (ids from puzzleId, verdicts from
 // the pure solver), so the expected values never come from the view under test.
 import { puzzleId } from '../../src/format.js';

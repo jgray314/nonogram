@@ -5,7 +5,7 @@ Browser nonogram maker and player: turns an image into a fair puzzle, then plays
 ## Run and verify
 
 - Serve: `python -m http.server 8123` from this folder, then open http://127.0.0.1:8123/ (use 127.0.0.1, not localhost).
-- Full check, same as CI: `npm test && npm run lint && npm run format:check && npm run typecheck` (about 5 seconds).
+- Full check, same as CI: `npm test && npm run lint && npm run format:check && npm run typecheck` (about 7 seconds).
 - Area suites, run after changes in those areas, not in CI: `npm run test:solver_slow` (about 8s), `npm run test:difficulty_very_slow` (about a minute).
 - UX checks: `npm run test:ux` (headless Chrome, runs in CI and pre-push), or open `/ux-checks.html` on the running server to watch them.
 - Setup on a fresh clone: `npm ci`, then `git config core.hooksPath .githooks` (once; enables the commit-msg and pre-push hooks).
@@ -14,6 +14,7 @@ Browser nonogram maker and player: turns an image into a fair puzzle, then plays
 
 - `FEATURES.json` is the verification ledger: each entry is a check gate with a command that proves it. `PROGRESS.md` is generated from it and lists those gates only. What the product does and what is open is in `README.md` and the backlog in `PLAN.md`.
 - The Create and Play views are folders, `src/views/create/` and `src/views/play/`: `index.js` owns `mount`/`unmount`, and each module gets one shared context (`context.js` documents its shape) and reaches the others as `ctx.<module>.fn()` at call time. ESLint rejects any `src/` file over 300 lines and any storage access outside `src/store.js`; inline `eslint-disable` comments are ignored.
+- Six modules are split into several files with the old path kept: `color.js`, `format.js`, `create-logic.js`, `samples.js`, `views/library.js` and `views/grid.js`. A leaf (`color-space.js`, `format-keys.js`, `create-verdict.js`, `samples-art.js`, `views/library-state.js`, `views/grid-layout.js`) imports nothing from its family, siblings come next, the old path last, and no new file imports the old path (`test/module_graph.test.js` pins that and the absence of cycles). The old path keeps its export set exactly: `export *` where the new file adds no names (`format.js`, `create-logic.js`), a named `export { ... } from` list where it does (`color.js`, `grid.js`), a plain import where the old path never exported the moved names (`samples.js`, `library.js`). `test/split_*.test.js` pin that layout by reading source text, so they are a tax on the next refactor: delete one on purpose when its files are merged. The tools that prove a split changed no behavior are in the README ("Refactor tools").
 - `PLAN.md` holds decisions D1 to D29, contracts and the backlog. `docs/` holds research and review records, `docs/plans/` the plans for upcoming work, and `FUTURE-WORK.md` the agreed next improvements.
 
 ## Rules

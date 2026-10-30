@@ -724,4 +724,36 @@ Reconciliation: no finding was contradicted by the other lens. L1-3 and L2-4 are
 
 ## Backlog sweep (step 0, run alongside the lenses)
 
-Flagged and waiting on the owner (fix now, re-defer with a new trigger, or kill): the process trial for feature lists (its trigger fired at pass 7 and the judgment was never recorded); the untyped `ctx.<module>` calls (the named trigger, this plan, ran without touching it); the three pass-8 follow-ups (`saveSet` id guard, untested teardown paths, crop-box drag); the two solver items from 2026-10-08 that have never fired. Closed without asking: D24's finished-set UX check (done, `pin-sets-complete-mosaic-size`, `3388a47`).
+Flagged and decided by the owner on 2026-10-30:
+- **Process trial for feature lists:** re-deferred; new trigger is the first feature round after line-cap-300 that adds rows with a `plan`, judged at its gate (`PLAN.md`).
+- **Untyped `ctx.<module>` calls:** re-deferred; new trigger is the first module method rename in a view's `ctx`, or the next round that edits more than one module of `create/` or `play/` (`PLAN.md`).
+- **The two solver items from 2026-10-08:** killed (neither "revisit if" condition came up in nine passes), epitaph in `PLAN.md`.
+- **Pass-8 follow-ups (`saveSet` id guard, untested teardown paths, crop-box drag):** being decided one by one with the owner.
+- Closed without asking: D24's finished-set UX check (done, `pin-sets-complete-mosaic-size`, `3388a47`).
+
+## Retrospective (pass 9)
+
+### The owner's lessons (her words)
+
+- "phase 0 restart and time to complete really surprised me. Wish there had been more of a call out of expected wall clock time there."
+- "Restructuring took more time and was more challenging than expected. I think this was more about gaps in validation and mutation analysis rather than the complexity of the refactor though. Good lesson to keep in mind."
+- "Repeat challenges around timing is interesting, but perhaps unsurprising in hindsight given the expansion in validation. I'll want to check for double and low value coverage later and see about structuring tests for appropriate review weight."
+- "Worth keeping in mind what are the long pulls per wave and calling out the expectations around them"
+- Not answered: what worked that should become standard, and where the process or the assistant got in the way. The question of whether about 5,500 non-`src` lines was the right size for a +100-line `src` change was answered only through the test-weight note above.
+
+### Dispositions
+
+| Lesson | Disposition |
+|---|---|
+| Phase 0's length and restart were a surprise; no wall-clock call-out | **Applied.** `/plan-review` checklist item 19 (expected wall clock per wave, the long pulls named, a time box and a smaller-lane fallback for each); memory `feedback-wallclock-long-pulls` |
+| Restructuring was harder because of validation and mutation-analysis gaps, not the refactor | **Applied.** Item 19 counts the safety net in a wave's estimate; item 14 already requires the audit first. The evidence is in this round: the moves were byte-identical, and the audits, tools and closing tests were most of the time |
+| Repeated timing trouble follows from the expansion of validation; check for double and low-value coverage, structure tests by review weight | **Deferred.** `PLAN.md` backlog: run `/test-prune` over the round's tests and group or tag load-bearing tests apart from layout pins. Trigger: before the next feature round starts |
+| Name the long pulls per wave and the expectations around them | **Applied.** Item 19 and the memory above |
+| (draft) Plan review earned its cost: the second review found four blocking defects against the real code | **Noted only.** Already the rule (item 13 onward, plan gate) |
+| (draft) Mutation audits are a floor: three real gaps surfaced later and two grid details only `dom-compare` sees | **Applied.** The refactor tools are documented and re-runnable (README "Refactor tools"); the gaps are in the `PLAN.md` backlog |
+| (draft) Guards break in the refactor they guard (the self-check string, the stale recorded timing, a verify that ignores deleted files) | **Applied.** `scripts/verify-files.mjs`, the self-check chained in the verify, timings re-measured. **Noted only** as general practice: run a tool's own self-check in the change that moves what it reads |
+| (draft) Round-named files and ids rot | **Applied.** Renamed to purpose names at this gate; `/plan-review` item 18 now says the lane brief names files by purpose, not by round |
+| (draft) Long lanes cost time; a usage limit cut four lanes off | **Applied** with item 19. The limit itself: **noted only**, nothing to change |
+| (draft) Lanes edited files they did not own (the pinned id list, the stub test) | **Noted only.** One registry file per lane was the fix and worked for 2b and 2c; the id list stays shared on purpose so a deleted check cannot go unnoticed |
+
+**Pass 9 status:** open. One backlog decision remains with the owner (the three pass-8 follow-ups, one by one).
